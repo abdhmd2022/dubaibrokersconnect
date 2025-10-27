@@ -227,10 +227,11 @@ class AdminDashboard extends StatelessWidget {
                       _roleChip("Broker", Colors.blue, Icons.badge),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                 /* const SizedBox(height: 8),
                   Text("Welcome back, $fullName ($roleText)",
                       style: GoogleFonts.poppins(
-                          fontSize: 14, color: Colors.grey[600])),
+                          fontSize: 14, color: Colors.grey[600])),*/
+
                   const SizedBox(height: 40),
 
                   /// Summary Cards Grid
@@ -263,7 +264,10 @@ class AdminDashboard extends StatelessWidget {
                   /// Action Cards in Responsive 2x2 Grid
                   LayoutBuilder(builder: (context, constraints) {
                     int crossAxisCount = constraints.maxWidth < 800 ? 1 : 2;
-                    double aspectRatio = constraints.maxWidth < 800 ? 2.5 : 2.0;
+
+                    // 👇 tweak this value to increase/decrease height
+                    double aspectRatio = constraints.maxWidth < 800 ? 3.0 : 2.6;
+                    // smaller aspect ratio = taller cards
 
                     return GridView.count(
                       crossAxisCount: crossAxisCount,
@@ -358,11 +362,11 @@ class AdminDashboard extends StatelessWidget {
       width: width,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: bgColor.withOpacity(0.3),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: bgColor.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, 5))
         ],

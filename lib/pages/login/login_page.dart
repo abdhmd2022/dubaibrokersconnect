@@ -265,7 +265,7 @@ class _LoginPageState extends State<LoginPage> {
           _mode == AuthMode.login
               ? 'Sign in to continue'
               : _mode == AuthMode.signup
-              ? 'Create your broker account'
+              ? 'Create your account'
               : 'Recover your password',
           style: const TextStyle(fontSize: 15, color: Colors.black54),
         ),
