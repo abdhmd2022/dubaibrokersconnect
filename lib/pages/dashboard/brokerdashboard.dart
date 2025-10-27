@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class BrokerDashboard extends StatelessWidget {
   final Map<String, dynamic> userData;
-  const BrokerDashboard({Key? key, required this.userData}) : super(key: key);
+  const BrokerDashboard({super.key, required this.userData});
 
   @override
   Widget build(BuildContext context) {

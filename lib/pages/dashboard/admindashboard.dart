@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminDashboard extends StatelessWidget {
   final Map<String, dynamic> userData;
-  const AdminDashboard({Key? key, required this.userData}) : super(key: key);
+  const AdminDashboard({super.key, required this.userData});
 
   @override
   Widget build(BuildContext context) {
