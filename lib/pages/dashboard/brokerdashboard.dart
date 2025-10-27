@@ -297,53 +297,105 @@ class BrokerDashboard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(Icons.dashboard_rounded,
-                            color: Colors.blue.shade600, size: 30),
-                        const SizedBox(width: 10),
-                        Text(
-                          "Broker Dashboard",
-                          style: GoogleFonts.poppins(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.blue.shade800,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        _roleChip("Broker", Colors.blue, Icons.badge),
-                        if (userData['isVerified'] == true) ...[
-                          const SizedBox(width: 6),
-                          _roleChip("Verified", Colors.green, Icons.verified),
-                        ],
-                        const Spacer(),
-                        Container(
-                          padding:
-                          const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.waving_hand_rounded,
-                                  color: Colors.orange, size: 18),
-                              const SizedBox(width: 6),
-                              Text(
-                                "Welcome, $fullName 👋",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.blueGrey[700],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // ─────────────── LEFT SIDE ───────────────
+                            Flexible(
+                              flex: 3,
+                              fit: FlexFit.tight,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.dashboard_rounded,
+                                      color: Colors.blue.shade600, size: 28),
+
+                                  const SizedBox(width: 10),
+
+                                  // Dashboard title with ellipsis
+                                  Flexible(
+                                    child: Text(
+                                      "Broker Dashboard",
+                                      overflow: TextOverflow.ellipsis,
+                                      softWrap: false,
+                                      maxLines: 1,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.blue.shade800,
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 10),
+
+                                  // Broker badge
+                                  Flexible(
+                                    flex: 0,
+                                    child: _roleChip("Broker", Colors.blue, Icons.badge),
+                                  ),
+
+                                  const SizedBox(width: 6),
+
+                                  // Verified badge
+                                  if (userData['isVerified'] == true)
+                                    Flexible(
+                                      flex: 0,
+                                      child:
+                                      _roleChip("Verified", Colors.green, Icons.verified),
+                                    ),
+                                ],
+                              ),
+                            ),
+
+                            // ─────────────── RIGHT SIDE ───────────────
+                            Flexible(
+                              flex: 2,
+                              fit: FlexFit.tight,
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Container(
+                                  padding:
+                                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.waving_hand_rounded,
+                                          color: Colors.orange, size: 18),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          "Welcome, $fullName 👋",
+                                          overflow: TextOverflow.ellipsis,
+                                          softWrap: false,
+                                          maxLines: 1,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.blueGrey[700],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
+
+
+
 
                   const SizedBox(height: 40),
 
@@ -431,19 +483,35 @@ class BrokerDashboard extends StatelessWidget {
 
   /// Role Chip
   static Widget _roleChip(String text, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        constraints: const BoxConstraints(maxWidth: 100),
+        decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8)),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 4),
-          Text(text,
-              style: GoogleFonts.poppins(
-                  color: color, fontWeight: FontWeight.w600, fontSize: 12)),
-        ],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                text,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                maxLines: 1,
+                style: GoogleFonts.poppins(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11.5,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

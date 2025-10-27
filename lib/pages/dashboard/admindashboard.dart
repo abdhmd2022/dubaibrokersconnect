@@ -216,70 +216,124 @@ class AdminDashboard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ─────────────── HEADER ───────────────
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.orange.shade50, Colors.white],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.orange.withOpacity(0.08),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(Icons.dashboard_customize_rounded,
-                            color: Colors.orange.shade700, size: 30),
-                        const SizedBox(width: 10),
-                        Text(
-                          "Admin Dashboard",
-                          style: GoogleFonts.poppins(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.orange.shade800,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        _roleChip("Admin", Colors.orange, Icons.admin_panel_settings),
-                        const SizedBox(width: 6),
-                        _roleChip("Broker", Colors.blue, Icons.badge),
-                        const Spacer(),
-                        Container(
-                          padding:
-                          const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.waving_hand_rounded,
-                                  color: Colors.orange, size: 18),
-                              const SizedBox(width: 6),
-                              Text(
-                                "Welcome, $fullName 👋",
+              Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.orange.shade50, Colors.white],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.orange.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // ─────────────── LEFT SIDE ───────────────
+                      Flexible(
+                        flex: 3,
+                        fit: FlexFit.tight,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.dashboard_customize_rounded,
+                                color: Colors.orange.shade700, size: 28),
+
+                            const SizedBox(width: 10),
+
+                            // Title (ellipsis when narrow)
+                            Flexible(
+                              child: Text(
+                                "Admin Dashboard",
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: false,
+                                maxLines: 1,
                                 style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.grey[800],
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.orange.shade800,
                                 ),
                               ),
-                            ],
+                            ),
+
+                            const SizedBox(width: 10),
+
+                            // Admin chip
+                            Flexible(
+                              flex: 0,
+                              child: _roleChip(
+                                "Admin",
+                                Colors.orange,
+                                Icons.admin_panel_settings,
+                              ),
+                            ),
+
+                            const SizedBox(width: 6),
+
+                            // Broker chip
+                            Flexible(
+                              flex: 0,
+                              child: _roleChip("Broker", Colors.blue, Icons.badge),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ─────────────── RIGHT SIDE ───────────────
+                      Flexible(
+                        flex: 2,
+                        fit: FlexFit.tight,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            padding:
+                            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.waving_hand_rounded,
+                                    color: Colors.orange, size: 18),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    "Welcome, $fullName 👋",
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: false,
+                                    maxLines: 1,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey[800],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
 
-                  const SizedBox(height: 40),
+
+              const SizedBox(height: 40),
 
                   // ─────────────── SUMMARY CARDS ───────────────
                   LayoutBuilder(
@@ -338,7 +392,7 @@ class AdminDashboard extends StatelessWidget {
                   LayoutBuilder(
                     builder: (context, constraints) {
                       int crossAxisCount = constraints.maxWidth < 800 ? 1 : 2;
-                          double aspectRatio = constraints.maxWidth < 800 ? 2.5 : 2.0;
+                          double aspectRatio = constraints.maxWidth < 800 ? 3.0 : 2.5;
 
                       return GridView.count(
                         crossAxisCount: crossAxisCount,
@@ -352,10 +406,11 @@ class AdminDashboard extends StatelessWidget {
                             title: "Manage Brokers",
                             desc:
                             "Review, approve and manage broker profiles with full access control.",
-                            buttonText: "Open Admin Panel",
+                            buttonText: "Open Broker(s) Panel",
                             buttonColor: kPrimaryColor,
                             icon: Icons.manage_accounts,
                           ),
+
                           _modernActionCard(
                             title: "Broker Directory",
                             desc: "View all approved brokers in the member directory.",
@@ -414,19 +469,35 @@ class AdminDashboard extends StatelessWidget {
 
   /// Role Chip
   static Widget _roleChip(String text, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        constraints: const BoxConstraints(maxWidth: 100),
+        decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8)),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 4),
-          Text(text,
-              style: GoogleFonts.poppins(
-                  color: color, fontWeight: FontWeight.w600, fontSize: 12)),
-        ],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                text,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                maxLines: 1,
+                style: GoogleFonts.poppins(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11.5,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
