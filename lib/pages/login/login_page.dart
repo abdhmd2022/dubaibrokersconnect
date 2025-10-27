@@ -48,6 +48,8 @@ class _LoginPageState extends State<LoginPage> {
       _rememberMe = true;
       _login(autoLogin: true);
     }
+
+
   }
 
   Future<void> _login({bool autoLogin = false}) async {
@@ -72,7 +74,8 @@ class _LoginPageState extends State<LoginPage> {
       if (res.statusCode == 200 && data['success'] == true) {
         final userData = data['data']['user'];
 
-        // Save credentials if "Remember Me" checked
+        print('avatar -> $baseURL/${data['data']['user']['avatar']}');
+
         if (_rememberMe) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('email', _emailController.text.trim());

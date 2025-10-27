@@ -15,8 +15,10 @@ class BrokerDashboard extends StatelessWidget {
     final fullName =
     '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
     final email = userData['email'] ?? '';
-    final avatar = userData['avatar'] ?? '';
+    final avatar = '$baseURL/${userData['avatar']}' ?? '';
     final isAdmin = userData['role'] == 'ADMIN';
+    final bool isVerified = userData['isVerified'] ?? false;
+
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
@@ -155,12 +157,34 @@ class BrokerDashboard extends StatelessWidget {
 
 
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundImage: avatar.isNotEmpty
-                                      ? NetworkImage(avatar)
-                                      : const AssetImage('assets/collabrix_logo.png') as ImageProvider,
+                                Stack(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 22,
+                                      backgroundImage: avatar.isNotEmpty
+                                          ? NetworkImage(avatar)
+                                          : const AssetImage('assets/collabrix_logo.png') as ImageProvider,
+                                    ),
+                                    if (userData['isVerified'] == true)
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          padding: const EdgeInsets.all(2),
+                                          child: const Icon(
+                                            Icons.verified,
+                                            color: Colors.green,
+                                            size: 14,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
@@ -173,18 +197,58 @@ class BrokerDashboard extends StatelessWidget {
                                       Text(email,
                                           style: GoogleFonts.poppins(
                                               fontSize: 11, color: Colors.grey)),
+                                      const SizedBox(height: 4),
+
+                                      // 👇 Verified / Not Verified Badge
+
+                                      if(userData['isVerified'] == false)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: (userData['isVerified'] == true)
+                                              ? Colors.green.withOpacity(0.1)
+                                              : Colors.red.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              userData['isVerified'] == true
+                                                  ? Icons.verified
+                                                  : Icons.error_outline,
+                                              size: 14,
+                                              color: userData['isVerified'] == true
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              userData['isVerified'] == true
+                                                  ? "Verified"
+                                                  : "Not Verified",
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: userData['isVerified'] == true
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
                                 Icon(
-                                  isAdmin
-                                      ? Icons.admin_panel_settings
-                                      : Icons.badge_outlined,
+                                  isAdmin ? Icons.admin_panel_settings : Icons.badge_outlined,
                                   color: isAdmin ? Colors.orange : Colors.blue,
                                   size: 20,
                                 ),
                               ],
                             ),
+
 
                           ],
                         ),
@@ -211,58 +275,130 @@ class BrokerDashboard extends StatelessWidget {
           /// ---------- MAIN CONTENT ----------
           Expanded(
             child: SingleChildScrollView(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
+                  // ─────────────── HEADER ───────────────
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.blue.shade50, Colors.white],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.05),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(Icons.dashboard_rounded,
+                            color: Colors.blue.shade600, size: 30),
+                        const SizedBox(width: 10),
+                        Text(
+                          "Broker Dashboard",
+                          style: GoogleFonts.poppins(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        _roleChip("Broker", Colors.blue, Icons.badge),
+                        if (userData['isVerified'] == true) ...[
+                          const SizedBox(width: 6),
+                          _roleChip("Verified", Colors.green, Icons.verified),
+                        ],
+                        const Spacer(),
+                        Container(
+                          padding:
+                          const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.waving_hand_rounded,
+                                  color: Colors.orange, size: 18),
+                              const SizedBox(width: 6),
+                              Text(
+                                "Welcome, $fullName 👋",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.blueGrey[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // ─────────────── SUMMARY CARDS ───────────────
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      double cardWidth = (constraints.maxWidth - 60) / 4;
+                      if (constraints.maxWidth < 1000) {
+                        cardWidth = (constraints.maxWidth - 40) / 2;
+                      }
+                      if (constraints.maxWidth < 600) {
+                        cardWidth = constraints.maxWidth - 40;
+                      }
+
+                      return Wrap(
+                        spacing: 20,
+                        runSpacing: 20,
+                        children: [
+                          _modernSummaryCard(
+                              "Active Listings", "8", Icons.home_work,
+                              color: Colors.blue),
+                          _modernSummaryCard(
+                              "Collaborations", "4", Icons.handshake, color: Colors.teal),
+                          _modernSummaryCard(
+                              "Pending Deals", "2", Icons.access_time, color: Colors.orange),
+                          _modernSummaryCard(
+                              "Completed", "5", Icons.verified, color: Colors.green),
+                        ],
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 50),
+
+                  // ─────────────── RECENT COLLABORATIONS ───────────────
                   Row(
                     children: [
-                      Text("Broker Dashboard",
-                          style: GoogleFonts.poppins(
-                              fontSize: 28, fontWeight: FontWeight.w700)),
+                      Container(
+                        width: 4,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade600,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                       const SizedBox(width: 10),
-                      _roleChip("Broker", Colors.blue, Icons.badge),
+                      Text(
+                        "Recent Collaborations",
+                        style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.blueGrey[800]),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text("Welcome back, $fullName (Broker)",
-                      style: GoogleFonts.poppins(
-                          fontSize: 14, color: Colors.grey[600])),
-                  const SizedBox(height: 40),
-
-                  // Summary Cards
-                  LayoutBuilder(builder: (context, constraints) {
-                    double cardWidth = (constraints.maxWidth - 60) / 4;
-                    if (constraints.maxWidth < 1000) {
-                      cardWidth = (constraints.maxWidth - 40) / 2;
-                    }
-                    if (constraints.maxWidth < 600) {
-                      cardWidth = constraints.maxWidth - 40;
-                    }
-
-                    return Wrap(
-                      spacing: 20,
-                      runSpacing: 20,
-                      children: [
-                        _summaryCard("Active Listings", "8", Icons.home_work,
-                            Colors.blue.shade100, Colors.blue, cardWidth),
-                        _summaryCard("Collaborations", "4", Icons.handshake,
-                            Colors.teal.shade100, Colors.teal, cardWidth),
-                        _summaryCard("Pending Deals", "2", Icons.access_time,
-                            Colors.amber.shade100, Colors.orange, cardWidth),
-                        _summaryCard("Completed", "5", Icons.verified,
-                            Colors.green.shade100, Colors.green, cardWidth),
-                      ],
-                    );
-                  }),
-                  const SizedBox(height: 40),
-
-                  // Recent Collaborations
-                  Text("Recent Collaborations",
-                      style: GoogleFonts.poppins(
-                          fontSize: 18, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 20),
                   _buildRecentCollaborations(),
                 ],
@@ -319,11 +455,11 @@ class BrokerDashboard extends StatelessWidget {
       width: width,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: bgColor.withOpacity(0.3),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: bgColor.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, 5))
         ],
@@ -526,6 +662,61 @@ class BrokerDashboard extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  static Widget _modernSummaryCard(String title, String count, IconData icon,
+      {required Color color}) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        width: 260,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+          border: Border.all(color: color.withOpacity(0.15)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              count,
+              style: GoogleFonts.poppins(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
