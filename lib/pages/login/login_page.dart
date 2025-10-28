@@ -6,6 +6,9 @@ import 'package:a2abrokerapp/constants.dart';
 import 'package:a2abrokerapp/pages/dashboard/admindashboard.dart';
 import 'package:a2abrokerapp/pages/dashboard/brokerdashboard.dart';
 
+import '../dashboard/admin_shell.dart';
+import '../dashboard/broker_shell.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -85,16 +88,15 @@ class _LoginPageState extends State<LoginPage> {
         if (userData['role'] == 'ADMIN') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-                builder: (_) => AdminDashboard(userData: userData)),
+            MaterialPageRoute(builder: (_) => AdminShell(userData: userData)),
           );
         } else {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-                builder: (_) => BrokerDashboard(userData: userData)),
+            MaterialPageRoute(builder: (_) => BrokerShell(userData: userData)),
           );
         }
+
       } else {
         _showError(data['message'] ?? 'Invalid credentials');
       }
