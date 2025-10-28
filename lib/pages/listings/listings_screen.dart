@@ -143,6 +143,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
   /// 🔹 Fetch first page (initial or filters)
   Future<void> fetchListings({Map<String, dynamic>? filters}) async {
     setState(() {
+      listings.clear();
+      allListings.clear();
       isLoading = true;
       errorMessage = null;
       currentPage = 1;
@@ -160,6 +162,20 @@ class _ListingsScreenState extends State<ListingsScreen> {
     setState(() => isLoadingMore = true);
     await _fetchPage(page: currentPage + 1);
     setState(() => isLoadingMore = false);
+  }
+  bool get isFilterApplied {
+    return selectedPurpose != "All" ||
+        selectedCategory != "All" ||
+        selectedPropertyType != null ||
+        selectedFurnishing != null ||
+        selectedStatus != null ||
+        selectedRooms != null ||
+        _titleSearchController.text.trim().isNotEmpty ||
+        _locationSearchController.text.trim().isNotEmpty ||
+        _minPriceController.text.trim().isNotEmpty ||
+        _maxPriceController.text.trim().isNotEmpty ||
+        _minSizeController.text.trim().isNotEmpty ||
+        _maxSizeController.text.trim().isNotEmpty;
   }
 
   /// 🔹 Core API call for a specific page
@@ -230,6 +246,71 @@ class _ListingsScreenState extends State<ListingsScreen> {
     } catch (e) {
       setState(() => errorMessage = 'Error fetching properties: $e');
     }
+  }
+
+  Future<void> _togglePropertyStatus(String propertyId, String currentStatus) async {
+    final newStatus = currentStatus == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
+    try {
+      final token = await AuthService.getToken();
+      final url = Uri.parse('$baseURL/api/properties/$propertyId');
+
+      print('url -> $url');
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(
+            {'listingStatus': newStatus}
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (data['success'] == true) {
+
+
+          // ✅ Reload and reapply filters if any are active
+          if (isFilterApplied) {
+            await fetchListings(); // always fetch fresh data from API
+            _applyFilters(); // then reapply current filters automatically
+          } else {
+            await fetchListings(); // no filters, just reload full list
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Failed to update status')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed: $e')),
+      );
+    }
+  }
+
+  void _viewPropertyDetails(int id) {
+    /*Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PropertyDetailsScreen(propertyId: id)),
+    );*/
+  }
+
+
+  void _editProperty(int id) {
+   /* Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EditPropertyScreen(propertyId: id)),
+    );*/
   }
 
 
@@ -1036,6 +1117,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                 const Spacer(),
 
+
+
                 // 👤 Broker + Rating
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -1062,7 +1145,132 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       ),
                     ],
                   ),
-                )
+                ),
+
+                 SizedBox(height: 10),
+
+                const Divider(
+                  color: Colors.grey,
+                  thickness: 0.8,
+                ),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // 🟢 Active / Inactive Switch (Left side)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Switch(
+                          value: e['listingStatus'] == 'ACTIVE',
+                          activeColor: Colors.white,
+                          activeTrackColor: Colors.green,
+                          inactiveThumbColor: Colors.white,
+                          inactiveTrackColor: Colors.grey.shade400,
+                          onChanged: (bool value) async {
+                            await _togglePropertyStatus(e['id'], e['listingStatus']);
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          e['listingStatus'] == 'ACTIVE' ? "Active" : "Inactive",
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            color: e['listingStatus'] == 'ACTIVE'
+                                ? Colors.green
+                                : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // ✏️ Edit + 👁 View Chips (Right side)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // ✏️ Edit Chip
+                        InkWell(
+                          onTap: () => _editProperty(e['id']),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFFA726), Color(0xFFFF7043)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.orange.withOpacity(0.25),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.edit_outlined, color: Colors.white, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "Edit",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        // 👁 View Chip
+                        InkWell(
+                          onTap: () => _viewPropertyDetails(e['id']),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF1976D2), Color(0xFF0D47A1)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue.withOpacity(0.25),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.visibility_outlined,
+                                    color: Colors.white, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "View",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
 
               ],
             ),
@@ -1269,6 +1477,132 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                         const SizedBox(height: 10),
 
+// 🔸 Divider line above action buttons
+                        Divider(
+                          color: Colors.grey.shade300,
+                          thickness: 1,
+                          height: 10,
+                        ),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // 🟢 Active / Inactive Switch (Left side)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Switch(
+                                  value: e['listingStatus'] == 'ACTIVE',
+                                  activeColor: Colors.white,
+                                  activeTrackColor: Colors.green,
+                                  inactiveThumbColor: Colors.white,
+                                  inactiveTrackColor: Colors.grey.shade400,
+                                  onChanged: (bool value) async {
+                                    await _togglePropertyStatus(e['id'], e['listingStatus']);
+                                  },
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  e['listingStatus'] == 'ACTIVE' ? "Active" : "Inactive",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    color: e['listingStatus'] == 'ACTIVE'
+                                        ? Colors.green
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            // ✏️ Edit + 👁 View Chips (Right side)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // ✏️ Edit Chip
+                                InkWell(
+                                  onTap: () => _editProperty(e['id']),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFFFA726), Color(0xFFFF7043)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.orange.withOpacity(0.25),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.edit_outlined, color: Colors.white, size: 16),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          "Edit",
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(width: 10),
+
+                                // 👁 View Chip
+                                InkWell(
+                                  onTap: () => _viewPropertyDetails(e['id']),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF1976D2), Color(0xFF0D47A1)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.blue.withOpacity(0.25),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.visibility_outlined,
+                                            color: Colors.white, size: 16),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          "View",
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+
+
 
                       ],
                     ),
@@ -1290,7 +1624,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
             // 👤 Broker Chip
             Positioned(
-              bottom: 36,
+              bottom: 92,
               right: 18,
               child:Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -1318,6 +1652,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 ),
               ),
             ),
+
+
+
 
           ],
         );
