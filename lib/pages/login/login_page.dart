@@ -76,15 +76,20 @@ class _LoginPageState extends State<LoginPage> {
 
       if (res.statusCode == 200 && data['success'] == true) {
         final userData = data['data']['user'];
+        final accessToken = data['data']['accessToken']; // 👈 token from response
+        final user_id = data['data']['user']['id']; // 👈 token from response
 
-        print('avatar -> $baseURL/${data['data']['user']['avatar']}');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', accessToken);
+        await prefs.setInt('user_id', user_id);
+
 
         if (_rememberMe) {
-          final prefs = await SharedPreferences.getInstance();
           await prefs.setString('email', _emailController.text.trim());
           await prefs.setString('password', _passwordController.text.trim());
         }
 
+        // ✅ Navigate based on role
         if (userData['role'] == 'ADMIN') {
           Navigator.pushReplacement(
             context,
@@ -96,8 +101,8 @@ class _LoginPageState extends State<LoginPage> {
             MaterialPageRoute(builder: (_) => BrokerShell(userData: userData)),
           );
         }
-
-      } else {
+      }
+      else {
         _showError(data['message'] ?? 'Invalid credentials');
       }
     } catch (e) {
