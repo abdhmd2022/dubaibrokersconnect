@@ -24,8 +24,22 @@ class ListingsScreen extends StatefulWidget {
 class _ListingsScreenState extends State<ListingsScreen> {
   bool isGridView = false;
   String selectedPurpose = "All";
+  bool isFormValid = true;
   String selectedCategory = "All";
+  List<String> propertyTypes = [];
+  bool isPropertyTypesLoading = false;
+  String? priceError; // for inline error message
+  final TextEditingController _minSizeController = TextEditingController();
+  final TextEditingController _maxSizeController = TextEditingController();
+
+  String? sizeError;
+
   bool showMoreFilters = false;
+  List<Map<String, dynamic>> allListings = []; // keep original data
+  final TextEditingController _titleSearchController = TextEditingController();
+  final TextEditingController _locationSearchController = TextEditingController();
+  final TextEditingController _minPriceController = TextEditingController();
+  final TextEditingController _maxPriceController = TextEditingController();
   String? selectedPropertyType;
   String? selectedFurnishing;
   String? selectedStatus;
@@ -46,6 +60,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   @override
   void initState() {
     super.initState();
+    fetchPropertyTypes();
     fetchListings();
     _scrollController.addListener(_handleScroll);
   }
@@ -53,7 +68,32 @@ class _ListingsScreenState extends State<ListingsScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _titleSearchController.dispose();
+    _locationSearchController.dispose();
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
+    _minSizeController.dispose();
+    _maxSizeController.dispose();
     super.dispose();
+  }
+  void _validateSizeFields() {
+    final min = double.tryParse(_minSizeController.text.trim());
+    final max = double.tryParse(_maxSizeController.text.trim());
+
+    if (min != null && max != null && max < min) {
+      sizeError = "Max size must be greater than Min size";
+    } else {
+      sizeError = null;
+    }
+
+    _updateFormValidity();
+  }
+
+
+  void _updateFormValidity() {
+    setState(() {
+      isFormValid = (priceError == null && sizeError == null);
+    });
   }
 
   /// 🔹 Auto-load more when scrolled near bottom
@@ -63,6 +103,40 @@ class _ListingsScreenState extends State<ListingsScreen> {
         !isLoadingMore &&
         currentPage < totalPages) {
       fetchMoreListings();
+    }
+  }
+
+  Future<void> fetchPropertyTypes() async {
+    try {
+      setState(() => isPropertyTypesLoading = true);
+
+      final token = await AuthService.getToken();
+      final url = Uri.parse('$baseURL/api/property-types');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          setState(() {
+            propertyTypes = (data['data'] as List)
+                .map((item) => item['name'].toString())
+                .toList();
+          });
+        }
+      } else {
+        debugPrint('Failed to load property types: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching property types: $e');
+    } finally {
+      setState(() => isPropertyTypesLoading = false);
     }
   }
 
@@ -108,13 +182,20 @@ class _ListingsScreenState extends State<ListingsScreen> {
           final List<dynamic> fetchedListings = data['data'];
 
           setState(() {
-            listings.addAll(fetchedListings.map((item) {
+
+            final parsed = fetchedListings.map<Map<String, dynamic>>((item) {
               return {
                 'id': item['id'],
                 'title': item['title'] ?? 'N/A',
                 'ref': item['referenceNumber'] ?? '-',
                 'price': item['price']?.toString() ?? '0',
                 'currency': item['currency'] ?? 'AED',
+                'transactionType': item['transactionType'] ?? 'Unknown',
+
+                'rooms': item['rooms'] ?? '0',
+                'bathrooms': item['bathrooms'] ?? '0',
+                'parkingSpaces': item['parkingSpaces'] ?? '0',
+
                 'unit': item['transactionType'] == 'RENT' ? '/yr' : '',
                 'location': item['location']?['completeAddress'] ?? 'Unknown',
                 'category': item['category'] ?? 'Residential',
@@ -129,7 +210,12 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     ? item['images'][0]
                     : null,
               };
-            }).toList());
+            }).toList();
+
+            allListings.addAll(parsed);
+            listings = List.from(allListings);
+
+
 
             currentPage = data['pagination']?['page'] ?? page;
             totalPages = data['pagination']?['totalPages'] ?? 1;
@@ -146,21 +232,90 @@ class _ListingsScreenState extends State<ListingsScreen> {
     }
   }
 
+
   /// 🔹 Apply Filters
   void _applyFilters() {
-    final filters = {
-      "purpose": selectedPurpose == "All" ? null : selectedPurpose,
-      "category": selectedCategory == "All" ? null : selectedCategory,
-      "propertyType": selectedPropertyType,
-      "minSize": minSize,
-      "maxSize": maxSize,
-      "rooms": selectedRooms,
-      "furnishing": selectedFurnishing,
-      "listingStatus": selectedStatus,
-    }..removeWhere((key, value) => value == null);
+    setState(() {
+      final titleQuery = _titleSearchController.text.trim().toLowerCase();
+      final locationQuery = _locationSearchController.text.trim().toLowerCase();
+      final minPrice = double.tryParse(_minPriceController.text) ?? 0;
+      final maxPrice = double.tryParse(_maxPriceController.text) ?? double.infinity;
 
-    print("✅ Applying filters: $filters");
-    fetchListings(filters: filters);
+      listings = allListings.where((e) {
+        final purposeOk = selectedPurpose == "All" ||
+            e['transactionType']?.toString().toLowerCase() ==
+                selectedPurpose.toLowerCase();
+
+        final categoryOk = selectedCategory == "All" ||
+            e['category']?.toString().toLowerCase() ==
+                selectedCategory.toLowerCase();
+
+        final typeOk = selectedPropertyType == null ||
+            e['type']?.toString().toLowerCase() ==
+                selectedPropertyType!.toLowerCase();
+
+        final furnishingOk = selectedFurnishing == null ||
+            e['furnished']
+                ?.toString()
+                .toLowerCase()
+                .contains(selectedFurnishing!.toLowerCase()) ==
+                true;
+
+        final statusOk = selectedStatus == null ||
+            e['status']
+                ?.toString()
+                .toLowerCase()
+                .contains(selectedStatus!.toLowerCase()) ==
+                true;
+
+        // 🧩 Convert size string like "1200 sqft" into numeric value
+        final sizeValue = double.tryParse(
+            e['size']?.toString().replaceAll(RegExp(r'[^0-9.]'), '') ?? '0') ??
+            0;
+        final sizeOk = (minSize == null || sizeValue >= minSize!) &&
+            (maxSize == null || sizeValue <= maxSize!);
+
+        // 🏠 Room filtering logic
+        final roomsOk = selectedRooms == null ||
+            (selectedRooms == "Studio" &&
+                e['rooms'].toString().toLowerCase().contains("studio")) ||
+            (selectedRooms == "4+" &&
+                int.tryParse(e['rooms'].toString()) != null &&
+                int.parse(e['rooms'].toString()) >= 4) ||
+            (selectedRooms != "Studio" &&
+                selectedRooms != "4+" &&
+                e['rooms'].toString() == selectedRooms);
+
+        // 🔍 Text-based search
+        final searchOk = titleQuery.isEmpty ||
+            e['title']?.toString().toLowerCase().contains(titleQuery) == true ||
+            e['ref']?.toString().toLowerCase().contains(titleQuery) == true ||
+            e['location']?.toString().toLowerCase().contains(titleQuery) == true ||
+            e['broker']?.toString().toLowerCase().contains(titleQuery) == true;
+
+        // 📍 Location search
+        final locationOk = locationQuery.isEmpty ||
+            e['location']?.toString().toLowerCase().contains(locationQuery) ==
+                true;
+
+        // 💰 Price filtering
+        final price = double.tryParse(e['price']?.toString() ?? '0') ?? 0;
+        final priceOk = price >= minPrice && price <= maxPrice;
+
+        return purposeOk &&
+            categoryOk &&
+            typeOk &&
+            furnishingOk &&
+            statusOk &&
+            sizeOk &&
+            roomsOk &&
+            searchOk &&
+            locationOk &&
+            priceOk;
+      }).toList();
+    });
+
+    print("✅ Filtered ${listings.length} / ${allListings.length}");
   }
 
   @override
@@ -247,7 +402,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                               ),
                               const SizedBox(height: 8),
                               _buildToggleChips(
-                                ["All", "Rent", "Buy"],
+                                ["All", "Rent", "Sale"],
                                 selectedPurpose,
                                     (val) => setState(() => selectedPurpose = val),
                               ),
@@ -293,6 +448,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                   const SizedBox(height: 25),
 
                   /// --- VIEW + SEARCH + FILTERS ---
+                  /// --- VIEW + SEARCH + FILTERS ---
                   Text("View & Filters",
                       style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w600,
@@ -300,120 +456,288 @@ class _ListingsScreenState extends State<ListingsScreen> {
                           color: Colors.grey[700])),
                   const SizedBox(height: 10),
 
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      _viewModeToggle(), // background changed to white below
-                      _searchField("Search by Title, Ref, Location..."),
-                      _searchField("Search for locations..."),
-                      _searchField("Min Price (AED)"),
-                      _searchField("Max Price (AED)"),
-                      OutlinedButton.icon(
-                        onPressed: () => setState(() => showMoreFilters = !showMoreFilters),
-                        icon: ShaderMask(
-                          shaderCallback: (bounds) => const LinearGradient(
-                            colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ).createShader(bounds),
-                          child: const Icon(Icons.filter_alt_outlined,
-                              color: Colors.white, size: 18),
-                        ),
-                        label: Text(
-                          showMoreFilters ? "Hide Filters" : "More Filters",
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                      /// 🔹 Top filter row (view + basic filters)
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          _viewModeToggle(),
+                          _searchField("Search by Title, Ref, Location...", _titleSearchController),
+                          _searchField("Search for locations...", _locationSearchController),
+                          _priceField("Min Price (AED)", _minPriceController, isMin: true),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              _priceField("Max Price (AED)", _maxPriceController, isMin: false),
+
+                            ],
                           ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          side: BorderSide(color: Colors.grey.shade300),
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
+                          OutlinedButton.icon(
+                            onPressed: () =>
+                                setState(() => showMoreFilters = !showMoreFilters),
+                            icon: ShaderMask(
+                              shaderCallback: (bounds) => const LinearGradient(
+                                colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ).createShader(bounds),
+                              child: const Icon(Icons.filter_alt_outlined,
+                                  color: Colors.white, size: 18),
+                            ),
+                            label: Text(
+                              showMoreFilters ? "Hide Filters" : "More Filters",
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: BorderSide(color: Colors.grey.shade300),
+                              padding:
+                              const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ],
                       ),
 
+                      /// 🔹 Expandable “More Filters” section
+                      AnimatedCrossFade(
+                        firstChild: const SizedBox.shrink(),
+                        secondChild: Padding(
+                          padding: const EdgeInsets.only(top: 18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                              const SizedBox(height: 18),
+                              Wrap(
+                                runSpacing: 14,
+                                spacing: 16,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  isPropertyTypesLoading
+                                      ? SizedBox(
+                                    width: 180,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(
+                                          width: 16,
+                                          height: 16,
+
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "Loading...",
+                                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                      : _buildCompactDropdown(
+                                    title: "Property Type",
+                                    value: selectedPropertyType,
+                                    items: propertyTypes,
+                                    onChanged: (val) => setState(() => selectedPropertyType = val),
+                                  ),
+
+
+                                  _buildCompactDropdown(
+                                    title: "No. of Rooms",
+                                    value: selectedRooms,
+                                    items: ["Studio", "1", "2", "3", "4+", "Penthouse"],
+                                    onChanged: (val) {
+                                      setState(() => selectedRooms = val);
+                                    },
+                                  ),
+                                  _buildCompactDropdown(
+                                    title: "Furnishing",
+                                    value: selectedFurnishing,
+                                    items: ["Furnished", "Semi-Furnished", "Unfurnished"],
+                                    onChanged: (val) {
+                                      setState(() => selectedFurnishing = val);
+                                    },
+                                  ),
+                                  _buildCompactDropdown(
+                                    title: "Status",
+                                    value: selectedStatus,
+                                    items: ["Ready_to_Move", "Off-Plan", "Rented", "Available in Future"],
+                                    onChanged: (val) {
+                                      setState(() => selectedStatus = val);
+                                    },
+                                  ),
+                                  _sizeField("Min Size (sqft)", _minSizeController, isMin: true),
+
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _sizeField("Max Size (sqft)", _maxSizeController, isMin: false),
+
+
+                                    ],
+                                  ),
+
+
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        crossFadeState: showMoreFilters
+                            ? CrossFadeState.showSecond
+                            : CrossFadeState.showFirst,
+                        duration: const Duration(milliseconds: 300),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      /// 🔹 Always visible Apply + Reset Buttons
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    /// 🔹 Reset simple filters
+                                    selectedPurpose = "All";
+                                    selectedCategory = "All";
+
+                                    /// 🔹 Reset dropdown filters
+                                    selectedPropertyType = null;
+                                    selectedFurnishing = null;
+                                    selectedStatus = null;
+                                    selectedRooms = null;
+
+                                    /// 🔹 Reset text fields & controllers
+                                    _minPriceController.clear();
+                                    _maxPriceController.clear();
+                                    _minSizeController.clear();
+                                    _maxSizeController.clear();
+                                    _titleSearchController.clear();
+                                    _locationSearchController.clear();
+
+                                    /// 🔹 Reset values & validation states
+                                    minSize = null;
+                                    maxSize = null;
+
+                                    priceError = null;
+                                    sizeError = null;
+                                    isFormValid = true;
+
+                                    /// 🔹 Collapse more filters
+                                    showMoreFilters = false;
+
+                                    /// 🔹 Restore all listings
+                                    listings = List.from(allListings);
+                                  });
+                                },
+                                icon: const Icon(Icons.refresh, color: Colors.black54),
+                                label: Text(
+                                  "Reset Filters",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(width: 12),
+                              ElevatedButton.icon(
+                                onPressed: isFormValid ? _applyFilters : null, // disable when invalid
+                                icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                                label: Text(
+                                  "Apply",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isFormValid ? kPrimaryColor : Colors.grey.shade400,
+                                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+
+
+
+                            ],
+                          ),
+                          if (priceError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4, top: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.redAccent,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      priceError!,
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.redAccent,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          SizedBox(
+                            height: 22,
+                            child: AnimatedOpacity(
+                              opacity: sizeError != null ? 1 : 0,
+                              duration: const Duration(milliseconds: 200),
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 4, top: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.error_outline, color: Colors.redAccent, size: 14),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        sizeError ?? "",
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.redAccent,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        ],
+                      )
 
                     ],
                   ),
 
-                  AnimatedCrossFade(
-                    firstChild: const SizedBox.shrink(),
-                    secondChild: Padding(
-                      padding: const EdgeInsets.only(top: 18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                          const SizedBox(height: 18),
-                          Wrap(
-                            runSpacing: 14,
-                            spacing: 16,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              _buildCompactDropdown(
-                                title: "Property Type",
-                                value: selectedPropertyType,
-                                items: ["Apartment", "Villa", "Townhouse", "Office", "Warehouse"],
-                                onChanged: (val) => setState(() => selectedPropertyType = val),
-                              ),
-                              _buildCompactDropdown(
-                                title: "No. of Rooms",
-                                value: selectedRooms,
-                                items: ["Studio", "1", "2", "3", "4+", "Penthouse"],
-                                onChanged: (val) => setState(() => selectedRooms = val),
-                              ),
-                              _buildCompactDropdown(
-                                title: "Furnishing",
-                                value: selectedFurnishing,
-                                items: ["Furnished", "Semi-Furnished", "Unfurnished"],
-                                onChanged: (val) => setState(() => selectedFurnishing = val),
-                              ),
-                              _buildCompactDropdown(
-                                title: "Status",
-                                value: selectedStatus,
-                                items: ["Ready to Move", "Off-Plan", "Rented", "Available in Future"],
-                                onChanged: (val) => setState(() => selectedStatus = val),
-                              ),
-                              _buildCompactField(
-                                label: "Min Size (sqft)",
-                                onChanged: (v) => setState(() => minSize = int.tryParse(v ?? '')),
-                              ),
-                              _buildCompactField(
-                                label: "Max Size (sqft)",
-                                onChanged: (v) => setState(() => maxSize = int.tryParse(v ?? '')),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: ElevatedButton.icon(
-                                  onPressed: _applyFilters,
-                                  icon: const Icon(Icons.check_circle_outline,
-                                      color: Colors.white, size: 18),
-                                  label: Text("Apply",
-                                      style: GoogleFonts.poppins(
-                                          color: Colors.white, fontWeight: FontWeight.w600)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: kPrimaryColor,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 22, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    crossFadeState: showMoreFilters
-                        ? CrossFadeState.showSecond
-                        : CrossFadeState.showFirst,
-                    duration: const Duration(milliseconds: 300),
-                  ),
                 ],
               ),
             ),
@@ -665,6 +989,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     _iconInfo(Icons.king_bed_outlined, "${e['rooms'] ?? 0}"),
                     _iconInfo(Icons.bathtub_outlined, "${e['bathrooms'] ?? 0}"),
                     _iconInfo(Icons.square_foot, e['size'] ?? ''),
+                    _iconInfo(Icons.local_parking_rounded, "${e['parkingSpaces'] ?? 0}"),
                     _iconInfo(
                       furnished
                           ? Icons.chair_alt_outlined
@@ -878,8 +1203,36 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                 ],
                               ),
                             ),
+
+                            // 💼 Transaction Type Chip
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.indigo.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.indigo.withOpacity(0.25)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.swap_horiz_rounded, size: 14, color: Colors.indigo),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'For ${(e['transactionType'] ?? 'Unknown').toString()}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.indigo.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
                           ],
                         ),
+
+
 
                         const SizedBox(height: 10),
 
@@ -889,6 +1242,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                             _iconInfo(Icons.king_bed_outlined, "${e['rooms'] ?? 0}"),
                             _iconInfo(Icons.bathtub_outlined, "${e['bathrooms'] ?? 0}"),
                             _iconInfo(Icons.square_foot, e['size'] ?? ''),
+                            _iconInfo(Icons.local_parking_rounded, "${e['parkingSpaces'] ?? 0}"),
+
                             _iconInfo(
                               furnished ? Icons.chair_alt_outlined : Icons.weekend_outlined,
                               furnished ? "Furnished" : "Unfurnished",
@@ -914,32 +1269,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                         const SizedBox(height: 10),
 
-                        // 👤 Broker Chip
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: Colors.brown.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.brown.withOpacity(0.25)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.person_outline,
-                                  size: 14, color: Colors.brown),
-                              const SizedBox(width: 4),
-                              Text(
-                                "${e['broker']}  ⭐ ${e['rating'] ?? '-'}",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12.5,
-                                  color: Colors.brown.shade700,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
+
                       ],
                     ),
                   ),
@@ -957,6 +1287,38 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 icon: active ? Icons.verified_rounded : Icons.block_rounded,
               ),
             ),
+
+            // 👤 Broker Chip
+            Positioned(
+              bottom: 36,
+              right: 18,
+              child:Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.brown.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.brown.withOpacity(0.25)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.person_outline,
+                        size: 14, color: Colors.brown),
+                    const SizedBox(width: 4),
+                    Text(
+                      "${e['broker']}  ⭐ ${e['rating'] ?? '-'}",
+                      style: GoogleFonts.poppins(
+                        fontSize: 12.5,
+                        color: Colors.brown.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           ],
         );
       }).toList(),
@@ -981,6 +1343,63 @@ class _ListingsScreenState extends State<ListingsScreen> {
     );
   }
 
+  Widget _sizeField(String label, TextEditingController controller, {bool isMin = false}) {
+    return SizedBox(
+      width: 160,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // allow int & 2 decimals
+        ],
+        onChanged: (v) {
+          _validateSizeFields();
+          if (v.isNotEmpty) {
+            if (isMin) {
+              minSize = double.tryParse(v)?.toInt();
+            } else {
+              maxSize = double.tryParse(v)?.toInt();
+            }
+          } else {
+            if (isMin) {
+              minSize = null;
+            } else {
+              maxSize = null;
+            }
+          }
+        },
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Colors.grey.shade700,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(
+              color: sizeError != null && !isMin
+                  ? Colors.redAccent
+                  : Colors.grey.shade400,
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(
+              color: sizeError != null && !isMin
+                  ? Colors.redAccent
+                  : kPrimaryColor,
+              width: 1.3,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        style: GoogleFonts.poppins(fontSize: 13),
+      ),
+    );
+  }
 
   Widget _buildToggleChips(
       List<String> options, String selected, Function(String) onSelected) {
@@ -1063,10 +1482,11 @@ class _ListingsScreenState extends State<ListingsScreen> {
     );
   }
 
-  Widget _searchField(String hint) {
+  Widget _searchField(String hint, TextEditingController controller) {
     return SizedBox(
       width: 200,
       child: TextField(
+        controller: controller,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle:
@@ -1085,6 +1505,53 @@ class _ListingsScreenState extends State<ListingsScreen> {
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: kPrimaryColor, width: 1.2)),
+        ),
+      ),
+    );
+  }
+
+  Widget _priceField(String hint, TextEditingController controller, {bool isMin = false}) {
+    return SizedBox(
+      width: 200,
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // ✅ allow int & 2-decimal float
+        ],
+        onChanged: (value) {
+          final minVal = double.tryParse(_minPriceController.text) ?? 0;
+          final maxVal = double.tryParse(_maxPriceController.text) ?? 0;
+
+          // ✅ Validation logic
+          if (_minPriceController.text.isNotEmpty &&
+              _maxPriceController.text.isNotEmpty &&
+              maxVal < minVal) {
+            setState(() => priceError = "Max Price should be greater than Min Price");
+          } else {
+            setState(() => priceError = null);
+          }
+        },
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade500),
+          prefixIcon: const Icon(Icons.currency_exchange, size: 18, color: Colors.grey),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          filled: true,
+          fillColor: kFieldBackgroundColor,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: kPrimaryColor, width: 1.2),
+          ),
+          errorText: (isMin || !isMin) ? null : null, // handled separately
         ),
       ),
     );
