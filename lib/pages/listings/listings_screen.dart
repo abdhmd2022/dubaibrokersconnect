@@ -1,16 +1,18 @@
 import 'dart:convert';
 
+import 'package:a2abrokerapp/pages/listings/property_details_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants.dart';
 import 'package:http/http.dart' as http;
 import '../../services/auth_service.dart';
-import 'package:shimmer/shimmer.dart';
 import 'dart:math' as math;
 import 'package:flutter/animation.dart';
 import '../../widgets/animated_logo_loader.dart';
 import 'package:vector_math/vector_math_64.dart' show Matrix4;
+
+import 'edit_property_screen.dart';
 
 
 class ListingsScreen extends StatefulWidget {
@@ -206,12 +208,12 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 'ref': item['referenceNumber'] ?? '-',
                 'price': item['price']?.toString() ?? '0',
                 'currency': item['currency'] ?? 'AED',
+                'amenitiesTagIds' : item['amenitiesTagIds'],
                 'transactionType': item['transactionType'] ?? 'Unknown',
-
+                'description': item['description'] ?? '',
                 'rooms': item['rooms'] ?? '0',
                 'bathrooms': item['bathrooms'] ?? '0',
                 'parkingSpaces': item['parkingSpaces'] ?? '0',
-
                 'unit': item['transactionType'] == 'RENT' ? '/yr' : '',
                 'location': item['location']?['completeAddress'] ?? 'Unknown',
                 'category': item['category'] ?? 'Residential',
@@ -220,7 +222,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 'listingStatus' : item['listingStatus'] ?? 'Inactive',
                 'status': item['status'] ?? 'Unknown',
                 'furnished': item['furnishedStatus'] ?? '',
-                'broker': item['broker']?['displayName'] ?? 'N/A',
+                'broker': item['broker'] ?? 'N/A',
                 'rating': item['broker']?['rating'] ?? 'N/A',
                 'image': (item['images'] != null && item['images'].isNotEmpty)
                     ? item['images'][0]
@@ -298,20 +300,15 @@ class _ListingsScreenState extends State<ListingsScreen> {
     }
   }
 
-  void _viewPropertyDetails(int id) {
-    /*Navigator.push(
+  void _viewPropertyDetails(Map<String, dynamic> e) {
+    Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => PropertyDetailsScreen(propertyId: id)),
-    );*/
+      MaterialPageRoute(
+        builder: (_) => PropertyDetailsScreen(propertyData: e),
+      ),
+    );
   }
 
-
-  void _editProperty(int id) {
-   /* Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => EditPropertyScreen(propertyId: id)),
-    );*/
-  }
 
 
   /// 🔹 Apply Filters
@@ -372,7 +369,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
             e['title']?.toString().toLowerCase().contains(titleQuery) == true ||
             e['ref']?.toString().toLowerCase().contains(titleQuery) == true ||
             e['location']?.toString().toLowerCase().contains(titleQuery) == true ||
-            e['broker']?.toString().toLowerCase().contains(titleQuery) == true;
+            e['broker']?['displayName'].toString().toLowerCase().contains(titleQuery) == true;
 
         // 📍 Location search
         final locationOk = locationQuery.isEmpty ||
@@ -1134,7 +1131,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          "${e['broker']}  ⭐ ${e['rating'] ?? '-'}",
+                          "${e['broker']['displayName']}  ⭐ ${e['rating'] ?? '-'}",
                           style: GoogleFonts.poppins(
                             fontSize: 12.5,
                             color: Colors.brown.shade700,
@@ -1190,7 +1187,17 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       children: [
                         // ✏️ Edit Chip
                         InkWell(
-                          onTap: () => _editProperty(e['id']),
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditPropertyScreen(propertyData: e),
+                              ),
+                            );
+                            if (result == true) {
+                              fetchListings(); // refresh after edit
+                            }
+                          },
                           borderRadius: BorderRadius.circular(20),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -1230,9 +1237,10 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                         // 👁 View Chip
                         InkWell(
-                          onTap: () => _viewPropertyDetails(e['id']),
-                          borderRadius: BorderRadius.circular(20),
+                         onTap: () => _viewPropertyDetails(e),
+                         borderRadius: BorderRadius.circular(20),
                           child: Container(
+
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
@@ -1520,7 +1528,17 @@ class _ListingsScreenState extends State<ListingsScreen> {
                               children: [
                                 // ✏️ Edit Chip
                                 InkWell(
-                                  onTap: () => _editProperty(e['id']),
+                                  onTap: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => EditPropertyScreen(propertyData: e),
+                                      ),
+                                    );
+                                    if (result == true) {
+                                      fetchListings(); // refresh after edit
+                                    }
+                                  },
                                   borderRadius: BorderRadius.circular(20),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -1560,7 +1578,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                                 // 👁 View Chip
                                 InkWell(
-                                  onTap: () => _viewPropertyDetails(e['id']),
+                                  onTap: () => _viewPropertyDetails(e),
                                   borderRadius: BorderRadius.circular(20),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -1640,7 +1658,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                         size: 14, color: Colors.brown),
                     const SizedBox(width: 4),
                     Text(
-                      "${e['broker']}  ⭐ ${e['rating'] ?? '-'}",
+                      "${e['broker']['displayName']}  ⭐ ${e['rating'] ?? '-'}",
                       style: GoogleFonts.poppins(
                         fontSize: 12.5,
                         color: Colors.brown.shade700,
