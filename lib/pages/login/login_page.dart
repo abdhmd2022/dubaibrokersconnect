@@ -77,11 +77,11 @@ class _LoginPageState extends State<LoginPage> {
       if (res.statusCode == 200 && data['success'] == true) {
         final userData = data['data']['user'];
         final accessToken = data['data']['accessToken']; // 👈 token from response
-        final user_id = data['data']['user']['id']; // 👈 token from response
+        final userId = data['data']['user']['id'].toString().trim(); // 👈 id from response
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', accessToken);
-        await prefs.setInt('user_id', user_id);
+        await prefs.setString('user_id', userId);
 
 
         if (_rememberMe) {
