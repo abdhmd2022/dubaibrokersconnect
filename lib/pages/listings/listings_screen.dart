@@ -1308,9 +1308,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                 const SizedBox(height: 10),
 
-
-
-                // 🏷 Title + Ref
                 // 🏷 Select Checkbox + Title + Ref
                 Row(
                   children: [
@@ -1353,7 +1350,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     ),
                   ],
                 ),
-
 
                 const SizedBox(height: 8),
 
