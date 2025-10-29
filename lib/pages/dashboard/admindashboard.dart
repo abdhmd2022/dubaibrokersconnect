@@ -73,6 +73,7 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
       child:  isLoading?
+
       Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
