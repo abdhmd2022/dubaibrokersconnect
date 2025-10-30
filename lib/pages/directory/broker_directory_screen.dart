@@ -118,7 +118,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
           margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(22),
             boxShadow: [
               BoxShadow(
@@ -631,12 +631,11 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
             ),
             const SizedBox(height: 30),
 
-// 🎛️ Frosted Filters Section
             // 🌐 Frosted Filters Section
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.85),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -789,11 +788,29 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.people_outline,
-                                  size: 18, color: Colors.grey.shade600),
+                              Icon(Icons.people_outline, size: 18, color: Colors.grey.shade600),
                               const SizedBox(width: 6),
                               Text(
-                                "Showing ${(currentPage - 1) * limit + 1}–${((currentPage - 1) * limit + brokers.length) > totalBrokers ? totalBrokers : ((currentPage - 1) * limit + brokers.length)} of $totalBrokers brokers",
+                                    () {
+                                  final filteredCount = filteredBrokers.length;
+                                  final total = totalBrokers;
+                                  final filterText = [
+                                    if (selectedCategory != "All") selectedCategory,
+                                    if (verifiedOnly) "Verified",
+                                    if (searchQuery.isNotEmpty) "Search applied",
+                                  ].join(" • ");
+
+                                  // Construct base message
+                                  String message =
+                                      "Showing $filteredCount of $total brokers";
+
+                                  // Append active filters if any
+                                  if (filterText.isNotEmpty) {
+                                    message += " ($filterText)";
+                                  }
+
+                                  return message;
+                                }(),
                                 style: GoogleFonts.poppins(
                                   fontSize: 13.5,
                                   color: Colors.black54,
@@ -802,6 +819,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                               ),
                             ],
                           ),
+
                           Container(
                             padding:
                             const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
