@@ -79,16 +79,17 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
               .toString()
               .toLowerCase()
               .contains(searchQuery.toLowerCase());
-      final matchVerified =
-          !verifiedOnly || (b['isVerified']?.toString() == 'true');
-      return matchSearch && matchVerified;
-    }).toList();
-  }
 
-  Future<void> _launch(String url) async {
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
-    }
+      final matchVerified = !verifiedOnly || (b['isVerified']?.toString() == 'true');
+
+      // 🏢 Category filter
+      final categories = List<String>.from(b['categories'] ?? []);
+      final matchCategory = selectedCategory == "All" ||
+          categories.any((cat) =>
+          cat.toString().toLowerCase() == selectedCategory.toLowerCase());
+
+      return matchSearch && matchVerified && matchCategory;
+    }).toList();
   }
 
   Widget _buildBrokerCard(Map<String, dynamic> b) {
@@ -100,6 +101,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
     final email = b['email'];
     final phone = b['phone'];
     final whatsapp = b['mobile'];
+    final categories = List<String>.from(b['categories'] ?? []);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -256,6 +258,37 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                           ),
                         ),
                       ],
+                    ),
+
+                    SizedBox(height: 8),
+
+                    Wrap(
+                      spacing: 6,
+                      children: categories.map((cat) {
+                        final isResidential = cat.toUpperCase() == "RESIDENTIAL";
+                        final gradient = isResidential
+                            ? const LinearGradient(
+                            colors: [Color(0xFF43CEA2), Color(0xFF185A9D)]) // Green-Blue
+                            : const LinearGradient(
+                            colors: [Color(0xFFFFA751), Color(0xFFFF5F6D)]); // Orange-Red
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            gradient: gradient,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            cat,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),

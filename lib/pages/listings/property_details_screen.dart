@@ -615,11 +615,11 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                           children: [
                             const SizedBox(height: 80),
                             AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
-
                           ],
                         ),
                       );
                   } else if (snapshot.hasError) {
+
                     return _errorDialog("Failed to load profile");
                   }
 
