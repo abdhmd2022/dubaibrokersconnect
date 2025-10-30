@@ -1,6 +1,7 @@
 import 'package:a2abrokerapp/pages/dashboard/brokerdashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants.dart';
 import '../login/login_page.dart';
 import 'broker_shell.dart';
@@ -454,7 +455,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 24, vertical: 10),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
+                      SharedPreferences prefs = await SharedPreferences.getInstance();
+                      prefs.clear();
                       Navigator.pop(context);
                       Navigator.pushReplacement(
                         context,

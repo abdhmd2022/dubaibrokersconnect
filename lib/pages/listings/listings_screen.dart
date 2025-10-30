@@ -32,7 +32,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
   String? priceError; // for inline error message
   final TextEditingController _minSizeController = TextEditingController();
   final TextEditingController _maxSizeController = TextEditingController();
-
+  bool isBulkStatusProcessing = false;
+  bool isBulkDeleteProcessing = false;
   final Set<String> selectedPropertyIds = {};
   bool selectAll = false;
 
@@ -252,126 +253,24 @@ class _ListingsScreenState extends State<ListingsScreen> {
     }
   }
 
-  Future<void> _togglePropertyStatus(String propertyId, String currentStatus) async {
+  Future<void> _togglePropertyStatus(
+      String propertyId,
+      String currentStatus, {
+        bool askConfirmation = true,
+        bool refreshAfterAll = true,
+      }) async {
     final newStatus = currentStatus == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          backgroundColor: Colors.white,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 420, // 👈 keeps dialog compact
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 🔹 Icon
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: kPrimaryColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.help_outline_rounded,
-                      color: kPrimaryColor,
-                      size: 36,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
+    bool confirm = true;
+    if (askConfirmation) {
+      confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => _buildStatusChangeDialog(newStatus),
+      ) ??
+          false;
+    }
 
-                  // 🏷 Title
-                  Text(
-                    "Change Property Status?",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // 📄 Message
-                  Text(
-                    "Do you want to change this property’s status to $newStatus?",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14.5,
-                      color: Colors.grey.shade700,
-                      height: 1.4,
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // 🔘 Buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Cancel Button
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.pop(context, false),
-                        icon: const Icon(Icons.close, size: 18, color: Colors.black54),
-                        label: Text(
-                          "Cancel",
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 22, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          side: BorderSide(color: Colors.grey.shade300),
-                          backgroundColor: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-
-                      // Confirm Button
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(context, true),
-                        icon: const Icon(Icons.check_circle_outline,
-                            color: Colors.white, size: 18),
-                        label: Text(
-                          "Yes, Change",
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kPrimaryColor,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 22, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          elevation: 3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-
-
-    // 🧩 Only continue if user confirmed
-    if (confirm != true) return;
+    if (!confirm) return;
 
     try {
       final token = await AuthService.getToken();
@@ -388,47 +287,70 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        if (data['success'] == true) {
-          // ✅ Reload listings (keep filters if applied)
-          if (isFilterApplied) {
-            await fetchListings();
-            _applyFilters();
-          } else {
-            await fetchListings();
-          }
-
-          /*ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Status updated to $newStatus'),
-              backgroundColor: Colors.green,
-            ),
-          );*/
-
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(data['message'] ?? 'Failed to update status'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+        if (data['success'] == true && refreshAfterAll) {
+          await fetchListings();
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${response.statusCode}'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      debugPrint('Error toggling status: $e');
     }
+  }
+
+
+  Widget _buildStatusChangeDialog(String newStatus) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 24),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.help_outline_rounded,
+                  color: kPrimaryColor, size: 36),
+            ),
+            const SizedBox(height: 18),
+            Text("Change Property Status?",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                    fontSize: 20, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            Text("Do you want to change this property’s status to $newStatus?",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                    fontSize: 14.5, color: Colors.grey.shade700)),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(context, false),
+                  icon: const Icon(Icons.close, size: 18, color: Colors.black54),
+                  label: const Text("Cancel"),
+                ),
+                const SizedBox(width: 14),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context, true),
+                  icon: const Icon(Icons.check_circle_outline,
+                      color: Colors.white, size: 18),
+                  label: const Text("Yes, Change"),
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor,
+                  foregroundColor: Colors.white),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
   }
 
   Future<void> _confirmBulkStatusChange() async {
@@ -440,63 +362,25 @@ class _ListingsScreenState extends State<ListingsScreen> {
     );
     if (confirm != true) return;
 
-    for (final id in selectedPropertyIds) {
-      final property = listings.firstWhere((e) => e['id'] == id);
-      await _togglePropertyStatus(id, property['listingStatus']);
-    }
-    selectedPropertyIds.clear();
-    selectAll = false;
-    await fetchListings();
-  }
+    setState(() => isBulkStatusProcessing = true);
 
-  Future<bool?> _showConfirmationDialog(String title, String message) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 40),
-              const SizedBox(height: 14),
-              Text(title,
-                  style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87)),
-              const SizedBox(height: 8),
-              Text(message,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                      fontSize: 14, color: Colors.grey.shade700)),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text("Cancel",
-                        style: GoogleFonts.poppins(color: Colors.black87)),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kPrimaryColor,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text("Confirm"),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    try {
+      for (final id in selectedPropertyIds) {
+        final property = listings.firstWhere((e) => e['id'] == id);
+        await _togglePropertyStatus(
+          id,
+          property['listingStatus'],
+          askConfirmation: false,
+          refreshAfterAll: false,
+        );
+      }
+
+      selectedPropertyIds.clear();
+      selectAll = false;
+      await fetchListings();
+    } finally {
+      setState(() => isBulkStatusProcessing = false);
+    }
   }
 
   Future<void> _confirmBulkDelete() async {
@@ -508,23 +392,101 @@ class _ListingsScreenState extends State<ListingsScreen> {
     );
     if (confirm != true) return;
 
-    final token = await AuthService.getToken();
+    setState(() => isBulkDeleteProcessing = true);
 
-    for (final id in selectedPropertyIds) {
-      final url = Uri.parse('$baseURL/api/properties/$id');
-      await http.delete(url, headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      });
+    try {
+      final token = await AuthService.getToken();
+
+      for (final id in selectedPropertyIds) {
+        final url = Uri.parse('$baseURL/api/properties/$id');
+        await http.delete(url, headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        });
+      }
+
+      selectedPropertyIds.clear();
+      selectAll = false;
+      await fetchListings();
+    } finally {
+      setState(() => isBulkDeleteProcessing = false);
     }
-
-    selectedPropertyIds.clear();
-    selectAll = false;
-    await fetchListings();
   }
 
-
-
+  Future<bool?> _showConfirmationDialog(String title, String message) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 100, vertical: 24), // 👈 keeps it compact
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 380, // 👈 fixed width for compact look
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    color: Colors.orange, size: 42),
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text("Cancel",
+                          style: GoogleFonts.poppins(color: Colors.black87)),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 22, vertical: 12),
+                      ),
+                      child: const Text("Confirm"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   void _viewPropertyDetails(Map<String, dynamic> e) {
     Navigator.push(
@@ -874,7 +836,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                           width: 16,
                                           height: 16,
 
-                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                          child: CircularProgressIndicator(),
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
@@ -1113,7 +1075,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                             setState(() {
                               selectAll = checked ?? false;
                               if (selectAll) {
-                                selectedPropertyIds.addAll(listings.map((e) => e['id'].toString()));
+                                selectedPropertyIds
+                                    .addAll(listings.map((e) => e['id'].toString()));
                               } else {
                                 selectedPropertyIds.clear();
                               }
@@ -1127,52 +1090,81 @@ class _ListingsScreenState extends State<ListingsScreen> {
                             color: Colors.black87,
                           ),
                         ),
+                        const SizedBox(width: 10),
+
+                        // ✅ Show "x out of y selected"
+                        Text(
+                          "${selectedPropertyIds.length} out of ${listings.length} selected",
+                          style: GoogleFonts.poppins(
+                            fontSize: 13.5,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
+
+
 
                     // 🔘 Action Buttons
                     Row(
                       children: [
-                        // Change Status Button
+                        if (isBulkStatusProcessing)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
                         ElevatedButton.icon(
-                          onPressed: selectedPropertyIds.isEmpty
+                          onPressed: isBulkStatusProcessing || selectedPropertyIds.isEmpty
                               ? null
                               : () => _confirmBulkStatusChange(),
                           icon: const Icon(Icons.sync_alt_rounded, size: 18),
                           label: Text(
-                            "Change Status",
+                            isBulkStatusProcessing ? "Updating..." : "Change Status",
                             style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: kPrimaryColor,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
                         const SizedBox(width: 10),
-
-                        // Delete Button
+                        if (isBulkDeleteProcessing)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
                         ElevatedButton.icon(
-                          onPressed: selectedPropertyIds.isEmpty
+                          onPressed: isBulkDeleteProcessing || selectedPropertyIds.isEmpty
                               ? null
                               : () => _confirmBulkDelete(),
                           icon: const Icon(Icons.delete_outline, size: 18),
                           label: Text(
-                            "Delete",
+                            isBulkDeleteProcessing ? "Deleting..." : "Delete",
                             style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
                       ],
                     ),
+
+
+
                   ],
                 ),
               ),
@@ -1185,6 +1177,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                   children: [
                     const SizedBox(height: 80),
                     AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
+
 
                   ],
                 ),
@@ -1218,7 +1211,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     if (isLoadingMore)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Center(child: CircularProgressIndicator()),
+                        child: Center(child: AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),),
                       ),
                   ],
                 ),
@@ -2577,10 +2570,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                 ? const SizedBox(
                               height: 16,
                               width: 16,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(),
                             )
                                 : const Icon(Icons.save_rounded, color: Colors.white),
                             label: Text(

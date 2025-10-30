@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants.dart';
 import '../login/login_page.dart';
 import 'admin_shell.dart';
@@ -404,7 +405,9 @@ void _showLogoutDialog(BuildContext context) {
                       style: GoogleFonts.poppins(color: Colors.black87)),
                 ),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
+                    SharedPreferences prefs = await SharedPreferences.getInstance();
+                    prefs.clear();
                     Navigator.pop(ctx);
                     Navigator.pushAndRemoveUntil(
                       context,
