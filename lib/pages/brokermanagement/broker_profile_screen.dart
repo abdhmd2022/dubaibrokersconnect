@@ -23,6 +23,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   bool loading = true;
   bool error = false;
   String activeSection = "Listings";
+  String hoveredSocial = '';
 
   @override
   void initState() {
@@ -98,6 +99,8 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     final requirements = broker!['requirements'] ?? [];
     final reviews = broker!['reviews'] ?? [];
     final properties = broker!['properties'] ?? [];
+    final List<String> languages = List<String>.from(broker?['languages'] ?? []);
+    final List<String> categories = List<String>.from(broker?['categories'] ?? []);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -107,186 +110,251 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header Card
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black12.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4))
-                ],
-              ),
-              child: Column(
+        Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // 🔙 Back Button
+            InkWell(
+              onTap: () => Navigator.pop(context),
+              borderRadius: BorderRadius.circular(8),
+              child: Row(
                 children: [
-
-                  InkWell(
-                    onTap: () => Navigator.pop(context),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.arrow_back_ios_new,
-                            size: 13, color: kPrimaryColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          "Back to Broker Directory",
-                          style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              color: kPrimaryColor,
-                              fontSize: 12),
-                        ),
-                      ],
+                  const Icon(Icons.arrow_back_ios_new,
+                      size: 13, color: kPrimaryColor),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Back to Broker Directory",
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      color: kPrimaryColor,
+                      fontSize: 12,
                     ),
                   ),
+                ],
+              ),
+            ),
 
+            const SizedBox(height: 24),
 
-                  const SizedBox(height: 24),
+            // 🧑‍💼 Header Content
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 👤 Avatar
+                CircleAvatar(
+                  radius: 45,
+                  backgroundColor: kPrimaryColor.withOpacity(0.08),
+                  child: ClipOval(
+                    child: avatar != null && avatar.isNotEmpty
+                        ? Image.network(
+                      avatar,
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/collabrix_logo.png',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.contain,
+                        );
+                      },
+                    )
+                        : Image.asset(
+                      'assets/collabrix_logo.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
 
-                  Row(
+                const SizedBox(width: 24),
+
+                // 🧾 Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 45,
-                        backgroundColor: kPrimaryColor.withOpacity(0.08),
-                        child: ClipOval(
-                          child: avatar != null && avatar.isNotEmpty
-                              ? Image.network(
-                            avatar,
-                            width: 90,
-                            height: 90,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              // 🧩 Fallback to app logo if image fails
-                              return Image.asset(
-                                'assets/collabrix_logo.png', // your app logo
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.contain,
-                              );
-                            },
-                          )
-                              : Image.asset(
-                            'assets/collabrix_logo.png', // fallback if avatar null or empty
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.contain,
+                      // Name + Verified Status
+                      Row(
+                        children: [
+                          Text(
+                            name,
+                            style: GoogleFonts.poppins(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black87,
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          if (verified)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.green.shade300,
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.verified,
+                                      color: Colors.green.shade700, size: 16),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    "Verified",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      color: Colors.green.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.redAccent.shade400,
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.cancel_outlined,
+                                      color: Colors.redAccent.shade700, size: 16),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    "Not Verified",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      color: Colors.redAccent.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
 
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      // 🏢 Company
+                      if (company.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                Text(name,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black87,
-                                    )),
-                                if (verified)
-                                  Container(
-                                    margin: EdgeInsets.only(left: 10),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.shade50,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: Colors.green.shade300,
-                                        width: 0.8,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.verified,
-                                            color: Colors.green.shade700, size: 16),
-                                        const SizedBox(width: 3),
-                                        Text(
-                                          "Verified",
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            color: Colors.green.shade700,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                if (!verified)
-                                  Container(
-                                    margin: EdgeInsets.only(left: 10),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.redAccent.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: Colors.redAccent.shade400,
-                                        width: 0.8,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.cancel_outlined,
-                                            color: Colors.redAccent.shade700, size: 16),
-                                        const SizedBox(width: 3),
-                                        Text(
-                                          "Not Verified",
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            color: Colors.redAccent.shade700,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Icon(Icons.business_outlined,
-                                    color: Colors.black54, size: 16),
-                                const SizedBox(width: 6),
-                                Text(company,
-                                    style: GoogleFonts.poppins(
-                                        fontSize: 15, color: Colors.black54)),
-                              ],
+                            const Icon(Icons.business_outlined,
+                                color: Colors.black54, size: 16),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                company,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      // 📞 Contact Icons (Right Column)
+                      ],
 
 
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _contactButton( Icons.call,"Call",
-                            "tel:$phone", phone: phone,),
-                          const SizedBox(height: 10),
-                          _contactButton(FontAwesomeIcons.whatsapp, "WhatsApp",
-                              "https://wa.me/${phone.toString().replaceAll('+', '')}"),
-                          const SizedBox(height: 10),
-                          _contactButton(
-                              Icons.email_outlined, "Email", "mailto:$email"),
-                        ],
-                      ),
+    // 🏷️ Categories
+                      if (categories.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: categories.map((cat) {
+                            final isResidential =
+                                cat.toUpperCase() == "RESIDENTIAL";
+                            final gradient = isResidential
+                                ? const LinearGradient(
+                              colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                                : const LinearGradient(
+                              colors: [Color(0xFFFFA751), Color(0xFFFF5F6D)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            );
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                gradient: gradient,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12.withOpacity(0.1),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                cat,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ],
                   ),
+                ),
 
+                // 📞 Contact Icons
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _contactButton(Icons.call, "Call", "tel:$phone", phone: phone),
+                    const SizedBox(height: 10),
+                    _contactButton(
+                        FontAwesomeIcons.whatsapp,
+                        "WhatsApp",
+                        "https://wa.me/${phone.toString().replaceAll('+', '')}"),
+                    const SizedBox(height: 10),
+                    _contactButton(Icons.email_outlined, "Email", "mailto:$email"),
                   ],
-              ),
-
+                ),
+              ],
             ),
+          ],
+        ),
+      ),
 
-            const SizedBox(height: 30),
+
+        const SizedBox(height: 30),
 
             // Stats Row
             Row(
@@ -342,6 +410,195 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                               color: Colors.black87,
                             ),
                           ),
+
+                          // 🌐 Languages & Social Links Section (auto-hide if empty)
+                          if ((languages.isNotEmpty) ||
+                              (broker!['socialLinks'] != null && broker!['socialLinks'].isNotEmpty))
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // 🗣️ Languages
+                                if (languages.isNotEmpty) ...[
+                                  const SizedBox(height: 24),
+                                  Text(
+                                    "Languages",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 8,
+                                    children: languages.map((lang) {
+                                      return Container(
+                                        padding:
+                                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.teal.shade50,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.teal.shade200, width: 0.6),
+                                        ),
+                                        child: Text(
+                                          lang,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.teal.shade800,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+
+                                // 🔗 Social Links
+                                if (broker!['socialLinks'] != null &&
+                                    broker!['socialLinks'].isNotEmpty) ...[
+                                  const SizedBox(height: 28),
+                                  Text(
+                                    "Social Links",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  Wrap(
+                                    spacing: 14,
+                                    runSpacing: 12,
+                                    children: broker!['socialLinks'].entries.map<Widget>((entry) {
+                                      final platform = entry.key.toLowerCase();
+                                      final link = entry.value.toString().trim();
+
+                                      IconData icon;
+                                      Gradient? gradient;
+                                      Color solidColor;
+
+                                      switch (platform) {
+                                        case 'linkedin':
+                                          icon = FontAwesomeIcons.linkedinIn;
+                                          gradient = const LinearGradient(
+                                            colors: [Color(0xFF0077B5), Color(0xFF0E6791)],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          );
+                                          solidColor = const Color(0xFF0077B5);
+                                          break;
+                                        case 'instagram':
+                                          icon = FontAwesomeIcons.instagram;
+                                          gradient = const LinearGradient(
+                                            colors: [
+                                              Color(0xFFF58529),
+                                              Color(0xFFDD2A7B),
+                                              Color(0xFF8134AF)
+                                            ],
+                                            begin: Alignment.bottomLeft,
+                                            end: Alignment.topRight,
+                                          );
+                                          solidColor = const Color(0xFFE1306C);
+                                          break;
+                                        case 'facebook':
+                                          icon = FontAwesomeIcons.facebookF;
+                                          gradient = const LinearGradient(
+                                            colors: [Color(0xFF1877F2), Color(0xFF145DBF)],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          );
+                                          solidColor = const Color(0xFF1877F2);
+                                          break;
+                                        case 'twitter':
+                                        case 'x':
+                                          icon = FontAwesomeIcons.xTwitter;
+                                          gradient = const LinearGradient(
+                                            colors: [Color(0xFF000000), Color(0xFF333333)],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          );
+                                          solidColor = Colors.black87;
+                                          break;
+                                        default:
+                                          icon = FontAwesomeIcons.globe;
+                                          gradient = const LinearGradient(
+                                            colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          );
+                                          solidColor = kPrimaryColor;
+                                      }
+
+                                      return MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        onEnter: (_) => setState(() => hoveredSocial = platform),
+                                        onExit: (_) => setState(() => hoveredSocial = ''),
+                                        child: AnimatedScale(
+                                          duration: const Duration(milliseconds: 200),
+                                          scale: hoveredSocial == platform ? 1.08 : 1.0,
+                                          child: InkWell(
+                                            borderRadius: BorderRadius.circular(14),
+                                            onTap: () async {
+                                              final url = link.startsWith("http")
+                                                  ? link
+                                                  : "https://${link.replaceAll('@', '')}";
+                                              if (await canLaunchUrl(Uri.parse(url))) {
+                                                await launchUrl(Uri.parse(url),
+                                                    mode: LaunchMode.externalApplication);
+                                              }
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 16, vertical: 10),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(14),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: hoveredSocial == platform
+                                                        ? solidColor.withOpacity(0.25)
+                                                        : Colors.black12.withOpacity(0.05),
+                                                    blurRadius: hoveredSocial == platform ? 10 : 6,
+                                                    offset: const Offset(0, 3),
+                                                  ),
+                                                ],
+                                                border: Border.all(
+                                                  color: hoveredSocial == platform
+                                                      ? solidColor.withOpacity(0.5)
+                                                      : Colors.grey.shade200,
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  ShaderMask(
+                                                    shaderCallback: (rect) =>
+                                                        gradient!.createShader(rect),
+                                                    child:
+                                                    Icon(icon, color: Colors.white, size: 18),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    platform[0].toUpperCase() + platform.substring(1),
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ],
+                            )
                         ],
                       ),
                     ),
@@ -412,6 +669,11 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                 );
               },
             ),
+
+
+
+
+
 
           ],
         ),
