@@ -189,8 +189,6 @@ class AdminSidebar extends StatelessWidget {
             ),
           ),
 
-
-
           const Divider(),
           _ProfileSection(userData: userData),
         ],

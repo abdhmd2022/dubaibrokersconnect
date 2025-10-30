@@ -640,23 +640,59 @@ class _ListingsScreenState extends State<ListingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             /// ---------- HEADER ----------
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("All Property Listings",
+                Padding(
+                  padding: const EdgeInsets.only(top: 0, bottom: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // 🌐 Gradient Icon Container
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              backgroundColor,
+                              backgroundColor
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: backgroundColor,
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.apartment,
+                          color: kPrimaryColor,
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // 🧾 Title Text
+                      Text(
+                        "All Property Listings",
                         style: GoogleFonts.poppins(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87)),
-                    const SizedBox(height: 4),
-                    Text("Browse properties from all brokers",
-                        style: GoogleFonts.poppins(
-                            fontSize: 14, color: Colors.grey[600])),
-                  ],
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+
+                Text("Browse properties from all brokers",
+                    style: GoogleFonts.poppins(
+                        fontSize: 14, color: Colors.grey[600])),
               ],
             ),
             const SizedBox(height: 30),

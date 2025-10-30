@@ -675,7 +675,8 @@ class _PropertyTypesScreenState extends State<PropertyTypesScreen>
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-          const SizedBox(height: 45),
+          const SizedBox(height: 10),
+
 
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
