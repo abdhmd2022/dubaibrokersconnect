@@ -107,7 +107,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => BrokerProfileScreen(broker: b)),
+            MaterialPageRoute(builder: (_) => BrokerProfileScreen(brokerId: b['id'])),
           );
         },
         child: AnimatedContainer(
@@ -148,9 +148,9 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                 padding: const EdgeInsets.all(2.5),
                 child: CircleAvatar(
                   backgroundImage:
-                  avatar != null ? NetworkImage(avatar) : null,
+                  avatar == null ? NetworkImage(avatar) : null,
                   backgroundColor: Colors.white,
-                  child: avatar == null
+                  child: avatar != null
                       ? Text(
                     name.isNotEmpty ? name[0] : '?',
                     style: GoogleFonts.poppins(
@@ -774,43 +774,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                 child: loading
                     ? Center(
                   key: const ValueKey('loader'),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // glassy loader
-                      Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: kPrimaryColor.withOpacity(0.15),
-                              blurRadius: 20,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            color: kPrimaryColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        "Loading brokers...",
-                        style: GoogleFonts.poppins(
-                          color: Colors.black54,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
                 )
                     : filteredBrokers.isEmpty
                     ? Center(
