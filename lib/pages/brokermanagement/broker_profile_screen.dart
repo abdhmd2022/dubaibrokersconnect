@@ -148,20 +148,33 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                     children: [
                       CircleAvatar(
                         radius: 45,
-                        backgroundColor: kPrimaryColor.withOpacity(0.1),
-                        backgroundImage:
-                        avatar == null ? NetworkImage(avatar) : null,
-                        child: avatar != null
-                            ? Text(
-                          name.isNotEmpty ? name[0] : '?',
-                          style: GoogleFonts.poppins(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: kPrimaryColor,
+                        backgroundColor: kPrimaryColor.withOpacity(0.08),
+                        child: ClipOval(
+                          child: avatar != null && avatar.isNotEmpty
+                              ? Image.network(
+                            avatar,
+                            width: 90,
+                            height: 90,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              // 🧩 Fallback to app logo if image fails
+                              return Image.asset(
+                                'assets/collabrix_logo.png', // your app logo
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.contain,
+                              );
+                            },
+                          )
+                              : Image.asset(
+                            'assets/collabrix_logo.png', // fallback if avatar null or empty
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.contain,
                           ),
-                        )
-                            : null,
+                        ),
                       ),
+
                       const SizedBox(width: 24),
                       Expanded(
                         child: Column(
@@ -198,6 +211,35 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                                           style: GoogleFonts.poppins(
                                             fontSize: 13,
                                             color: Colors.green.shade700,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (!verified)
+                                  Container(
+                                    margin: EdgeInsets.only(left: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: Colors.redAccent.shade400,
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.cancel_outlined,
+                                            color: Colors.redAccent.shade700, size: 16),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          "Not Verified",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            color: Colors.redAccent.shade700,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -340,9 +382,12 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  _buildSegmentButton("Listings"),
-                                  _buildSegmentButton("Requirements"),
-                                  _buildSegmentButton("Reviews"),
+                                  _buildSegmentButton("Listings", count: properties.length),
+                                  _buildSegmentButton("Requirements", count: requirements.length),
+                                  _buildSegmentButton(
+                                    "Reviews",
+                                    count: reviews.where((r) => r['status'] == "APPROVED").length,
+                                  ),
                                 ],
                               ),
                             ),
@@ -373,42 +418,85 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       ),
     );
   }
-  Widget _buildSegmentButton(String label) {
+  Widget _buildSegmentButton(String label, {int count = 0}) {
     final bool isActive = activeSection == label;
+
     return Expanded(
-      child: GestureDetector(
+      child: InkWell(
         onTap: () => setState(() => activeSection = label),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeInOut,
-          margin: const EdgeInsets.symmetric(horizontal: 6),
+          duration: const Duration(milliseconds: 0),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive ? kPrimaryColor : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: isActive
-                ? [
-              BoxShadow(
-                color: kPrimaryColor.withOpacity(0.25),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ]
-                : [],
-            border: Border.all(
-              color: isActive ? kPrimaryColor : Colors.grey.shade300,
-              width: 1.2,
+            gradient: isActive
+                ? LinearGradient(
+              colors: [kPrimaryColor, kPrimaryColor.withOpacity(0.85)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            )
+                : null,
+            color: isActive ? null : Colors.white,
+            border: Border(
+              top: BorderSide(color: Colors.grey.shade300, width: 1),
+              bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+              left: label == "Listings"
+                  ? BorderSide(color: Colors.grey.shade300, width: 1)
+                  : BorderSide.none,
+              right: BorderSide(color: Colors.grey.shade300, width: 1),
             ),
+            borderRadius: BorderRadius.horizontal(
+              left: label == "Listings" ? const Radius.circular(12) : Radius.zero,
+              right: label == "Reviews" ? const Radius.circular(12) : Radius.zero,
+            ),
+            boxShadow: [
+              if (isActive)
+                BoxShadow(
+                  color: kPrimaryColor.withOpacity(0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+            ],
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 14.5,
-                color: isActive ? Colors.white : Colors.black87,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.5,
+                  color: isActive ? Colors.white : Colors.black87,
+                ),
               ),
-            ),
+
+                const SizedBox(width: 6),
+                Container(
+                  width: 20,
+                  height: 20,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isActive
+                        ? Colors.white.withOpacity(0.9)
+                        : kPrimaryColor.withOpacity(0.1),
+                    border: Border.all(
+                      color: isActive
+                          ? Colors.white.withOpacity(0.8)
+                          : Colors.white.withOpacity(0.4),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    "$count",
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isActive ? kPrimaryColor : Colors.black87,
+                    ),
+                  ),
+                ),
+
+            ],
           ),
         ),
       ),
@@ -523,12 +611,164 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
 
 
   Widget _buildListings(List data) {
-    if (data.isEmpty) {
-      return _emptyMessage("No listings found");
-    }
-    // when you add properties later
-    return Container();
+    if (data.isEmpty) return _emptyMessage("No listings available.");
+
+    return Column(
+      children: data.map((p) {
+        final title = p['title'] ?? "Untitled Property";
+        final price = double.tryParse(p['price'] ?? '0') ?? 0;
+        final formattedPrice = price >= 1000
+            ? "AED ${(price / 1000)}K"
+            : "AED $price";
+        final category = p['category'] ?? "N/A";
+        final type = p['transactionType'] ?? "N/A";
+        final image = (p['images'] != null && p['images'].isNotEmpty)
+            ? p['images'][0]
+            : null;
+
+        final gradient = category.toUpperCase() == "RESIDENTIAL"
+            ? const LinearGradient(
+          colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        )
+            : const LinearGradient(
+          colors: [Color(0xFFFFA751), Color(0xFFFF5F6D)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+
+            border: Border.all(color: Colors.grey.shade200.withOpacity(0.4)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 🏙️ Image section
+              if (image != null)
+            ClipRRect(
+        borderRadius:
+        const BorderRadius.horizontal(left: Radius.circular(16)),
+        child: image != null && image.isNotEmpty
+        ? Image.network(
+        image,
+        height: 140,
+        width: 180,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+        // 🧩 fallback to app logo if image fails to load
+        return Image.asset(
+        'assets/collabrix_logo.png', // your app logo
+        height: 140,
+        width: 180,
+        fit: BoxFit.contain,
+        );
+        },
+        )
+            : Image.asset(
+        'assets/collabrix_logo.png', // fallback if no image key
+        height: 140,
+        width: 180,
+        fit: BoxFit.contain,
+        ),
+        )
+
+        else
+                Container(
+                  height: 140,
+                  width: 180,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: const BorderRadius.horizontal(
+                        left: Radius.circular(16)),
+                  ),
+                  child: Icon(Icons.image_not_supported_outlined,
+                      size: 40, color: Colors.grey.shade400),
+                ),
+
+              // 📄 Info section
+              Expanded(
+                child: Padding(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 🏷️ Title
+                      Text(
+                        title,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+
+                      // 💰 Price
+                      Text(
+                        formattedPrice,
+                        style: GoogleFonts.poppins(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.teal.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // 🧩 Category and Type chips
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              gradient: gradient,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              category,
+                              style: GoogleFonts.poppins(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              type,
+                              style: GoogleFonts.poppins(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.teal.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
   }
+
 
   Widget _buildRequirements(List data) {
     if (data.isEmpty) return _emptyMessage("No requirements found.");

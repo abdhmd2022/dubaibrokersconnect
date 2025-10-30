@@ -149,20 +149,34 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                 ),
                 padding: const EdgeInsets.all(2.5),
                 child: CircleAvatar(
-                  backgroundImage:
-                  avatar == null ? NetworkImage(avatar) : null,
+                  radius: 30,
                   backgroundColor: Colors.white,
-                  child: avatar != null
-                      ? Text(
-                    name.isNotEmpty ? name[0] : '?',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 22,
-                      color: kPrimaryColor,
+                  child: ClipOval(
+                    child: avatar != null && avatar.isNotEmpty
+                        ? Image.network(
+                      avatar,
+                      fit: BoxFit.cover,
+                      width: 60,
+                      height: 60,
+                      errorBuilder: (context, error, stackTrace) {
+                        // 🧩 Fallback if image fails to load
+                        return Image.asset(
+                          'assets/collabrix_logo.png', // your app logo
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.contain,
+                        );
+                      },
+                    )
+                        : Image.asset(
+                      'assets/collabrix_logo.png', // fallback if avatar null or empty
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.contain,
                     ),
-                  )
-                      : null,
+                  ),
                 ),
+
               ),
 
               const SizedBox(width: 18),
@@ -208,6 +222,34 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                                   style: GoogleFonts.poppins(
                                     fontSize: 12.2,
                                     color: Colors.green.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (!verified)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.redAccent.shade400,
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.cancel_outlined,
+                                    color: Colors.redAccent.shade700, size: 14),
+                                const SizedBox(width: 3),
+                                Text(
+                                  "Not Verified",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.2,
+                                    color: Colors.redAccent.shade700,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
