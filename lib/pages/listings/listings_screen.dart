@@ -39,6 +39,12 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
   String? sizeError;
 
+  List originalListings = [];
+
+// inside your build:
+
+  bool showMyListingsOnly = false;
+
   bool showMoreFilters = false;
   List<Map<String, dynamic>> allListings = []; // keep original data
   final TextEditingController _titleSearchController = TextEditingController();
@@ -63,8 +69,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
   final ScrollController _scrollController = ScrollController();
 
   @override
-  void initState() {
+  void initState()  {
     super.initState();
+
     fetchPropertyTypes();
     fetchListings();
     _scrollController.addListener(_handleScroll);
@@ -607,6 +614,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
     print("✅ Filtered ${listings.length} / ${allListings.length}");
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -625,62 +634,68 @@ class _ListingsScreenState extends State<ListingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             /// ---------- HEADER ----------
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 0, bottom: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // 🌐 Gradient Icon Container
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              backgroundColor,
-                              backgroundColor
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: backgroundColor,
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.apartment,
-                          color: kPrimaryColor,
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      // 🧾 Title Text
-                      Text(
-                        "All Property Listings",
-                        style: GoogleFonts.poppins(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
 
-                Text("Browse properties from all brokers",
-                    style: GoogleFonts.poppins(
-                        fontSize: 14, color: Colors.grey[600])),
+        Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 0, bottom: 12),
+              child:
+
+      Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [backgroundColor, backgroundColor],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: backgroundColor,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
-            const SizedBox(height: 30),
+            child: const Icon(Icons.apartment, color: kPrimaryColor, size: 30),
+          ),
+          const SizedBox(width: 10),
+
+          Expanded(
+            child: Text(
+              "All Property Listings",
+              style: GoogleFonts.poppins(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+
+
+
+        ],
+      ),
+
+    ),
+
+            Text(
+              "Browse properties from all brokers",
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+
+          const SizedBox(height: 30),
 
             /// ---------- FILTER PANEL ----------
             Container(

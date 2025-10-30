@@ -259,29 +259,32 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 6),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.business_outlined,
-                          size: 16,
-                          color: Colors.teal.shade500,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            company.isNotEmpty ? company : "Company not specified",
-                            style: GoogleFonts.poppins(
-                              color: Colors.black87,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.visible,
+                    if(company.isNotEmpty)...[
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.business_outlined,
+                            size: 16,
+                            color: Colors.teal.shade500,
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              company.isNotEmpty ? company : "Company not specified",
+                              style: GoogleFonts.poppins(
+                                color: Colors.black87,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.visible,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    ],
 
                     const SizedBox(height: 10),
 
