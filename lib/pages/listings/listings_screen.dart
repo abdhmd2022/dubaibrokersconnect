@@ -301,56 +301,79 @@ class _ListingsScreenState extends State<ListingsScreen> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 60, vertical: 24),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: kPrimaryColor.withOpacity(0.1),
-                shape: BoxShape.circle,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 100, vertical: 24), // 👈 keeps dialog compact
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 380), // 👈 limit width
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.help_outline_rounded,
+                    color: kPrimaryColor, size: 36),
               ),
-              child: Icon(Icons.help_outline_rounded,
-                  color: kPrimaryColor, size: 36),
-            ),
-            const SizedBox(height: 18),
-            Text("Change Property Status?",
+              const SizedBox(height: 18),
+              Text(
+                "Change Property Status?",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
-                    fontSize: 20, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            Text("Do you want to change this property’s status to $newStatus?",
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "Do you want to change this property’s status to $newStatus?",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
-                    fontSize: 14.5, color: Colors.grey.shade700)),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.pop(context, false),
-                  icon: const Icon(Icons.close, size: 18, color: Colors.black54),
-                  label: const Text("Cancel"),
+                  fontSize: 14.5,
+                  color: Colors.grey.shade700,
+                  height: 1.4,
                 ),
-                const SizedBox(width: 14),
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.pop(context, true),
-                  icon: const Icon(Icons.check_circle_outline,
-                      color: Colors.white, size: 18),
-                  label: const Text("Yes, Change"),
-                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor,
-                  foregroundColor: Colors.white),
-                ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(context, false),
+                    icon: const Icon(Icons.close, size: 18, color: Colors.black54),
+                    label: const Text("Cancel"),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(context, true),
+                    icon: const Icon(Icons.check_circle_outline,
+                        color: Colors.white, size: 18),
+                    label: const Text("Yes, Change"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 22, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
-
   }
 
   Future<void> _confirmBulkStatusChange() async {
@@ -1177,8 +1200,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
                   children: [
                     const SizedBox(height: 80),
                     AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
-
-
                   ],
                 ),
               )
