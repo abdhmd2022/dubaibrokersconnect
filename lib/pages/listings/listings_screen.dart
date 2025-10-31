@@ -228,9 +228,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
       final decoded = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        /*ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Property created successfully')),
-        );
+        );*/
 
         fetchListings();
         // return the property ID

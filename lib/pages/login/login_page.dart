@@ -142,7 +142,7 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       final data = jsonDecode(res.body);
-      if (res.statusCode == 200 && data['success'] == true) {
+      if (res.statusCode == 201 && data['success'] == true) {
         final userData = data['data']['user'];
         final accessToken = data['data']['accessToken'];
         // Save user & token for next screen
