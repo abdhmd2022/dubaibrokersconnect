@@ -19,6 +19,8 @@ class BrokerSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isVerified = userData['isVerified'] == true;
+
     final items = [
       {'icon': Icons.dashboard, 'label': 'Dashboard'},
       {'icon': Icons.home_work, 'label': 'Listings'},
@@ -45,121 +47,121 @@ class BrokerSidebar extends StatelessWidget {
               itemBuilder: (context, i) {
                 final active = i == selectedIndex;
                 final item = items[i];
-                final hasBadge = item['badge'] != null;
 
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeInOut,
-                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
-                  decoration: BoxDecoration(
-                    color: active ? Colors.white.withOpacity(0.7) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: active
-                        ? [
-                      BoxShadow(
-                        color: kPrimaryColor.withOpacity(0.15),
-                        blurRadius: 20,
-                        spreadRadius: 1,
-                        offset: const Offset(0, 6),
-                      ),
-                    ]
-                        : [],
-                    border: active
-                        ? Border.all(color: kPrimaryColor.withOpacity(0.15), width: 1)
-                        : null,
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () => onItemSelected(i),
-                    splashColor: kAccentColor.withOpacity(0.1),
-                    hoverColor: kPrimaryColor.withOpacity(0.05),
-                    child: Padding(
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                      child: Row(
-                        children: [
-                          /// --- Left gradient bar
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            width: 4,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              gradient: active
-                                  ? const LinearGradient(
-                                colors: [Color(0xFF42A5F5), Color(0xFF478DE0)],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              )
-                                  : null,
-                              borderRadius: BorderRadius.circular(6),
+                // disable A2A Forms & My Transactions if broker not verified
+                final bool isRestricted = !isVerified && (i==1 || i==2||i == 5 || i == 6);
+
+                return AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: isRestricted ? 0.45 : 1,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: active ? Colors.white.withOpacity(0.7) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: active
+                          ? [
+                        BoxShadow(
+                          color: kPrimaryColor.withOpacity(0.15),
+                          blurRadius: 20,
+                          spreadRadius: 1,
+                          offset: const Offset(0, 6),
+                        ),
+                      ]
+                          : [],
+                      border: active
+                          ? Border.all(color: kPrimaryColor.withOpacity(0.15), width: 1)
+                          : null,
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      splashColor:
+                      isRestricted ? Colors.transparent : kAccentColor.withOpacity(0.1),
+                      hoverColor:
+                      isRestricted ? Colors.transparent : kPrimaryColor.withOpacity(0.05),
+                      onTap: isRestricted
+                          ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Your account is not verified yet. Access to this section is restricted.",
                             ),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: Colors.orangeAccent,
                           ),
-                          const SizedBox(width: 12),
-
-                          /// --- Gradient Icon
-                          Container(
-                            width: 26,
-                            height: 26,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: active
-                                    ? [kPrimaryColor, kAccentColor]
-                                    : [Colors.grey.shade500, Colors.grey.shade400],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              item['icon'] as IconData,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-
-                          /// --- Label
-                          Expanded(
-                            child: Text(
-                              item['label'] as String,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: active
-                                    ? kPrimaryColor
-                                    : Colors.grey.shade800,
-                                fontWeight:
-                                active ? FontWeight.w600 : FontWeight.w500,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ),
-
-                          /// --- 👑 Admin badge
-                          if (hasBadge)
-                            Container(
-                              padding: const EdgeInsets.all(3),
+                        );
+                      }
+                          : () => onItemSelected(i),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        child: Row(
+                          children: [
+                            /// --- Left gradient bar
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              width: 4,
+                              height: 26,
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFFFFC107), Color(0xFFFF9800)],
+                                gradient: active
+                                    ? const LinearGradient(
+                                  colors: [Color(0xFF42A5F5), Color(0xFF478DE0)],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                )
+                                    : null,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+
+                            /// --- Gradient Icon
+                            Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: active
+                                      ? [kPrimaryColor, kAccentColor]
+                                      : [Colors.grey.shade500, Colors.grey.shade400],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
-                                borderRadius: BorderRadius.circular(6),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.orange.withOpacity(0.4),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(
-                                Icons.workspace_premium_rounded,
+                              child: Icon(
+                                item['icon'] as IconData,
+                                size: 18,
                                 color: Colors.white,
-                                size: 13,
                               ),
                             ),
-                        ],
+                            const SizedBox(width: 14),
+
+                            /// --- Label
+                            Expanded(
+                              child: Text(
+                                item['label'] as String,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: active
+                                      ? kPrimaryColor
+                                      : Colors.grey.shade800,
+                                  fontWeight:
+                                  active ? FontWeight.w600 : FontWeight.w500,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ),
+
+                            if (isRestricted)
+                              const Icon(
+                                Icons.lock_outline,
+                                color: Colors.grey,
+                                size: 16,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -178,6 +180,7 @@ class BrokerSidebar extends StatelessWidget {
   }
 }
 
+
 /// ---------- PROFILE SECTION ----------
 class _ProfileSection extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -192,11 +195,14 @@ class _ProfileSectionState extends State<_ProfileSection> {
 
   @override
   Widget build(BuildContext context) {
-    final fullName =
-        '${widget.userData['firstName']} ${widget.userData['lastName']}';
+    final fullName = '${widget.userData['firstName'] ?? ''} ${widget.userData['lastName'] ?? ''}'.trim();
+
+    final name = fullName.isNotEmpty ? fullName : {widget.userData['broker']['displayName']}.isNotEmpty ? '${widget.userData['broker']['displayName']}':  "";
     final email = widget.userData['email'] ?? '';
     final avatar = widget.userData['avatar'] ?? '';
     final bool isVerified = widget.userData['isVerified'] == true;
+    final String role = widget.userData['role']?.toString().toUpperCase() ?? 'BROKER';
+
 
     return Column(
       children: [
@@ -212,6 +218,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
           child: Row(
             children: [
 
+              if (role == 'ADMIN') // 👈 only show toggle if admin
               _buildToggleButton(
                 label: "Admin",
                 active: !isBrokerView,
@@ -278,7 +285,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(fullName,
+                    Text(name,
                         style: GoogleFonts.poppins(
                             fontWeight: FontWeight.w600,
                             fontSize: 13,

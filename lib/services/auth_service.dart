@@ -16,6 +16,7 @@ class AuthService {
     return prefs.getString('user_id');
   }
 
+
   static Future<void> clearUserId() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_id');

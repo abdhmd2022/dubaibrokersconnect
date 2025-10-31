@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants.dart';
+import 'UnverifiedBrokerDashboard.dart';
 import 'brokerdashboard.dart';
 import '../listings/listings_screen.dart';
 import '../requirements/requirements_screen.dart';
@@ -25,16 +26,22 @@ class _BrokerShellState extends State<BrokerShell> {
   @override
   Widget build(BuildContext context) {
     final userData = widget.userData;
-
-    final List<Widget> _pages =  [
-      BrokerDashboardContent(userData: userData),
-      ListingsScreen(),
+    final bool isVerified = userData['isVerified'] == true;
+    final List<Widget> _pages = [
+      isVerified
+          ? BrokerDashboardContent(userData: userData)
+          :  UnverifiedBrokerDashboard(userData: userData,
+        onNavigateToBrokers: () {
+          setState(() => _selectedIndex = 3);
+        },),
+      ListingsScreen(userData: userData,),
       RequirementsScreen(),
       BrokerDirectoryScreen(),
       ProfileScreen(),
       TransactionsScreen(),
       A2aformsScreen(),
     ];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
       body: Row(

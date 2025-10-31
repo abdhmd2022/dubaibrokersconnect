@@ -16,8 +16,13 @@ import 'package:vector_math/vector_math_64.dart' show Matrix4;
 
 
 class ListingsScreen extends StatefulWidget {
-  const ListingsScreen({super.key});
+  final Map<String, dynamic> userData;
 
+  const ListingsScreen({
+    super.key,
+    required this.userData,
+
+  });
   @override
   State<ListingsScreen> createState() => _ListingsScreenState();
 }
@@ -1516,6 +1521,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
+    final bool isVerified = widget.userData['isVerified'] == true;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -1553,6 +1559,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                   ),
 
                   // 🔹 Right: Create Listing Button
+                  if(isVerified)
                   ElevatedButton.icon(
                     onPressed: isDialogLoading
                         ? null // disable button while loading

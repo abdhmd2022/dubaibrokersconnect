@@ -723,7 +723,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                         spacing: 14,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          FilterChip(
+                          /*FilterChip(
                             label: Row(
                               children: [
                                 Icon(Icons.verified,
@@ -758,7 +758,8 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                                     : Colors.transparent,
                               ),
                             ),
-                          ),
+                          ),*/
+
                           ElevatedButton.icon(
                             onPressed: () {
                               _searchController.clear();

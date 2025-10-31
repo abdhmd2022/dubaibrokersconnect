@@ -35,7 +35,7 @@ class _AdminShellState extends State<AdminShell> {
           setState(() => _selectedIndex = 3); // 👈 opens Broker Directory
         },
       ),
-      ListingsScreen(),
+      ListingsScreen(userData: userData,),
       RequirementsScreen(),
       BrokerDirectoryScreen(),
       ProfileScreen(),

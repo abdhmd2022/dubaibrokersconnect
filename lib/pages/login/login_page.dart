@@ -6,6 +6,7 @@ import 'package:a2abrokerapp/constants.dart';
 import 'package:a2abrokerapp/pages/dashboard/admindashboard.dart';
 import 'package:a2abrokerapp/pages/dashboard/brokerdashboard.dart';
 
+import '../brokermanagement/broker_setup_page.dart';
 import '../dashboard/admin_shell.dart';
 import '../dashboard/broker_shell.dart';
 
@@ -76,33 +77,41 @@ class _LoginPageState extends State<LoginPage> {
 
       if (res.statusCode == 200 && data['success'] == true) {
         final userData = data['data']['user'];
-        final accessToken = data['data']['accessToken']; // 👈 token from response
-        final userId = data['data']['user']['id'].toString().trim(); // 👈 id from response
-
+        final accessToken = data['data']['accessToken'];
+        final refreshToken = data['data']['refreshToken'];
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('access_token', accessToken);
-        await prefs.setString('user_id', userId);
 
+        await prefs.setString('access_token', accessToken);
+        await prefs.setString('refresh_token', refreshToken);
+        await prefs.setString('user_id', userData['id'].toString());
 
         if (_rememberMe) {
           await prefs.setString('email', _emailController.text.trim());
           await prefs.setString('password', _passwordController.text.trim());
         }
 
-        // ✅ Navigate based on role
+        // ✅ Role-based Navigation
         if (userData['role'] == 'ADMIN') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => AdminShell(userData: userData)),
           );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => BrokerShell(userData: userData)),
-          );
+        } else if (userData['role'] == 'BROKER') {
+          if (userData['broker'] == null) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BrokerSetupPage(userData: userData),
+              ),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => BrokerShell(userData: userData)),
+            );
+          }
         }
-      }
-      else {
+      } else {
         _showError(data['message'] ?? 'Invalid credentials');
       }
     } catch (e) {
@@ -122,7 +131,7 @@ class _LoginPageState extends State<LoginPage> {
       "password": _passwordController.text.trim(),
       "first_name": _firstNameController.text.trim(),
       "last_name": _lastNameController.text.trim(),
-      "phone": _phoneController.text.trim(),
+      // "phone": _phoneController.text.trim(),
     };
 
     try {
@@ -134,8 +143,18 @@ class _LoginPageState extends State<LoginPage> {
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200 && data['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful! Please log in.')),
+        final userData = data['data']['user'];
+        final accessToken = data['data']['accessToken'];
+        // Save user & token for next screen
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', accessToken);
+        await prefs.setString('user_id', userData['id'].toString());
+
+        // 🚀 Go to Broker Setup Page instead of Login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => BrokerSetupPage(userData: userData)),
+
         );
         setState(() => _mode = AuthMode.login);
       } else {
@@ -339,13 +358,13 @@ class _LoginPageState extends State<LoginPage> {
           icon: Icons.email_outlined,
           inputType: TextInputType.emailAddress,
         ),
-        const SizedBox(height: 16),
+        /*const SizedBox(height: 16),
         _buildTextField(
           controller: _phoneController,
           label: 'Phone Number',
           icon: Icons.phone_outlined,
           inputType: TextInputType.phone,
-        ),
+        ),*/
         const SizedBox(height: 16),
         _buildTextField(
           controller: _passwordController,
@@ -422,8 +441,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
           child: Center(
             child: _isLoading
-
-                ? const CircularProgressIndicator(color: Colors.grey,)
+                ? const CircularProgressIndicator(color: Colors.grey)
                 : Text(
               btnText,
               style: const TextStyle(
