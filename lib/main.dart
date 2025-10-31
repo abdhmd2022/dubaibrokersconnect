@@ -16,36 +16,32 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Dubai Brokers Connect',
       theme: ThemeData(
-        primaryColor: kPrimaryColor,
-        scaffoldBackgroundColor: kBackgroundColor,
-        textTheme: GoogleFonts.poppinsTextTheme(),
-        /// ✅ GLOBAL CIRCULAR PROGRESS STYLE
-        progressIndicatorTheme: ProgressIndicatorThemeData(
-          color: kPrimaryColor, // Spinner color
-          circularTrackColor: Colors.grey.shade200, // Background ring color
-          linearTrackColor: Colors.grey.shade300,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kPrimaryColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: kFieldBackgroundColor,
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.shade400),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: kPrimaryColor, width: 2),
-          ),
-        ),
+      primarySwatch: Colors.blue,
+      visualDensity: VisualDensity.adaptivePlatformDensity,
+      // 👇 Add this block to change the global CircularProgressIndicator color
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: kPrimaryColor, // change to your preferred color
+        circularTrackColor: Colors.white, // optional
       ),
+      // 👇 Change focus, cursor, splash, and highlight colors globally
+      colorScheme: ColorScheme.light(primary: Colors.black,secondary: kPrimaryColor),
+      inputDecorationTheme: const InputDecorationTheme(
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: kPrimaryColor, width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey),
+        ),
+        labelStyle: TextStyle(color: Colors.black54),
+      ),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: kPrimaryColor,          // blinking cursor
+        selectionColor: kPrimaryColor, // text highlight
+        selectionHandleColor: kPrimaryColor, // handle color
+      ),
+      splashColor: kPrimaryColor.withOpacity(0.2), // ripple effect
+      highlightColor: Colors.transparent,        // optional, removes default purple glow
+    ),
       home: LoginPage(),
       debugShowCheckedModeBanner: false,
     );

@@ -8,14 +8,19 @@ import '../../widgets/animated_logo_loader.dart' show AnimatedLogoLoader;
 
 class AdminDashboardContent extends StatefulWidget {
   final Map<String, dynamic> userData;
+  final VoidCallback? onNavigateToBrokers; // 👈 added
 
-  const AdminDashboardContent({super.key, required this.userData});
+  const AdminDashboardContent({super.key,
+    required this.userData,
+    this.onNavigateToBrokers,
+  });
 
   @override
   State<AdminDashboardContent> createState() => _AdminDashboardContentState();
 }
 
 class _AdminDashboardContentState extends State<AdminDashboardContent> {
+
   int totalBrokers = 0;
   int approvedBrokers = 0;
   int pendingBrokers = 0;
@@ -177,10 +182,9 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
                     "View Directory",
                     null,
                     outline: true,
-                    onPressed: () {
-                      // 🔹 Navigate to Broker Directory screen
-                    },
+                    onPressed: widget.onNavigateToBrokers!, // 👈 triggers shell navigation
                   ),
+
                   _actionCard(
                     "System Settings",
                     "Update roles, permissions, and system-wide configurations.",

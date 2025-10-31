@@ -38,6 +38,7 @@ dependencies:
   url_launcher_web:
   data_table_2:
   intl:
+  file_picker:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

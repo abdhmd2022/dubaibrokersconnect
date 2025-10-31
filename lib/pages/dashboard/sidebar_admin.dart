@@ -70,7 +70,7 @@ class AdminSidebar extends StatelessWidget {
                 final hasBadge = item['badge'] != null;
 
                 return AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
+                  duration: const Duration(milliseconds: 0),
                   curve: Curves.easeInOut,
                   margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
                   decoration: BoxDecoration(
@@ -419,6 +419,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
       builder: (context) => Dialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 400),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -472,6 +473,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
             ],
           ),
         ),
+
+          ),
+
       ),
     );
   }

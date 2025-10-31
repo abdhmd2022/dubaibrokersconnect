@@ -42,8 +42,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
     setState(() => loading = true);
     try {
       final token = await AuthService.getToken();
-      final url =
-      Uri.parse('$baseURL/api/brokers?page=$page&limit=$limit&all=true');
+      final url = Uri.parse('$baseURL/api/brokers?page=$page&limit=$limit&all=true');
       final response = await http.get(url, headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -51,16 +50,23 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+
+        // 🔹 Extract and filter only verified brokers
+        final allBrokers = List<Map<String, dynamic>>.from(data['data'] ?? []);
+        final verifiedBrokers =
+        allBrokers.where((b) => b['isVerified'] == true).toList();
+
         setState(() {
-          brokers = List.from(data['data']);
+
+          brokers = verifiedBrokers;
           totalPages = data['pagination']['totalPages'] ?? 1;
           currentPage = data['pagination']['page'] ?? 1;
-          totalBrokers = data['pagination']['total'] ?? brokers.length;
+          totalBrokers = verifiedBrokers.length; // show only verified count
           loading = false;
         });
-
       } else {
         setState(() => loading = false);
+        debugPrint('Failed to fetch brokers: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error fetching brokers: $e');
@@ -95,7 +101,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
   Widget _buildBrokerCard(Map<String, dynamic> b) {
     final avatar = b['user']?['avatar'];
     final name = b['displayName'] ?? 'N/A';
-    final company = b['companyName'] ?? '';
+    final company = b['user']['companyName'] ?? '';
     final verified = b['isVerified'] == true;
     final rating = b['rating']?.toString() ?? 'N/A';
     final email = b['email'];

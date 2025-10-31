@@ -28,8 +28,13 @@ class _AdminShellState extends State<AdminShell> {
   @override
   Widget build(BuildContext context) {
     final userData = widget.userData;
-    final List<Widget> _pages =  [
-      AdminDashboardContent(userData: userData,),
+    final List<Widget> _pages = [
+      AdminDashboardContent(
+        userData: userData,
+        onNavigateToBrokers: () {
+          setState(() => _selectedIndex = 3); // 👈 opens Broker Directory
+        },
+      ),
       ListingsScreen(),
       RequirementsScreen(),
       BrokerDirectoryScreen(),
@@ -39,8 +44,9 @@ class _AdminShellState extends State<AdminShell> {
       BrokerManagementScreen(),
       TagManagementScreen(),
       PropertyTypesScreen(),
-      LocationsScreen()
+      LocationsScreen(),
     ];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
       body: Row(

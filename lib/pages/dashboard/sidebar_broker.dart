@@ -377,57 +377,61 @@ void _showLogoutDialog(BuildContext context) {
     builder: (ctx) => Dialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.logout, color: Colors.red, size: 38),
-            const SizedBox(height: 14),
-            Text("Confirm Logout",
-                style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600, fontSize: 18)),
-            const SizedBox(height: 10),
-            Text("Are you sure you want to log out?",
-                style: GoogleFonts.poppins(color: Colors.grey[600])),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[200],
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+      child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 400),
+        child:  Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.logout, color: Colors.red, size: 38),
+              const SizedBox(height: 14),
+              Text("Confirm Logout",
+                  style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600, fontSize: 18)),
+              const SizedBox(height: 10),
+              Text("Are you sure you want to log out?",
+                  style: GoogleFonts.poppins(color: Colors.grey[600])),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[200],
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text("Cancel",
+                        style: GoogleFonts.poppins(color: Colors.black87)),
                   ),
-                  child: Text("Cancel",
-                      style: GoogleFonts.poppins(color: Colors.black87)),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    SharedPreferences prefs = await SharedPreferences.getInstance();
-                    prefs.clear();
-                    Navigator.pop(ctx);
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
-                          (route) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                  ElevatedButton(
+                    onPressed: () async {
+                      SharedPreferences prefs = await SharedPreferences.getInstance();
+                      prefs.clear();
+                      Navigator.pop(ctx);
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                            (route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text("Logout",
+                        style: GoogleFonts.poppins(color: Colors.white)),
                   ),
-                  child: Text("Logout",
-                      style: GoogleFonts.poppins(color: Colors.white)),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
+
+
+        ),
     ),
   );
 }
