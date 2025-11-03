@@ -538,6 +538,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     );
   }
 
+  final searchC = TextEditingController();
+
 
   // ============ HEADER ============
   Widget _buildHeader() {
@@ -797,7 +799,10 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                         ],
                       ),
                       child:TextField(
+                        controller: searchC, // ✅ Add controller
+
                         decoration: InputDecoration(
+
                           hintText: "Search by Title, Description or Location...",
                           prefixIcon: const Icon(Icons.search, color: Colors.grey),
                           hintStyle: GoogleFonts.poppins(
@@ -1026,6 +1031,61 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
           const SizedBox(height: 10),
           _buildMoreFilters(),
+
+          const SizedBox(height: 16),
+
+          // --- Clear Filters Button ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                icon: const Icon(Icons.filter_alt_off_outlined, color: Colors.redAccent),
+                label: Text(
+                  "Clear All Filters",
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.redAccent,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  backgroundColor: Colors.redAccent.withOpacity(0.08),
+                ),
+                onPressed: () {
+                  setState(() {
+                    /// 🔹 Reset all dropdowns & text fields
+                    selectedCategory = "ALL";
+                    selectedTransaction = "ALL";
+                    selectedPropertyType = null;
+                    selectedRooms = null;
+                    selectedFurnishing = null;
+
+                    minPriceC.clear();
+                    maxPriceC.clear();
+                    minSizeC.clear();
+                    maxSizeC.clear();
+
+                    /// 🔹 Reset location filters
+                    selectedLocationIds.clear();
+
+                    searchC.clear(); // ✅ clear text field
+
+                    /// 🔹 Reset search
+                    searchQuery = '';
+
+                    /// 🔹 Reset show-my toggle
+                    showMyRequirements = false;
+
+                    /// ✅ Apply fresh filters (shows full list)
+                    _applyFilters();
+                  });
+                },
+              ),
+
+            ],
+          )
         ],
       ),
     );
@@ -1204,29 +1264,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
 
-          // --- Clear Filters Button ---
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton.icon(
-                icon: const Icon(Icons.filter_alt_off_outlined),
-                label: const Text("Clear All Filters"),
-                onPressed: () {
-                  setState(() {
-                    selectedPropertyType = null;
-                    selectedRooms = null;
-                    selectedFurnishing = null;
-                    minPriceC.clear();
-                    maxPriceC.clear();
-                    minSizeC.clear();
-                    maxSizeC.clear();
-                  });
-                },
-              ),
-            ],
-          )
         ],
       ),
     );
