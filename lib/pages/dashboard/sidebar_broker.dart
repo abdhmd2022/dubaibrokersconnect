@@ -52,10 +52,10 @@ class BrokerSidebar extends StatelessWidget {
                 final bool isRestricted = !isVerified && (i==1 || i==2||i == 5 || i == 6);
 
                 return AnimatedOpacity(
-                  duration: const Duration(milliseconds: 200),
+                  duration: const Duration(milliseconds: 0),
                   opacity: isRestricted ? 0.45 : 1,
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
+                    duration: const Duration(milliseconds: 0),
                     curve: Curves.easeInOut,
                     margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
                     decoration: BoxDecoration(

@@ -1,11 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants.dart';
+import '../listings/listings_screen.dart';
 
 class BrokerDashboardContent extends StatelessWidget {
+  final VoidCallback? onNavigateToListings;
+  final VoidCallback? onNavigateToRequirements;
+  final VoidCallback? onNavigateToTransactions;
+  final VoidCallback? onNavigateToBrokers;
+  final VoidCallback? onNavigateToProfile;
+  final VoidCallback? onNavigateToA2aForms;
+
+
   final Map<String, dynamic> userData;
 
-  const BrokerDashboardContent({super.key, required this.userData});
+  const BrokerDashboardContent({super.key, required this.userData,
+  this.onNavigateToListings,
+  this.onNavigateToRequirements,
+  this.onNavigateToTransactions,
+  this.onNavigateToBrokers,
+  this.onNavigateToProfile,
+  this.onNavigateToA2aForms,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -106,30 +122,42 @@ class BrokerDashboardContent extends StatelessWidget {
                 childAspectRatio: aspectRatio,
                 children: [
                   _actionCard(
+                    context,
                     "My Listings",
                     "Manage and update your property listings in real-time.",
                     "Open Listings",
                     kPrimaryColor,
+                    onTap: onNavigateToListings,
                   ),
+
                   _actionCard(
+                    context,
+
                     "Client Requirements",
                     "View and match client requirements with suitable properties.",
                     "View Requirements",
                     Colors.orange,
                     outline: true,
+                    onTap: onNavigateToRequirements,
                   ),
                   _actionCard(
+                    context,
                     "Transactions",
                     "Track ongoing and completed transactions easily.",
                     "View Transactions",
                     Colors.teal,
+                    onTap: () {
+                      // 🔹 Navigate to Manage Brokers screen
+                    },
                   ),
                   _actionCard(
+                    context,
                     "Broker Directory",
                     "Explore and connect with other verified brokers.",
                     "Open Directory",
                     null,
                     outline: true,
+                    onTap: onNavigateToBrokers,
                   ),
                 ],
               );
@@ -205,21 +233,33 @@ class BrokerDashboardContent extends StatelessWidget {
   }
 
   /// ---------- ACTION CARD ----------
-  static Widget _actionCard(String title, String desc, String btnText, Color? color,
-      {bool outline = false}) {
+  static Widget _actionCard(
+      BuildContext context,
+      String title,
+      String desc,
+      String btnText,
+      Color? color, {
+        bool outline = false,
+        VoidCallback? onTap,
+      }) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(title,
+              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Text(desc, style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600])),
           const Spacer(),
@@ -228,19 +268,26 @@ class BrokerDashboardContent extends StatelessWidget {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: outline ? Colors.white : color ?? kPrimaryColor,
-                side: outline ? BorderSide(color: Colors.grey.shade300) : BorderSide.none,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                side: outline
+                    ? BorderSide(color: Colors.grey.shade300)
+                    : BorderSide.none,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 elevation: 0,
               ),
-              onPressed: () {},
+              onPressed: onTap,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(btnText,
-                      style: GoogleFonts.poppins(
-                          color: outline ? Colors.black87 : Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13)),
+                  Text(
+                    btnText,
+                    style: GoogleFonts.poppins(
+                      color: outline ? Colors.black87 : Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
                   const SizedBox(width: 4),
                   Icon(Icons.arrow_forward,
                       size: 16, color: outline ? Colors.black87 : Colors.white),
@@ -252,4 +299,5 @@ class BrokerDashboardContent extends StatelessWidget {
       ),
     );
   }
+
 }
