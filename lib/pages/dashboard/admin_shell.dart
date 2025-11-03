@@ -4,6 +4,7 @@ import 'package:a2abrokerapp/pages/propertytypes/property_types_screen.dart';
 import 'package:a2abrokerapp/pages/tagmanagement/tag_management_screen.dart';
 import 'package:flutter/material.dart';
 import '../../constants.dart';
+import '../brokermanagement/broker_profile_screen.dart';
 import 'admindashboard.dart';
 import '../listings/listings_screen.dart';
 import '../requirements/requirements_screen.dart';
@@ -38,7 +39,7 @@ class _AdminShellState extends State<AdminShell> {
       ListingsScreen(userData: userData,),
       RequirementsScreen(userData: userData,),
       BrokerDirectoryScreen(userData: userData,),
-      ProfileScreen(),
+      ProfileScreen(brokerId: userData['broker']['id'], userData: userData),
       TransactionsScreen(),
       A2aformsScreen(),
       BrokerManagementScreen(),

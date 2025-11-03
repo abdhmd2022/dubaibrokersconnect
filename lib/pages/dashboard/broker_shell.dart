@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants.dart';
+import '../brokermanagement/broker_profile_screen.dart';
 import 'UnverifiedBrokerDashboard.dart';
 import 'brokerdashboard.dart';
 import '../listings/listings_screen.dart';
@@ -43,7 +44,9 @@ class _BrokerShellState extends State<BrokerShell> {
       ListingsScreen(userData: userData,),
       RequirementsScreen(userData: userData,),
       BrokerDirectoryScreen(userData: userData,),
-      ProfileScreen(),
+      ProfileScreen(brokerId: userData['broker']['id'], userData: userData),
+
+
       TransactionsScreen(),
       A2aformsScreen(),
     ];
