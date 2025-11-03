@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/animated_logo_loader.dart';
 
 class RequirementsScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -188,352 +189,507 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     List<String> locationIds = req['locations'] != null
         ? List<String>.from(req['locations'].map((x) => x['id']))
         : [];
-
+    // Add this helper inside the same widget/class:
+    String? _normalizeFurnished(String value) {
+      final v = value.toLowerCase();
+      if (v.contains("semi")) return "Semi-Furnished";
+      if (v.contains("un")) return "Unfurnished";
+      if (v.contains("fur")) return "Furnished";
+      return null;
+    }
     String transactionType = req['transactionType'] ?? 'SALE';
     String category = req['category'] ?? 'RESIDENTIAL';
-    bool isMortgageBuyer = req['isMortgageBuyer'] ?? false;
+    String? rooms = req['rooms'] != null && req['rooms'].isNotEmpty ? req['rooms'][0] : null;
+    String? furnishedStatus = req['furnishedStatus'] != null && req['furnishedStatus'].isNotEmpty
+        ? _normalizeFurnished(req['furnishedStatus'][0])
+        : null;
+
+
+
+    List<String> keywords = [];
+    if (req['keywords'] != null) {
+      if (req['keywords'] is List) {
+        keywords = List<String>.from(req['keywords']);
+      } else if (req['keywords'] is String) {
+        keywords = req['keywords']
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    }
+
+
     DateTime? expireDate = req['autoExpireDate'] != null
         ? DateTime.tryParse(req['autoExpireDate'])
         : null;
     bool isSubmitting = false;
 
+    InputDecoration modernInputDecoration({
+      required String label,
+      required IconData icon,
+      String? hint,
+      String? suffix,
+    }) {
+      return InputDecoration(
+        prefixIcon: Icon(icon, color: kPrimaryColor),
+        suffixText: suffix,
+        labelText: label,
+        hintText: hint,
+        labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: kPrimaryColor, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      );
+    }
+
     await showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (context) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          Future<void> update() async {
-            if (!formKey.currentState!.validate()) return;
-            setDialogState(() => isSubmitting = true);
+        return Dialog(
+          backgroundColor: Colors.white,
+          elevation: 12,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 700;
 
-            try {
-              final token = await AuthService.getToken();
-              final body = {
-                "title": titleC.text.trim(),
-                "reference_number": refC.text.trim(),
-                "requirement_description": descC.text.trim(),
-                "property_type_id": propertyTypeId,
-                "location_ids": locationIds,
-                "rooms": [],
-                "min_size_sqft": int.tryParse(minSizeC.text) ?? 0,
-                "max_size_sqft": int.tryParse(maxSizeC.text) ?? 0,
-                "min_price": int.tryParse(minPriceC.text) ?? 0,
-                "max_price": int.tryParse(maxPriceC.text) ?? 0,
-                "furnished_status": [],
-                "category": category,
-                "transaction_type": transactionType,
-                "is_mortgage_buyer": isMortgageBuyer,
-                "auto_expire_date": expireDate?.toIso8601String(),
-              };
+            return StatefulBuilder(
+              builder: (context, setDialogState) {
+                Future<void> update() async {
+                  if (!formKey.currentState!.validate()) return;
+                  setDialogState(() => isSubmitting = true);
 
-              final res = await http.put(
-                Uri.parse('$baseURL/api/requirements/${req['id']}'),
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Bearer $token',
-                },
-                body: json.encode(body),
-              );
+                  try {
+                    final token = await AuthService.getToken();
+                    final body = {
+                      "title": titleC.text.trim(),
+                      "reference_number": refC.text.trim(),
+                      "requirement_description": descC.text.trim(),
+                      "property_type_id": propertyTypeId,
+                      "location_ids": locationIds,
+                      "rooms": rooms != null ? [rooms] : [],
+                      "min_size_sqft": int.tryParse(minSizeC.text) ?? 0,
+                      "max_size_sqft": int.tryParse(maxSizeC.text) ?? 0,
+                      "min_price": int.tryParse(minPriceC.text) ?? 0,
+                      "max_price": int.tryParse(maxPriceC.text) ?? 0,
+                      "furnished_status": furnishedStatus != null ? [furnishedStatus] : [],
+                      "category": category,
+                      "transaction_type": transactionType,
+                      "auto_expire_date": expireDate?.toIso8601String(),
+                      "keywords": keywords,
+                    };
 
-              if (res.statusCode == 200) {
-                Navigator.pop(context);
-                _fetchRequirements();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Requirement updated successfully!')),
-                );
-              } else {
-                debugPrint("Failed: ${res.body}");
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed: ${res.statusCode}')),
-                );
-              }
-            } catch (e) {
-              debugPrint("Error updating requirement: $e");
-            } finally {
-              setDialogState(() => isSubmitting = false);
-            }
-          }
+                    final res = await http.put(
+                      Uri.parse('$baseURL/api/requirements/${req['id']}'),
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer $token',
+                      },
+                      body: json.encode(body),
+                    );
 
-          return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            insetPadding: const EdgeInsets.symmetric(horizontal: 50, vertical: 30),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Edit Requirement",
-                          style: GoogleFonts.poppins(
-                              fontSize: 20, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 18),
+                    if (res.statusCode == 200) {
+                      Navigator.pop(context);
+                      _fetchRequirements();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Requirement updated successfully!')),
+                      );
+                    } else {
+                      debugPrint("Failed: ${res.body}");
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed: ${res.statusCode}')),
+                      );
+                    }
+                  } catch (e) {
+                    debugPrint("Error updating requirement: $e");
+                  } finally {
+                    setDialogState(() => isSubmitting = false);
+                  }
+                }
 
-                      // 🔹 Title
-                      TextFormField(
-                        controller: titleC,
-                        decoration: const InputDecoration(
-                          labelText: "Title",
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (v) => v!.isEmpty ? "Enter title" : null,
-                      ),
-                      const SizedBox(height: 14),
-
-                      // 🔹 Reference Number
-                      TextFormField(
-                        controller: refC,
-                        decoration: const InputDecoration(
-                          labelText: "Reference Number",
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // 🔹 Description
-                      TextFormField(
-                        controller: descC,
-                        maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: "Description",
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // 🔹 Property Type
-                      DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: "Property Type",
-                          border: OutlineInputBorder(),
-                        ),
-                        value: propertyTypeId,
-                        items: propertyTypes
-                            .map<DropdownMenuItem<String>>((item) => DropdownMenuItem(
-                          value: item['id'],
-                          child: Text(item['name']),
-                        ))
-                            .toList(),
-                        onChanged: (val) =>
-                            setDialogState(() => propertyTypeId = val),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // 🔹 Locations (multi-select with search)
-                      TypeAheadField<Map<String, dynamic>>(
-                        suggestionsCallback: (pattern) {
-                          if (pattern.isEmpty) return formattedLocations;
-                          return formattedLocations
-                              .where((loc) =>
-                              loc['label'].toLowerCase().contains(pattern.toLowerCase()))
-                              .toList(); // ✅ Convert Iterable → List
-                        },
-                        itemBuilder: (context, suggestion) {
-                          final isSelected = locationIds.contains(suggestion['id']);
-                          return ListTile(
-                            title: Text(suggestion['label']),
-                            trailing: isSelected
-                                ? Icon(Icons.check_circle, color: kPrimaryColor)
-                                : null,
-                          );
-                        },
-                        onSelected: (suggestion) {
-                          setDialogState(() {
-                            if (locationIds.contains(suggestion['id'])) {
-                              locationIds.remove(suggestion['id']);
-                            } else {
-                              locationIds.add(suggestion['id']);
-                            }
-                          });
-                        },
-
-                        hideOnEmpty: true,
-                        hideOnLoading: true,
-                        builder: (context, controller, focusNode) {
-                          return TextField(
-                            controller: controller,
-                            focusNode: focusNode,
-                            decoration: InputDecoration(
-                              hintText: "Search & Select Multiple Locations",
-                              hintStyle: GoogleFonts.poppins(
-                                color: Colors.grey.shade500,
-                                fontSize: 14,
-                              ),
-                              prefixIcon: const Icon(Icons.location_on_outlined),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: kPrimaryColor, width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 14),
-
-                      // 🔹 Transaction Type & Category
-                      Row(
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 900),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: transactionType,
-                              decoration: const InputDecoration(
-                                labelText: "Transaction Type",
-                                border: OutlineInputBorder(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Edit Requirement",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                              items: const [
-                                DropdownMenuItem(value: "SALE", child: Text("Sale")),
-                                DropdownMenuItem(value: "RENT", child: Text("Rent")),
-                                DropdownMenuItem(
-                                    value: "SALE_AND_RENT",
-                                    child: Text("Sale & Rent")),
-                              ],
-                              onChanged: (v) =>
-                                  setDialogState(() => transactionType = v!),
-                            ),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 26),
+                                color: Colors.grey.shade700,
+                                onPressed: () => Navigator.pop(context),
+                                splashRadius: 22,
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: category,
-                              decoration: const InputDecoration(
-                                labelText: "Category",
-                                border: OutlineInputBorder(),
+                          const SizedBox(height: 24),
+
+                          // --- Form Grid ---
+                          Wrap(
+                            spacing: 20,
+                            runSpacing: 20,
+                            children: [
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: TextFormField(
+                                  controller: titleC,
+                                  decoration: modernInputDecoration(
+                                    label: "Requirement Title *",
+                                    icon: Icons.title_rounded,
+                                    hint: "e.g., Young couple seeking 2BR in Downtown",
+                                  ),
+                                  validator: (v) => v!.isEmpty ? "Enter title" : null,
+                                ),
                               ),
-                              items: const [
-                                DropdownMenuItem(
-                                    value: "RESIDENTIAL", child: Text("Residential")),
-                                DropdownMenuItem(
-                                    value: "COMMERCIAL", child: Text("Commercial")),
-                              ],
-                              onChanged: (v) =>
-                                  setDialogState(() => category = v!),
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: TextFormField(
+                                  controller: refC,
+                                  decoration: modernInputDecoration(
+                                    label: "Reference Number *",
+                                    icon: Icons.confirmation_number_outlined,
+                                    hint: "e.g., REQ-001",
+                                  ),
+                                ),
+                              ),
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: DropdownButtonFormField<String>(
+                                  value: transactionType,
+                                  decoration: modernInputDecoration(
+                                    label: "Looking To",
+                                    icon: Icons.swap_horiz_rounded,
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(value: "SALE", child: Text("Buy")),
+                                    DropdownMenuItem(value: "RENT", child: Text("Rent")),
+                                    DropdownMenuItem(value: "SALE_AND_RENT", child: Text("Rent & Buy")),
+                                  ],
+                                  onChanged: (v) => setDialogState(() => transactionType = v!),
+                                ),
+                              ),
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: DropdownButtonFormField<String>(
+                                  value: category,
+                                  decoration: modernInputDecoration(
+                                    label: "Property Category",
+                                    icon: Icons.category_outlined,
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(value: "RESIDENTIAL", child: Text("Residential")),
+                                    DropdownMenuItem(value: "COMMERCIAL", child: Text("Commercial")),
+                                  ],
+                                  onChanged: (v) => setDialogState(() => category = v!),
+                                ),
+                              ),
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: DropdownButtonFormField<String>(
+                                  decoration: modernInputDecoration(
+                                    label: "Property Type *",
+                                    icon: Icons.apartment_rounded,
+                                  ),
+                                  value: propertyTypeId,
+                                  items: propertyTypes
+                                      .map<DropdownMenuItem<String>>(
+                                          (item) => DropdownMenuItem(
+                                        value: item['id'],
+                                        child: Text(item['name']),
+                                      ))
+                                      .toList(),
+                                  onChanged: (val) => setDialogState(() => propertyTypeId = val),
+                                ),
+                              ),
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: DropdownButtonFormField<String>(
+                                  value: rooms,
+                                  decoration: modernInputDecoration(
+                                    label: "Rooms",
+                                    icon: Icons.meeting_room_outlined,
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(value: "Studio", child: Text("Studio")),
+                                    DropdownMenuItem(value: "1", child: Text("1")),
+                                    DropdownMenuItem(value: "2", child: Text("2")),
+                                    DropdownMenuItem(value: "3", child: Text("3")),
+                                    DropdownMenuItem(value: "4", child: Text("4")),
+                                    DropdownMenuItem(value: "5", child: Text("5")),
+                                    DropdownMenuItem(value: "5+", child: Text("5+")),
+                                  ],
+                                  onChanged: (v) => setDialogState(() => rooms = v),
+                                ),
+                              ),
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: DropdownButtonFormField<String>(
+                                  value: furnishedStatus,
+                                  decoration: modernInputDecoration(
+                                    label: "Furnished Status",
+                                    icon: Icons.chair_alt_rounded,
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(value: "Furnished", child: Text("Furnished")),
+                                    DropdownMenuItem(value: "Semi-Furnished", child: Text("Semi-Furnished")),
+                                    DropdownMenuItem(value: "Unfurnished", child: Text("Unfurnished")),
+                                  ],
+                                  onChanged: (v) => setDialogState(() => furnishedStatus = v),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // 📍 Locations
+                          Text("Preferred Locations *",
+                              style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 6),
+                          TypeAheadField<Map<String, dynamic>>(
+                            suggestionsCallback: (pattern) {
+                              if (pattern.isEmpty) {
+                                return formattedLocations;
+                              }
+                              return formattedLocations
+                                  .where((loc) => loc['label']
+                                  .toLowerCase()
+                                  .contains(pattern.toLowerCase()))
+                                  .toList();
+                            },
+                            itemBuilder: (context, suggestion) {
+                              final isSelected = locationIds.contains(suggestion['id']);
+                              return ListTile(
+                                leading: Icon(Icons.location_on, color: kPrimaryColor),
+                                title: Text(suggestion['label']),
+                                trailing: isSelected
+                                    ? Icon(Icons.check_circle, color: kPrimaryColor)
+                                    : null,
+                              );
+                            },
+                            onSelected: (suggestion) {
+                              setDialogState(() {
+                                if (locationIds.contains(suggestion['id'])) {
+                                  locationIds.remove(suggestion['id']);
+                                } else {
+                                  locationIds.add(suggestion['id']);
+                                }
+                              });
+                            },
+                            builder: (context, controller, focusNode) {
+                              return TextField(
+                                controller: controller,
+                                focusNode: focusNode,
+                                decoration: modernInputDecoration(
+                                  label: "Search & Select Locations",
+                                  icon: Icons.search_rounded,
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: locationIds.map((id) {
+                              final loc = formattedLocations.firstWhere(
+                                    (l) => l['id'] == id,
+                                orElse: () => {},
+                              );
+                              if (loc.isEmpty) return const SizedBox();
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                decoration: BoxDecoration(
+                                  color: kPrimaryColor,
+                                  borderRadius: BorderRadius.circular(30),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black12.withOpacity(0.05),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.location_on, color: Colors.white, size: 16),
+                                      const SizedBox(width: 6),
+                                      Text(loc['label'],
+                                          style: GoogleFonts.poppins(color: Colors.white)),
+                                      const SizedBox(width: 6),
+                                      GestureDetector(
+                                        onTap: () => setDialogState(() => locationIds.remove(id)),
+                                        child: const Icon(Icons.close_rounded,
+                                            size: 17, color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // 🏷️ Keywords
+                          Text("Keywords / Tags",
+                              style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            decoration: modernInputDecoration(
+                              label: "Add Tags",
+                              icon: Icons.sell_outlined,
+                              hint: "Press Enter to add tags",
+                            ),
+                            onSubmitted: (value) {
+                              final tag = value.trim();
+                              if (tag.isNotEmpty && !keywords.contains(tag) && keywords.length < 10) {
+                                setDialogState(() => keywords.add(tag));
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: keywords.map((tag) {
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                decoration: BoxDecoration(
+                                  color: kPrimaryColor,
+                                  borderRadius: BorderRadius.circular(30),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black12.withOpacity(0.05),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.sell_outlined,
+                                          color: Colors.white, size: 16),
+                                      const SizedBox(width: 6),
+                                      Text(tag,
+                                          style: GoogleFonts.poppins(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w500)),
+                                      const SizedBox(width: 6),
+                                      GestureDetector(
+                                        onTap: () => setDialogState(() => keywords.remove(tag)),
+                                        child: const Icon(Icons.close_rounded,
+                                            size: 17, color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // 📝 Description
+                          TextFormField(
+                            controller: descC,
+                            maxLines: 4,
+                            decoration: modernInputDecoration(
+                              label: "Requirement Description *",
+                              icon: Icons.description_outlined,
+                              hint: "Describe your client's needs in detail...",
+                            ),
+                            validator: (v) => v!.isEmpty ? "Enter description" : null,
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // 📅 Expiry Date
+                          TextButton.icon(
+                            icon: const Icon(Icons.calendar_today_rounded, color: Colors.black87),
+                            label: Text(
+                              expireDate == null
+                                  ? "Pick Expiry Date"
+                                  : "Expires on: ${expireDate!.toLocal().toString().split(' ')[0]}",
+                              style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.black87),
+                            ),
+                            onPressed: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: expireDate ?? DateTime.now(),
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime(2030),
+                              );
+                              if (date != null) setDialogState(() => expireDate = date);
+                            },
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: ElevatedButton.icon(
+                              onPressed: isSubmitting ? null : update,
+                              icon: isSubmitting
+                                  ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                                  : const Icon(Icons.save_rounded, color: Colors.white),
+                              label: Text(
+                                isSubmitting ? "Saving..." : "Update Requirement",
+                                style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600, color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kPrimaryColor,
+                                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14)),
+                                elevation: 5,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
-
-                      // 🔹 Price range
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-
-                              controller: minPriceC,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: "Min Price",
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextFormField(
-
-                              controller: maxPriceC,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: "Max Price",
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-
-                      // 🔹 Size range
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-
-                              controller: minSizeC,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: "Min Size (sqft)",
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextFormField(
-
-                              controller: maxSizeC,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: "Max Size (sqft)",
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-
-                      // 🔹 Expiry date
-                      TextButton.icon(
-                        icon: const Icon(Icons.calendar_today),
-                        label: Text(
-                          expireDate == null
-                              ? "Pick Expiry Date"
-                              : expireDate!.toLocal().toString().split(' ')[0],
-                          style: GoogleFonts.poppins(),
-                        ),
-                        onPressed: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(2030),
-                          );
-                          if (date != null) {
-                            setDialogState(() => expireDate = date);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 14),
-
-                      // 🔹 Submit button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: isSubmitting
-                              ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                              : const Icon(Icons.save),
-                          label: Text(
-                            isSubmitting ? "Saving..." : "Update Requirement",
-                            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                          ),
-                          onPressed: isSubmitting ? null : update,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: kPrimaryColor,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ),
-          );
-        });
+                );
+              },
+            );
+          }),
+        );
       },
     );
   }
@@ -2454,7 +2610,15 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
                         /// 🧱 Grid/List Section
                         isLoading
-                            ? const Center(child: CircularProgressIndicator())
+                            ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 80),
+                              AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
+                            ],
+                          ),
+                        )
                             : list.isEmpty
                             ? Center(
                           child: Padding(
@@ -2781,693 +2945,606 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     List<String> keywords = [];
     bool isSubmitting = false;
 
+    InputDecoration modernInputDecoration({
+      required String label,
+      required IconData icon,
+      String? hint,
+      String? suffix,
+    }) {
+      return InputDecoration(
+        prefixIcon: Icon(icon, color: kPrimaryColor),
+        suffixText: suffix,
+        labelText: label,
+        hintText: hint,
+        labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: kPrimaryColor, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      );
+    }
+
     await showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.white,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: LayoutBuilder(builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 700;
+        context: context,
+        barrierDismissible: true,
+        builder: (context) {
+          return Dialog(
+              backgroundColor: Colors.white,
+              elevation: 12,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: LayoutBuilder(builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 700;
 
-            return StatefulBuilder(
-              builder: (context, setDialogState) {
-                Future<void> submit() async {
-                  if (!formKey.currentState!.validate()) return;
-                  setDialogState(() => isSubmitting = true);
+                return StatefulBuilder(
+                    builder: (context, setDialogState) {
+                      Future<void> submit() async {
+                        if (!formKey.currentState!.validate()) return;
+                        setDialogState(() => isSubmitting = true);
 
-                  try {
-                    final token = await AuthService.getToken();
+                        try {
+                          final token = await AuthService.getToken();
+                          final autoExpireDate = DateTime.now()
+                              .add(const Duration(days: 30))
+                              .toIso8601String();
 
-                    final autoExpireDate = DateTime.now()
-                        .add(const Duration(days: 30))
-                        .toIso8601String();
+                          final body = {
+                            "title": titleC.text.trim(),
+                            "reference_number": refC.text.trim(),
+                            "requirement_description": descC.text.trim(),
+                            "property_type_id": propertyTypeId,
+                            "location_ids": locationIds,
+                            if (widget.userData['role'].toLowerCase() == 'admin')
+                              "broker_id": widget.userData['broker']['id'],
+                            "rooms": rooms != null ? [rooms] : [],
+                            "min_size_sqft": int.tryParse(minSizeC.text) ?? 0,
+                            "max_size_sqft": int.tryParse(maxSizeC.text) ?? 0,
+                            "min_price": int.tryParse(minPriceC.text) ?? 0,
+                            "max_price": int.tryParse(maxPriceC.text) ?? 0,
+                            "furnished_status":
+                            furnishedStatus != null ? [furnishedStatus] : [],
+                            "category": category,
+                            "transaction_type": transactionType,
+                            "is_mortgage_buyer": false,
+                            "auto_expire_date": autoExpireDate,
+                            "keywords": keywords,
+                          };
 
-                    final body = {
-                      "title": titleC.text.trim(),
-                      "reference_number": refC.text.trim(),
-                      "requirement_description": descC.text.trim(),
-                      "property_type_id": propertyTypeId,
-                      "location_ids": locationIds,
-                      if (widget.userData['role'].toLowerCase() == 'admin')
-                        "broker_id": widget.userData['broker']['id'],
-                      "rooms": rooms != null ? [rooms] : [],
-                      "min_size_sqft": int.tryParse(minSizeC.text) ?? 0,
-                      "max_size_sqft": int.tryParse(maxSizeC.text) ?? 0,
-                      "min_price": int.tryParse(minPriceC.text) ?? 0,
-                      "max_price": int.tryParse(maxPriceC.text) ?? 0,
-                      "furnished_status":
-                      furnishedStatus != null ? [furnishedStatus] : [],
-                      "category": category,
-                      "transaction_type": transactionType,
-                      "is_mortgage_buyer": false,
-                      "auto_expire_date": autoExpireDate,
-                      "keywords": keywords,
-                    };
+                          final res = await http.post(
+                            Uri.parse('$baseURL/api/requirements'),
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': 'Bearer $token',
+                            },
+                            body: json.encode(body),
+                          );
 
-                    final res = await http.post(
-                      Uri.parse('$baseURL/api/requirements'),
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer $token',
-                      },
-                      body: json.encode(body),
-                    );
+                          if (res.statusCode == 200 || res.statusCode == 201) {
+                            Navigator.pop(context);
+                            _fetchRequirements();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content:
+                                  Text('Requirement created successfully!')),
+                            );
+                          } else {
+                            debugPrint("Failed: ${res.body}");
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed: ${res.statusCode}')),
+                            );
+                          }
+                        } catch (e) {
+                          debugPrint("Error posting requirement: $e");
+                        } finally {
+                          setDialogState(() => isSubmitting = false);
+                        }
+                      }
 
-                    if (res.statusCode == 200 || res.statusCode == 201) {
-                      Navigator.pop(context);
-                      _fetchRequirements();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                            Text('Requirement created successfully!')),
-                      );
-                    } else {
-                      debugPrint("Failed: ${res.body}");
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed: ${res.statusCode}')),
-                      );
-                    }
-                  } catch (e) {
-                    debugPrint("Error posting requirement: $e");
-                  } finally {
-                    setDialogState(() => isSubmitting = false);
-                  }
-                }
-
-                return ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900),
-                  child: SingleChildScrollView(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-                    child: Form(
-                      key: formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Post a Requirement",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.close_rounded, size: 24),
-                                color: Colors.grey.shade700,
-                                tooltip: "Close",
-                                splashRadius: 22,
-                                onPressed: () => Navigator.pop(context), // ✅ close dialog
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // -------- Form Grid --------
-                          Wrap(
-                            spacing: 20,
-                            runSpacing: 20,
-                            children: [
-                              // Title
-                              SizedBox(
-                                width: isWide ? 400 : double.infinity,
-                                child: TextFormField(
-                                  controller: titleC,
-                                  decoration: InputDecoration(
-                                    labelText: "Requirement Title *",
-                                    hintText:
-                                    "e.g., Young couple seeking 2BR in Downtown",
-                                    hintStyle: GoogleFonts.poppins(
-                                      color: Colors.grey.shade500,
-                                      fontSize: 14,
-                                    ),
-                                    border: const OutlineInputBorder(),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: kPrimaryColor, width: 1.5),
-                                    ),
-                                  ),
-                                  validator: (v) =>
-                                  v!.isEmpty ? "Enter title" : null,
-                                ),
-                              ),
-
-                              // Reference
-                              SizedBox(
-                                width: isWide ? 400 : double.infinity,
-                                child: TextFormField(
-                                  controller: refC,
-                                  decoration: InputDecoration(
-                                    labelText: "Reference Number *",
-                                    hintText: "e.g., REQ-001",
-                                    hintStyle: GoogleFonts.poppins(
-                                      color: Colors.grey.shade500,
-                                      fontSize: 14,
-                                    ),
-                                    border: const OutlineInputBorder(),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: kPrimaryColor, width: 1.5),
-                                    ),
-                                  ),
-                                  validator: (v) =>
-                                  v!.isEmpty ? "Enter reference" : null,
-                                ),
-
-                              ),
-
-                              // Transaction Type
-                              SizedBox(
-                                width: isWide ? 400 : double.infinity,
-                                child: DropdownButtonFormField<String>(
-                                  value: transactionType,
-                                  decoration: InputDecoration(
-                                    labelText: "Looking to",
-                                    border: const OutlineInputBorder(),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: kPrimaryColor, width: 1.5),
-                                    ),
-                                  ),
-                                  items: const [
-                                    DropdownMenuItem(
-                                        value: "SALE", child: Text("Buy")),
-                                    DropdownMenuItem(
-                                        value: "RENT", child: Text("Rent")),
-                                    DropdownMenuItem(
-                                        value: "SALE_AND_RENT",
-                                        child: Text("Rent & Buy")),
-                                  ],
-                                  onChanged: (v) =>
-                                      setDialogState(() => transactionType = v!),
-                                ),
-                              ),
-
-                              // Category
-                              SizedBox(
-                                width: isWide ? 400 : double.infinity,
-                                child: DropdownButtonFormField<String>(
-                                  value: category,
-                                  decoration: InputDecoration(
-                                    labelText: "Property Category",
-                                    border: const OutlineInputBorder(),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: kPrimaryColor, width: 1.5),
-                                    ),
-                                  ),
-                                  items: const [
-                                    DropdownMenuItem(
-                                        value: "RESIDENTIAL",
-                                        child: Text("Residential")),
-                                    DropdownMenuItem(
-                                        value: "COMMERCIAL",
-                                        child: Text("Commercial")),
-                                  ],
-                                  onChanged: (v) =>
-                                      setDialogState(() => category = v!),
-                                ),
-                              ),
-
-                              // Property Type
-                              SizedBox(
-                                width: isWide ? 400 : double.infinity,
-                                child: DropdownButtonFormField<String>(
-                                  decoration: InputDecoration(
-                                    labelText: "Property Type *",
-                                    border: const OutlineInputBorder(),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: kPrimaryColor, width: 1.5),
-                                    ),
-                                  ),
-                                  value: propertyTypeId,
-                                  items: propertyTypes
-                                      .map<DropdownMenuItem<String>>((item) =>
-                                      DropdownMenuItem(
-                                        value: item['id'],
-                                        child: Text(item['name']),
-                                      ))
-                                      .toList(),
-                                  onChanged: (val) => setDialogState(
-                                          () => propertyTypeId = val),
-                                  validator: (v) =>
-                                  v == null ? "Select property type" : null,
-                                ),
-                              ),
-
-                              // Rooms
-                              SizedBox(
-                                width: isWide ? 400 : double.infinity,
-                                child: DropdownButtonFormField<String>(
-                                  value: rooms,
-                                  decoration: InputDecoration(
-                                    labelText: "Rooms",
-                                    border: const OutlineInputBorder(),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: kPrimaryColor, width: 1.5),
-                                    ),
-                                  ),
-                                  items: const [
-                                    DropdownMenuItem(
-                                        value: "Studio", child: Text("Studio")),
-                                    DropdownMenuItem(value: "1", child: Text("1")),
-                                    DropdownMenuItem(value: "2", child: Text("2")),
-                                    DropdownMenuItem(value: "3", child: Text("3")),
-                                    DropdownMenuItem(value: "4", child: Text("4")),
-                                    DropdownMenuItem(value: "5", child: Text("5")),
-
-                                    DropdownMenuItem(
-                                        value: "5+", child: Text("5+")),
-                                  ],
-                                  onChanged: (v) => setDialogState(() => rooms = v),
-                                ),
-                              ),
-
-                              // Furnished Status
-                              SizedBox(
-                                width: isWide ? 400 : double.infinity,
-                                child: DropdownButtonFormField<String>(
-                                  value: furnishedStatus,
-                                  decoration: InputDecoration(
-                                    labelText: "Furnished Status",
-                                    border: const OutlineInputBorder(),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: kPrimaryColor, width: 1.5),
-                                    ),
-                                  ),
-                                  items: const [
-                                    DropdownMenuItem(
-                                        value: "Furnished",
-                                        child: Text("Furnished")),
-                                    DropdownMenuItem(
-                                        value: "Semi-Furnished",
-                                        child: Text("Semi-Furnished")),
-                                    DropdownMenuItem(
-                                        value: "Unfurnished",
-                                        child: Text("Unfurnished")),
-                                  ],
-                                  onChanged: (v) =>
-                                      setDialogState(() => furnishedStatus = v),
-                                ),
-                              ),
-
-                              // Locations
-                              SizedBox(
-                                width: isWide ? 820 : double.infinity,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text("Preferred Locations *",
+                      return ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 900),
+                          child: SingleChildScrollView(
+                              padding:
+                              const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+                              child: Form(
+                                  key: formKey,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                    // Header
+                                    Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        "Post a Requirement",
                                         style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w600)),
-                                    const SizedBox(height: 6),
-                                    TypeAheadField<Map<String, dynamic>>(
-                                      suggestionsCallback: (pattern) {
-                                        if (pattern.isEmpty) {
-                                          return formattedLocations;
-                                        }
-                                        return formattedLocations
-                                            .where((loc) => loc['label']
-                                            .toLowerCase()
-                                            .contains(pattern.toLowerCase()))
-                                            .toList();
-                                      },
-                                      itemBuilder: (context, suggestion) {
-                                        final isSelected = locationIds
-                                            .contains(suggestion['id']);
-                                        return ListTile(
-                                          title: Text(suggestion['label']),
-                                          trailing: isSelected
-                                              ? Icon(Icons.check_circle,
-                                              color: kPrimaryColor)
-                                              : null,
-                                        );
-                                      },
-                                      onSelected: (suggestion) {
-                                        setDialogState(() {
-                                          if (locationIds
-                                              .contains(suggestion['id'])) {
-                                            locationIds.remove(suggestion['id']);
-                                          } else {
-                                            locationIds.add(suggestion['id']);
-                                          }
-                                        });
-                                      },
-                                      builder:
-                                          (context, controller, focusNode) {
-                                        return TextField(
-                                          controller: controller,
-                                          focusNode: focusNode,
-                                          decoration: InputDecoration(
-                                            hintText:
-                                            "Search & select multiple locations",
-                                            hintStyle: GoogleFonts.poppins(
-                                              color: Colors.grey.shade500,
-                                              fontSize: 14,
-                                            ),
-                                            prefixIcon: const Icon(
-                                                Icons.location_on_outlined),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                              BorderRadius.circular(10),
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                  color: kPrimaryColor,
-                                                  width: 1.5),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: locationIds.map((id) {
-                                        final loc = formattedLocations.firstWhere(
-                                              (l) => l['id'] == id,
-                                          orElse: () => {},
-                                        );
-                                        if (loc.isEmpty) return const SizedBox();
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.close_rounded, size: 26),
+                                        color: Colors.grey.shade700,
+                                        onPressed: () => Navigator.pop(context),
+                                        splashRadius: 22,
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 24),
 
-                                        return AnimatedContainer(
-                                          duration: const Duration(milliseconds: 200),
-                                          curve: Curves.easeOut,
-                                          decoration: BoxDecoration(
-                                            color: kPrimaryColor,
-                                            borderRadius: BorderRadius.circular(30),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black12.withOpacity(0.05),
-                                                blurRadius: 6,
-                                                offset: const Offset(0, 3),
+                                  // All top fields
+                                  Wrap(
+                                    spacing: 20,
+                                    runSpacing: 20,
+                                    children: [
+                                  SizedBox(
+                                  width: isWide ? 400 : double.infinity,
+                                    child: TextFormField(
+                                      controller: titleC,
+                                      decoration: modernInputDecoration(
+                                        label: "Requirement Title *",
+                                        icon: Icons.title_rounded,
+                                        hint:
+                                        "e.g., Young couple seeking 2BR in Downtown",
+                                      ),
+                                      validator: (v) =>
+                                      v!.isEmpty ? "Enter title" : null,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: isWide ? 400 : double.infinity,
+                                    child: TextFormField(
+                                      controller: refC,
+                                      decoration: modernInputDecoration(
+                                        label: "Reference Number *",
+                                        icon: Icons.confirmation_number_outlined,
+                                        hint: "e.g., REQ-001",
+                                      ),
+                                      validator: (v) =>
+                                      v!.isEmpty ? "Enter reference" : null,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: isWide ? 400 : double.infinity,
+                                    child: DropdownButtonFormField<String>(
+                                      value: transactionType,
+                                      decoration: modernInputDecoration(
+                                        label: "Looking To",
+                                        icon: Icons.swap_horiz_rounded,
+                                      ),
+                                      items: const [
+                                        DropdownMenuItem(
+                                            value: "SALE", child: Text("Buy")),
+                                        DropdownMenuItem(
+                                            value: "RENT", child: Text("Rent")),
+                                        DropdownMenuItem(
+                                            value: "SALE_AND_RENT",
+                                            child: Text("Rent & Buy")),
+                                      ],
+                                      onChanged: (v) =>
+                                          setDialogState(() => transactionType = v!),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: isWide ? 400 : double.infinity,
+                                    child: DropdownButtonFormField<String>(
+                                      value: category,
+                                      decoration: modernInputDecoration(
+                                        label: "Property Category",
+                                        icon: Icons.category_outlined,
+                                      ),
+                                      items: const [
+                                        DropdownMenuItem(
+                                            value: "RESIDENTIAL",
+                                            child: Text("Residential")),
+                                        DropdownMenuItem(
+                                            value: "COMMERCIAL",
+                                            child: Text("Commercial")),
+                                      ],
+                                      onChanged: (v) =>
+                                          setDialogState(() => category = v!),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: isWide ? 400 : double.infinity,
+                                    child: DropdownButtonFormField<String>(
+                                      decoration: modernInputDecoration(
+                                        label: "Property Type *",
+                                        icon: Icons.apartment_rounded,
+                                      ),
+                                      value: propertyTypeId,
+                                      items: propertyTypes
+                                          .map<DropdownMenuItem<String>>((item) =>
+                                          DropdownMenuItem(
+                                            value: item['id'],
+                                            child: Text(item['name']),
+                                          ))
+                                          .toList(),
+                                      onChanged: (val) =>
+                                          setDialogState(() => propertyTypeId = val),
+                                      validator: (v) =>
+                                      v == null ? "Select property type" : null,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: isWide ? 400 : double.infinity,
+                                    child: DropdownButtonFormField<String>(
+                                      value: rooms,
+                                      decoration: modernInputDecoration(
+                                        label: "Rooms",
+                                        icon: Icons.meeting_room_outlined,
+                                      ),
+                                      items: const [
+                                        DropdownMenuItem(
+                                            value: "Studio", child: Text("Studio")),
+                                        DropdownMenuItem(value: "1", child: Text("1")),
+                                        DropdownMenuItem(value: "2", child: Text("2")),
+                                        DropdownMenuItem(value: "3", child: Text("3")),
+                                        DropdownMenuItem(value: "4", child: Text("4")),
+                                        DropdownMenuItem(value: "5", child: Text("5")),
+                                        DropdownMenuItem(
+                                            value: "5+", child: Text("5+")),
+                                      ],
+                                      onChanged: (v) =>
+                                          setDialogState(() => rooms = v),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: isWide ? 400 : double.infinity,
+                                    child: DropdownButtonFormField<String>(
+                                      value: furnishedStatus,
+                                      decoration: modernInputDecoration(
+                                        label: "Furnished Status",
+                                        icon: Icons.chair_alt_rounded,
+                                      ),
+                                      items: const [
+                                        DropdownMenuItem(
+                                            value: "Furnished",
+                                            child: Text("Furnished")),
+                                        DropdownMenuItem(
+                                            value: "Semi-Furnished",
+                                            child: Text("Semi-Furnished")),
+                                        DropdownMenuItem(
+                                            value: "Unfurnished",
+                                            child: Text("Unfurnished")),
+                                      ],
+                                      onChanged: (v) =>
+                                          setDialogState(() => furnishedStatus = v),
+                                    ),
+                                  ),
+                                      // 🏙️ Locations Section
+                                      SizedBox(
+                                        width: isWide ? 820 : double.infinity,
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text("Preferred Locations *",
+                                                style: GoogleFonts.poppins(
+                                                    fontWeight: FontWeight.w600)),
+                                            const SizedBox(height: 6),
+                                            TypeAheadField<Map<String, dynamic>>(
+                                              suggestionsCallback: (pattern) {
+                                                if (pattern.isEmpty) {
+                                                  return formattedLocations;
+                                                }
+                                                return formattedLocations
+                                                    .where((loc) => loc['label']
+                                                    .toLowerCase()
+                                                    .contains(
+                                                    pattern.toLowerCase()))
+                                                    .toList();
+                                              },
+                                              itemBuilder: (context, suggestion) {
+                                                final isSelected = locationIds
+                                                    .contains(suggestion['id']);
+                                                return ListTile(
+                                                  leading: Icon(Icons.location_on,
+                                                      color: kPrimaryColor),
+                                                  title: Text(suggestion['label']),
+                                                  trailing: isSelected
+                                                      ? Icon(Icons.check_circle,
+                                                      color: kPrimaryColor)
+                                                      : null,
+                                                );
+                                              },
+                                              onSelected: (suggestion) {
+                                                setDialogState(() {
+                                                  if (locationIds
+                                                      .contains(suggestion['id'])) {
+                                                    locationIds.remove(suggestion['id']);
+                                                  } else {
+                                                    locationIds.add(suggestion['id']);
+                                                  }
+                                                });
+                                              },
+                                              builder: (context, controller, focusNode) {
+                                                return TextField(
+                                                  controller: controller,
+                                                  focusNode: focusNode,
+                                                  decoration: modernInputDecoration(
+                                                    label: "Search Locations",
+                                                    icon: Icons.search_rounded,
+                                                    hint:
+                                                    "Search & select multiple locations",
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Wrap(
+                                              spacing: 8,
+                                              runSpacing: 8,
+                                              children: locationIds.map((id) {
+                                                final loc = formattedLocations.firstWhere(
+                                                      (l) => l['id'] == id,
+                                                  orElse: () => {},
+                                                );
+                                                if (loc.isEmpty) return const SizedBox();
+
+                                                return AnimatedContainer(
+                                                  duration: const Duration(milliseconds: 200),
+                                                  curve: Curves.easeOut,
+                                                  decoration: BoxDecoration(
+                                                    color: kPrimaryColor,
+                                                    borderRadius:
+                                                    BorderRadius.circular(30),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black12
+                                                            .withOpacity(0.05),
+                                                        blurRadius: 6,
+                                                        offset: const Offset(0, 3),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.symmetric(
+                                                        horizontal: 14, vertical: 8),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        const Icon(Icons.location_on,
+                                                            color: Colors.white, size: 16),
+                                                        const SizedBox(width: 6),
+                                                        Text(
+                                                          loc['label'],
+                                                          style: GoogleFonts.poppins(
+                                                            fontSize: 13.5,
+                                                            color: Colors.white,
+                                                            fontWeight: FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(width: 6),
+                                                        GestureDetector(
+                                                          onTap: () => setDialogState(
+                                                                  () => locationIds.remove(id)),
+                                                          child: const Icon(
+                                                              Icons.close_rounded,
+                                                              size: 17,
+                                                              color: Colors.white),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      // 💰 Price Range
+                                      SizedBox(
+                                        width: isWide ? 400 : double.infinity,
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                keyboardType: TextInputType.number,
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter.digitsOnly,
+                                                ],
+                                                controller: minPriceC,
+                                                decoration: modernInputDecoration(
+                                                  label: "Min Price",
+                                                  icon: Icons.attach_money_rounded,
+                                                  suffix: "AED د.إ",
+                                                ),
                                               ),
-                                            ],
-                                            border: Border.all(color: kPrimaryColor.withOpacity(0.2)),
-                                          ),
-                                          child: InkWell(
-                                            borderRadius: BorderRadius.circular(30),
-                                            onTap: () {},
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: TextFormField(
+                                                keyboardType: TextInputType.number,
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter.digitsOnly,
+                                                ],
+                                                controller: maxPriceC,
+                                                decoration: modernInputDecoration(
+                                                  label: "Max Price",
+                                                  icon: Icons.attach_money_rounded,
+                                                  suffix: "AED د.إ",
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      // 📏 Size Range
+                                      SizedBox(
+                                        width: isWide ? 400 : double.infinity,
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: minSizeC,
+                                                keyboardType: TextInputType.number,
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter.digitsOnly,
+                                                ],
+                                                decoration: modernInputDecoration(
+                                                  label: "Min Size",
+                                                  icon: Icons.square_foot_rounded,
+                                                  suffix: "sqft",
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: maxSizeC,
+                                                keyboardType: TextInputType.number,
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter.digitsOnly,
+                                                ],
+                                                decoration: modernInputDecoration(
+                                                  label: "Max Size",
+                                                  icon: Icons.square_foot_rounded,
+                                                  suffix: "sqft",
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                      const SizedBox(height: 24),
+
+                                      // 🏷️ Keywords Section
+                                      Text("Keywords / Tags",
+                                          style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.w600)),
+                                      const SizedBox(height: 8),
+                                      TextField(
+                                        controller: tagController,
+                                        decoration: modernInputDecoration(
+                                          label: "Add Tags",
+                                          icon: Icons.sell_outlined,
+                                          hint:
+                                          "Press Enter to add tags (e.g., Near Metro, Sea View)",
+                                        ),
+                                        onSubmitted: (value) {
+                                          final tag = value.trim();
+                                          if (tag.isNotEmpty &&
+                                              !keywords.contains(tag) &&
+                                              keywords.length < 10) {
+                                            setDialogState(() => keywords.add(tag));
+                                            tagController.clear();
+                                          }
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: keywords.map((tag) {
+                                          return AnimatedContainer(
+                                            duration: const Duration(milliseconds: 200),
+                                            decoration: BoxDecoration(
+                                              color: kPrimaryColor,
+                                              borderRadius: BorderRadius.circular(30),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black12.withOpacity(0.05),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 3),
+                                                ),
+                                              ],
+                                            ),
                                             child: Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 14, vertical: 8),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  Icon(Icons.location_on_rounded,
+                                                  const Icon(Icons.sell_outlined,
                                                       color: Colors.white, size: 16),
                                                   const SizedBox(width: 6),
-                                                  Text(
-                                                    loc['label'],
-                                                    style: GoogleFonts.poppins(
-                                                      fontSize: 13.5,
-                                                      color: Colors.white,
-                                                      fontWeight: FontWeight.w500,
-                                                    ),
-                                                  ),
+                                                  Text(tag,
+                                                      style: GoogleFonts.poppins(
+                                                          color: Colors.white,
+                                                          fontWeight: FontWeight.w500)),
                                                   const SizedBox(width: 6),
                                                   GestureDetector(
-                                                    onTap: () => setDialogState(() => locationIds.remove(id)),
-                                                    child: Icon(Icons.close_rounded,
+                                                    onTap: () => setDialogState(
+                                                            () => keywords.remove(tag)),
+                                                    child: const Icon(Icons.close_rounded,
                                                         size: 17, color: Colors.white),
                                                   ),
                                                 ],
                                               ),
                                             ),
+                                          );
+                                        }).toList(),
+                                      ),
+
+                                      const SizedBox(height: 24),
+
+                                      // 📝 Description
+                                      TextFormField(
+                                        controller: descC,
+                                        maxLines: 4,
+                                        decoration: modernInputDecoration(
+                                          label: "Requirement Description *",
+                                          icon: Icons.description_outlined,
+                                          hint: "Describe your client's needs in detail...",
+                                        ),
+                                        validator: (v) =>
+                                        v!.isEmpty ? "Enter description" : null,
+                                      ),
+
+                                      const SizedBox(height: 32),
+
+                                      // 🚀 Submit Button
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: ElevatedButton.icon(
+                                          onPressed: isSubmitting ? null : submit,
+                                          icon: isSubmitting
+                                              ? const SizedBox(
+                                            height: 18,
+                                            width: 18,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2, color: Colors.white),
+                                          )
+                                              : const Icon(Icons.send_rounded,
+                                              color: Colors.white),
+                                          label: Text(
+                                            isSubmitting ? "Posting..." : "Post Requirement",
+                                            style: GoogleFonts.poppins(
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white),
                                           ),
-                                        );
-                                      }).toList(),
-                                    ),
-
-                                  ],
-                                ),
-                              ),
-
-                              // Price Range with AED suffix
-                              SizedBox(
-                                width: isWide ? 400 : double.infinity,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        keyboardType: TextInputType.number,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly, // ✅ allows only integers
-                                        ],
-                                        controller: minPriceC,
-                                        decoration: InputDecoration(
-                                          labelText: "Min Price",
-                                          suffixText: "AED د.إ",
-                                          suffixStyle: TextStyle(
-                                              color: Colors.grey.shade600),
-                                          border: const OutlineInputBorder(),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                                color: kPrimaryColor, width: 1.5),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: kPrimaryColor,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 28, vertical: 14),
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(14)),
+                                            elevation: 5,
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: maxPriceC,
-                                        keyboardType: TextInputType.number,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly, // ✅ allows only integers
-                                        ],
-                                        decoration: InputDecoration(
-                                          labelText: "Max Price",
-                                          suffixText: "AED د.إ",
-                                          suffixStyle: TextStyle(
-                                              color: Colors.grey.shade600),
-                                          border: const OutlineInputBorder(),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                                color: kPrimaryColor, width: 1.5),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              // Size Range
-                              SizedBox(
-                                width: isWide ? 400 : double.infinity,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: minSizeC,
-                                        keyboardType: TextInputType.number,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly, // ✅ allows only integers
-                                        ],
-                                        decoration: InputDecoration(
-                                          labelText: "Min Size",
-                                          suffixText: "sqft",
-                                          suffixStyle: TextStyle(
-                                              color: Colors.grey.shade600),
-                                          border: const OutlineInputBorder(),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                                color: kPrimaryColor, width: 1.5),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: maxSizeC,
-                                        keyboardType: TextInputType.number,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly, // ✅ allows only integers
-                                        ],                                        decoration: InputDecoration(
-                                          labelText: "Max Size",
-                                          suffixText: "sqft",
-                                          suffixStyle: TextStyle(
-                                              color: Colors.grey.shade600),
-                                          border: const OutlineInputBorder(),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                                color: kPrimaryColor, width: 1.5),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // Keywords
-                          Text("Keywords / Tags",
-                              style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: tagController, // ✅ attach controller
-                            decoration: InputDecoration(
-                              hintText:
-                              "Press Enter to add tags (e.g., Near Metro, Sea View)",
-                              hintStyle: GoogleFonts.poppins(
-                                color: Colors.grey.shade500,
-                                fontSize: 14,
-                              ),
-                              border: const OutlineInputBorder(),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide:
-                                BorderSide(color: kPrimaryColor, width: 1.5),
-                              ),
-                              prefixIcon: const Icon(Icons.tag_outlined),
-                            ),
-
-                            onSubmitted: (value) {
-                              final tag = value.trim();
-                              if (tag.isNotEmpty &&
-                                  !keywords.contains(tag) &&
-                                  keywords.length < 10) {
-                                setDialogState(() => keywords.add(tag));
-                                tagController.clear(); // ✅ clears the field after adding tag
-
-
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: keywords.map((tag) {
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                curve: Curves.easeOut,
-                                decoration: BoxDecoration(
-                                  color: kPrimaryColor,
-                                  borderRadius: BorderRadius.circular(30),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black12.withOpacity(0.05),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                  border: Border.all(color: kPrimaryColor.withOpacity(0.2)),
-                                ),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(30),
-                                  onTap: () {},
-                                  child: Padding(
-                                    padding:
-                                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.sell_outlined,
-                                            color: Colors.white, size: 16),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          tag,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13.5,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        GestureDetector(
-                                          onTap: () => setDialogState(() => keywords.remove(tag)),
-                                          child: Icon(Icons.close_rounded,
-                                              size: 17, color: Colors.white),
-                                        ),
-                                      ],
-                                    ),
+                                    ],
                                   ),
-                                ),
-                              );
-                            }).toList(),
+                              ),
                           ),
-
-
-                          const SizedBox(height: 24),
-
-                          // Description
-                          TextFormField(
-                            controller: descC,
-                            maxLines: 4,
-                            decoration: InputDecoration(
-                              labelText: "Requirement Description *",
-                              hintText:
-                              "Describe your client's needs in detail...",
-                              hintStyle: GoogleFonts.poppins(
-                                color: Colors.grey.shade500,
-                                fontSize: 14,
-                              ),
-                              border: const OutlineInputBorder(),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide:
-                                BorderSide(color: kPrimaryColor, width: 1.5),
-                              ),
-                            ),
-                            validator: (v) =>
-                            v!.isEmpty ? "Enter description" : null,
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Submit Button
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: ElevatedButton.icon(
-                              onPressed: isSubmitting ? null : submit,
-                              icon: isSubmitting
-                                  ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
-                              )
-                                  : const Icon(Icons.send_rounded,color: Colors.white,),
-                              label: Text(
-                                isSubmitting ? "Posting..." : "Post Requirement",
-                                style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: kPrimaryColor,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 28, vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                      );
+                    },
                 );
-              },
-            );
-          }),
-        );
-      },
+              }),
+          );
+        },
     );
   }
 

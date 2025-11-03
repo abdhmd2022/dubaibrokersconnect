@@ -195,10 +195,10 @@ class _ProfileSectionState extends State<_ProfileSection> {
 
   @override
   Widget build(BuildContext context) {
-    final fullName = '${widget.userData['firstName'] ?? ''} ${widget.userData['lastName'] ?? ''}'.trim();
+    final fullName = '${widget.userData['broker']['displayName'] ?? ''}'.trim();
 
     final name = fullName.isNotEmpty ? fullName : {widget.userData['broker']['displayName']}.isNotEmpty ? '${widget.userData['broker']['displayName']}':  "";
-    final email = widget.userData['email'] ?? '';
+    final email = widget.userData['broker']['email'] ?? '';
     final avatar = widget.userData['avatar'] ?? '';
     final bool isVerified = widget.userData['isVerified'] == true;
     final String role = widget.userData['role']?.toString().toUpperCase() ?? 'BROKER';
