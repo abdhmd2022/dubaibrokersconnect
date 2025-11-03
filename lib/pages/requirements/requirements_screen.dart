@@ -178,6 +178,40 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
   Future<void> _openEditDialog(Map<String, dynamic> req) async {
     await _fetchPropertyTypesAndLocations();
 
+    // 🏷️ Tag states
+    List<Map<String, dynamic>> allTags = [];
+    List<String> selectedTagIds = [];
+
+    // 🔹 Fetch tags from API
+    Future<void> _fetchTags() async {
+      try {
+        final token = await AuthService.getToken();
+        final res = await http.get(
+          Uri.parse('$baseURL/api/tags'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+        if (res.statusCode == 200) {
+          final data = json.decode(res.body);
+          allTags = List<Map<String, dynamic>>.from(data['data']);
+        } else {
+          debugPrint("Failed to fetch tags: ${res.statusCode}");
+        }
+      } catch (e) {
+        debugPrint("Error fetching tags: $e");
+      }
+    }
+
+    await _fetchTags();
+
+    if (req['keywordsTagIds'] != null && req['keywordsTagIds'] is List) {
+      selectedTagIds = List<String>.from(req['keywordsTagIds']);
+    }
+
+
+
     final formKey = GlobalKey<FormState>();
     final titleC = TextEditingController(text: req['title'] ?? '');
     final refC = TextEditingController(text: req['referenceNumber'] ?? '');
@@ -205,21 +239,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     String? furnishedStatus = req['furnishedStatus'] != null && req['furnishedStatus'].isNotEmpty
         ? _normalizeFurnished(req['furnishedStatus'][0])
         : null;
-
-
-
-    List<String> keywords = [];
-    if (req['keywords'] != null) {
-      if (req['keywords'] is List) {
-        keywords = List<String>.from(req['keywords']);
-      } else if (req['keywords'] is String) {
-        keywords = req['keywords']
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
-      }
-    }
 
 
     DateTime? expireDate = req['autoExpireDate'] != null
@@ -289,7 +308,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                       "category": category,
                       "transaction_type": transactionType,
                       "auto_expire_date": expireDate?.toIso8601String(),
-                      "keywords": keywords,
+                      "keywords_tag_ids": selectedTagIds,
                     };
 
                     final res = await http.put(
@@ -559,32 +578,74 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
                           const SizedBox(height: 24),
 
-                          // 🏷️ Keywords
-                          Text("Keywords / Tags",
-                              style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                          // 🏷️ Tags (replaces keywords section)
+                          Text("Tags", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                           const SizedBox(height: 8),
-                          TextField(
-                            decoration: modernInputDecoration(
-                              label: "Add Tags",
-                              icon: Icons.sell_outlined,
-                              hint: "Press Enter to add tags",
-                            ),
-                            onSubmitted: (value) {
-                              final tag = value.trim();
-                              if (tag.isNotEmpty && !keywords.contains(tag) && keywords.length < 10) {
-                                setDialogState(() => keywords.add(tag));
-                              }
+
+                          TypeAheadField<Map<String, dynamic>>(
+                            suggestionsCallback: (pattern) {
+                              final query = pattern.toLowerCase();
+                              return allTags.where((tag) {
+                                final name = (tag['name'] ?? '').toLowerCase();
+                                return name.contains(query) && !selectedTagIds.contains(tag['id']);
+                              }).toList();
                             },
+                            itemBuilder: (context, suggestion) {
+                              final color = suggestion['color'] ?? '#E0E0E0';
+                              return ListTile(
+                                leading: const Icon(Icons.sell_outlined, color: Colors.teal),
+                                title: Text(
+                                  suggestion['name'],
+                                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                                ),
+                                trailing: Container(
+                                  width: 14,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    color: Color(int.parse(color.replaceFirst('#', '0xff'))),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              );
+                            },
+                            onSelected: (suggestion) {
+                              setDialogState(() {
+                                selectedTagIds.add(suggestion['id']);
+                              });
+                            },
+                            builder: (context, controller, focusNode) {
+                              return TextField(
+                                controller: controller,
+                                focusNode: focusNode,
+                                decoration: modernInputDecoration(
+                                  label: "Search Tags",
+                                  icon: Icons.sell_outlined,
+                                  hint: "Search & select multiple tags",
+                                ),
+                              );
+                            },
+
                           ),
+
                           const SizedBox(height: 8),
+
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
-                            children: keywords.map((tag) {
+                            children: selectedTagIds.map((id) {
+                              final tag = allTags.firstWhere(
+                                    (t) => t['id'] == id,
+                                orElse: () => {},
+                              );
+                              if (tag.isEmpty) return const SizedBox();
+                              final color = tag['color'] ?? '#4ECDC4';
+                              final tagColor =
+                              Color(int.parse(color.replaceFirst('#', '0xff')));
+
                               return AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
                                 decoration: BoxDecoration(
-                                  color: kPrimaryColor,
+                                  color: tagColor,
                                   borderRadius: BorderRadius.circular(30),
                                   boxShadow: [
                                     BoxShadow(
@@ -602,13 +663,13 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                       const Icon(Icons.sell_outlined,
                                           color: Colors.white, size: 16),
                                       const SizedBox(width: 6),
-                                      Text(tag,
+                                      Text(tag['name'] ?? '',
                                           style: GoogleFonts.poppins(
                                               color: Colors.white,
                                               fontWeight: FontWeight.w500)),
                                       const SizedBox(width: 6),
                                       GestureDetector(
-                                        onTap: () => setDialogState(() => keywords.remove(tag)),
+                                        onTap: () => setDialogState(() => selectedTagIds.remove(id)),
                                         child: const Icon(Icons.close_rounded,
                                             size: 17, color: Colors.white),
                                       ),
@@ -3220,6 +3281,32 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 // ---------------- CREATE DIALOG ----------------
   Future<void> _openCreateDialog() async {
     final tagController = TextEditingController();
+    List<Map<String, dynamic>> allTags = [];
+    List<String> selectedTagIds = [];
+
+    Future<void> _fetchTags() async {
+      try {
+        final token = await AuthService.getToken();
+        final res = await http.get(
+          Uri.parse('$baseURL/api/tags'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        if (res.statusCode == 200) {
+          final data = json.decode(res.body);
+          allTags = List<Map<String, dynamic>>.from(data['data']);
+        } else {
+          debugPrint("Failed to fetch tags: ${res.statusCode}");
+        }
+      } catch (e) {
+        debugPrint("Error fetching tags: $e");
+      }
+    }
+
+    await _fetchTags();
 
     await _fetchPropertyTypesAndLocations();
 
@@ -3308,10 +3395,10 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                             "furnished_status":
                             furnishedStatus != null ? [furnishedStatus] : [],
                             "category": category,
+                            "keywords_tag_ids": selectedTagIds,
                             "transaction_type": transactionType,
                             "is_mortgage_buyer": false,
                             "auto_expire_date": autoExpireDate,
-                            "keywords": keywords,
                           };
 
                           final res = await http.post(
@@ -3716,38 +3803,74 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
                                       const SizedBox(height: 24),
 
-                                      // 🏷️ Keywords Section
-                                      Text("Keywords / Tags",
-                                          style: GoogleFonts.poppins(
-                                              fontWeight: FontWeight.w600)),
+                                      // 🏷️ Tags Section
+                                      Text("Tags", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                                       const SizedBox(height: 8),
-                                      TextField(
-                                        controller: tagController,
-                                        decoration: modernInputDecoration(
-                                          label: "Add Tags",
-                                          icon: Icons.sell_outlined,
-                                          hint:
-                                          "Press Enter to add tags (e.g., Near Metro, Sea View)",
-                                        ),
-                                        onSubmitted: (value) {
-                                          final tag = value.trim();
-                                          if (tag.isNotEmpty &&
-                                              !keywords.contains(tag) &&
-                                              keywords.length < 10) {
-                                            setDialogState(() => keywords.add(tag));
-                                            tagController.clear();
-                                          }
+
+                                      TypeAheadField<Map<String, dynamic>>(
+                                        suggestionsCallback: (pattern) {
+                                          final query = pattern.toLowerCase();
+                                          return allTags.where((tag) {
+                                            final name = (tag['name'] ?? '').toLowerCase();
+                                            return name.contains(query) && !selectedTagIds.contains(tag['id']);
+                                          }).toList();
+                                        },
+                                        itemBuilder: (context, suggestion) {
+                                          final color = suggestion['color'] ?? '#E0E0E0';
+                                          return ListTile(
+                                            leading: const Icon(Icons.sell_outlined, color: Colors.teal),
+                                            title: Text(
+                                              suggestion['name'],
+                                              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                                            ),
+                                            trailing: Container(
+                                              width: 14,
+                                              height: 14,
+                                              decoration: BoxDecoration(
+                                                color: Color(int.parse(color.replaceFirst('#', '0xff'))),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        onSelected: (suggestion) {
+                                          setDialogState(() {
+                                            selectedTagIds.add(suggestion['id']);
+                                          });
+                                        },
+                                        builder: (context, controller, focusNode) {
+                                          return TextField(
+                                            controller: controller,
+                                            focusNode: focusNode,
+                                            decoration: modernInputDecoration(
+                                              label: "Search Tags",
+                                              icon: Icons.sell_outlined,
+                                              hint: "Search & select multiple tags",
+                                            ),
+                                          );
                                         },
                                       ),
+
                                       const SizedBox(height: 8),
+
+// Display Selected Tag Chips
                                       Wrap(
                                         spacing: 8,
                                         runSpacing: 8,
-                                        children: keywords.map((tag) {
+                                        children: selectedTagIds.map((id) {
+                                          final tag = allTags.firstWhere(
+                                                (t) => t['id'] == id,
+                                            orElse: () => {},
+                                          );
+                                          if (tag.isEmpty) return const SizedBox();
+
+                                          final color = tag['color'] ?? '#4ECDC4';
+                                          final tagColor = Color(int.parse(color.replaceFirst('#', '0xff')));
+
                                           return AnimatedContainer(
                                             duration: const Duration(milliseconds: 200),
                                             decoration: BoxDecoration(
-                                              color: kPrimaryColor,
+                                              color: tagColor,
                                               borderRadius: BorderRadius.circular(30),
                                               boxShadow: [
                                                 BoxShadow(
@@ -3758,24 +3881,23 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                               ],
                                             ),
                                             child: Padding(
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 14, vertical: 8),
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  const Icon(Icons.sell_outlined,
-                                                      color: Colors.white, size: 16),
+                                                  const Icon(Icons.sell_outlined, color: Colors.white, size: 16),
                                                   const SizedBox(width: 6),
-                                                  Text(tag,
-                                                      style: GoogleFonts.poppins(
-                                                          color: Colors.white,
-                                                          fontWeight: FontWeight.w500)),
+                                                  Text(
+                                                    tag['name'] ?? '',
+                                                    style: GoogleFonts.poppins(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
                                                   const SizedBox(width: 6),
                                                   GestureDetector(
-                                                    onTap: () => setDialogState(
-                                                            () => keywords.remove(tag)),
-                                                    child: const Icon(Icons.close_rounded,
-                                                        size: 17, color: Colors.white),
+                                                    onTap: () => setDialogState(() => selectedTagIds.remove(id)),
+                                                    child: const Icon(Icons.close_rounded, size: 17, color: Colors.white),
                                                   ),
                                                 ],
                                               ),
