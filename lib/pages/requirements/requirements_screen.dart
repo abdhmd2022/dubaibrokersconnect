@@ -590,8 +590,11 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                 return name.contains(query) && !selectedTagIds.contains(tag['id']);
                               }).toList();
                             },
+
+
                             itemBuilder: (context, suggestion) {
-                              final color = suggestion['color'] ?? '#E0E0E0';
+
+
                               return ListTile(
                                 leading: const Icon(Icons.sell_outlined, color: Colors.teal),
                                 title: Text(
@@ -602,7 +605,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                   width: 14,
                                   height: 14,
                                   decoration: BoxDecoration(
-                                    color: Color(int.parse(color.replaceFirst('#', '0xff'))),
+                                    color: kPrimaryColor,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -638,14 +641,12 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                 orElse: () => {},
                               );
                               if (tag.isEmpty) return const SizedBox();
-                              final color = tag['color'] ?? '#4ECDC4';
-                              final tagColor =
-                              Color(int.parse(color.replaceFirst('#', '0xff')));
+
 
                               return AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
                                 decoration: BoxDecoration(
-                                  color: tagColor,
+                                  color: kPrimaryColor,
                                   borderRadius: BorderRadius.circular(30),
                                   boxShadow: [
                                     BoxShadow(
@@ -3816,7 +3817,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                           }).toList();
                                         },
                                         itemBuilder: (context, suggestion) {
-                                          final color = suggestion['color'] ?? '#E0E0E0';
                                           return ListTile(
                                             leading: const Icon(Icons.sell_outlined, color: Colors.teal),
                                             title: Text(
@@ -3827,7 +3827,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                               width: 14,
                                               height: 14,
                                               decoration: BoxDecoration(
-                                                color: Color(int.parse(color.replaceFirst('#', '0xff'))),
+                                                color: kPrimaryColor,
                                                 shape: BoxShape.circle,
                                               ),
                                             ),
@@ -3864,13 +3864,11 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                           );
                                           if (tag.isEmpty) return const SizedBox();
 
-                                          final color = tag['color'] ?? '#4ECDC4';
-                                          final tagColor = Color(int.parse(color.replaceFirst('#', '0xff')));
 
                                           return AnimatedContainer(
                                             duration: const Duration(milliseconds: 200),
                                             decoration: BoxDecoration(
-                                              color: tagColor,
+                                              color: kPrimaryColor,
                                               borderRadius: BorderRadius.circular(30),
                                               boxShadow: [
                                                 BoxShadow(
