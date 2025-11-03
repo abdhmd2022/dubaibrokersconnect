@@ -11,8 +11,12 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/animated_logo_loader.dart';
 
 class BrokerProfileScreen extends StatefulWidget {
+  final Map<String, dynamic> userData;
+
+
   final String brokerId;
-  const BrokerProfileScreen({super.key, required this.brokerId});
+  const BrokerProfileScreen({super.key, required this.brokerId,
+  required this.userData});
 
   @override
   State<BrokerProfileScreen> createState() => _BrokerProfileScreenState();
@@ -29,6 +33,10 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   void initState() {
     super.initState();
 
+
+    // Default selection based on broker verification
+    final isVerified = widget.userData['broker']['isVerified'] == true;
+    activeSection = isVerified ? "Listings" : "Reviews";
 
     fetchBrokerById();
   }
@@ -96,7 +104,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     final verified = broker!['isVerified'] == true;
     final avatar = broker!['user']?['avatar'];
     final email = broker!['email'];
-    final phone = broker!['phone'];
+    final phone = broker!['mobile'];
     final bio = broker!['bio'] ?? '';
     final rating = broker!['rating'] ?? 'N/A';
     final requirements = broker!['requirements'] ?? [];
@@ -642,8 +650,13 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  _buildSegmentButton("Listings", count: properties.length),
-                                  _buildSegmentButton("Requirements", count: requirements.length),
+
+                                  if(widget.userData['broker']['isVerified'])...[
+                                    _buildSegmentButton("Listings", count: properties.length),
+                                    _buildSegmentButton("Requirements", count: requirements.length),
+                                  ],
+
+
                                   _buildSegmentButton(
                                     "Reviews",
                                     count: reviews.where((r) => r['status'] == "APPROVED").length,
@@ -685,6 +698,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   }
   Widget _buildSegmentButton(String label, {int count = 0}) {
     final bool isActive = activeSection == label;
+    final bool isVerified = widget.userData['broker']['isVerified'] == true;
 
     return Expanded(
       child: InkWell(
@@ -704,13 +718,16 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
             border: Border(
               top: BorderSide(color: Colors.grey.shade300, width: 1),
               bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-              left: label == "Listings"
+              left: label == "Listings" || (!isVerified && label == "Reviews")
                   ? BorderSide(color: Colors.grey.shade300, width: 1)
                   : BorderSide.none,
               right: BorderSide(color: Colors.grey.shade300, width: 1),
             ),
             borderRadius: BorderRadius.horizontal(
-              left: label == "Listings" ? const Radius.circular(12) : Radius.zero,
+              left: label == "Listings" ||
+                  (!isVerified && label == "Reviews")
+                  ? const Radius.circular(12)
+                  : Radius.zero,
               right: label == "Reviews" ? const Radius.circular(12) : Radius.zero,
             ),
             boxShadow: [
@@ -733,34 +750,32 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                   color: isActive ? Colors.white : Colors.black87,
                 ),
               ),
-
-                const SizedBox(width: 6),
-                Container(
-                  width: 20,
-                  height: 20,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+              const SizedBox(width: 6),
+              Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isActive
+                      ? Colors.white.withOpacity(0.9)
+                      : kPrimaryColor.withOpacity(0.1),
+                  border: Border.all(
                     color: isActive
-                        ? Colors.white.withOpacity(0.9)
-                        : kPrimaryColor.withOpacity(0.1),
-                    border: Border.all(
-                      color: isActive
-                          ? Colors.white.withOpacity(0.8)
-                          : Colors.white.withOpacity(0.4),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    "$count",
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isActive ? kPrimaryColor : Colors.black87,
-                    ),
+                        ? Colors.white.withOpacity(0.8)
+                        : Colors.white.withOpacity(0.4),
+                    width: 1,
                   ),
                 ),
-
+                child: Text(
+                  "$count",
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isActive ? kPrimaryColor : Colors.black87,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

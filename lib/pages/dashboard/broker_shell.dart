@@ -42,7 +42,7 @@ class _BrokerShellState extends State<BrokerShell> {
         },),
       ListingsScreen(userData: userData,),
       RequirementsScreen(userData: userData,),
-      BrokerDirectoryScreen(),
+      BrokerDirectoryScreen(userData: userData,),
       ProfileScreen(),
       TransactionsScreen(),
       A2aformsScreen(),

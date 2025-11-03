@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/animated_logo_loader.dart';
@@ -1489,62 +1491,14 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
 
 // ------------------- BUILD REQUIREMENT LIST -------------------
-  Widget _buildListRequirements() {
-    // Sort newest first
-    final sortedRequirements = List<Map<String, dynamic>>.from(requirements)
-      ..sort((a, b) {
-        final dateA = DateTime.tryParse(a['createdAt'] ?? '') ?? DateTime(1900);
-        final dateB = DateTime.tryParse(b['createdAt'] ?? '') ?? DateTime(1900);
-        return dateB.compareTo(dateA);
-      });
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ✅ Select All Header
-        Row(
-          children: [
-            Checkbox(
-              value: selectAll,
-              activeColor: kPrimaryColor,
-              onChanged: (checked) {
-                setState(() {
-                  selectAll = checked ?? false;
-                  if (selectAll) {
-                    selectedRequirementIds =
-                        sortedRequirements.map((r) => r['id'].toString()).toList();
-                  } else {
-                    selectedRequirementIds.clear();
-                  }
-                });
-              },
-            ),
-            Text(
-              "Select All",
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 13.5,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 10),
-
-        // ✅ List of Cards
-        ...sortedRequirements.map((e) => _buildRequirementCard(e)).toList(),
-      ],
-    );
-  }
 
 // ------------------- REQUIREMENT CARD -------------------
   Widget _buildRequirementCard(Map<String, dynamic> e) {
     final broker = e['broker'] ?? {};
+    final brokerId = widget.userData['broker']?['id'];
+    final isOwnRequirement = e['brokerId'] == brokerId;
+
     final propertyType = e['propertyType']?['name'] ?? 'N/A';
-    final location = (e['locations'] != null && e['locations'].isNotEmpty)
-        ? e['locations'][0]['completeAddress']
-        : 'N/A';
     final category = e['category'] ?? 'N/A';
     final transactionType = e['transactionType'] ?? 'N/A';
     final listing = e['listingStatus'] ?? 'ACTIVE';
@@ -1553,9 +1507,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     final description = e['requirementDescription'] ?? '';
     final isActive = listing == 'ACTIVE';
     final createdAt = DateTime.tryParse(e['createdAt'] ?? '');
-    final formattedDate = createdAt != null
-        ? DateFormat('dd-MMM-yyyy').format(createdAt)
-        : '-';
+    final formattedDate =
+    createdAt != null ? DateFormat('dd-MMM-yyyy').format(createdAt) : '-';
     final minPrice = e['minPrice'] ?? '-';
     final maxPrice = e['maxPrice'] ?? '-';
     final priceRange = transactionType == 'RENT'
@@ -1604,21 +1557,27 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Checkbox(
-                          value: selectedRequirementIds.contains(e['id']),
-                          activeColor: kPrimaryColor,
-                          onChanged: (checked) {
-                            setState(() {
-                              if (checked == true) {
-                                selectedRequirementIds.add(e['id']);
-                              } else {
-                                selectedRequirementIds.remove(e['id']);
-                              }
-                              selectAll = selectedRequirementIds.length ==
-                                  requirements.length;
-                            });
-                          },
-                        ),
+                        if (isOwnRequirement)
+                          Checkbox(
+                            value: selectedRequirementIds.contains(e['id']),
+                            activeColor: kPrimaryColor,
+                            onChanged: (checked) {
+                              setState(() {
+                                if (checked == true) {
+                                  selectedRequirementIds.add(e['id']);
+                                } else {
+                                  selectedRequirementIds.remove(e['id']);
+                                }
+
+                                // ✅ Update selectAll only for own requirements
+                                final ownReqs = requirements
+                                    .where((r) => r['brokerId'] == brokerId)
+                                    .toList();
+                                selectAll = selectedRequirementIds.length ==
+                                    ownReqs.length;
+                              });
+                            },
+                          ),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1646,8 +1605,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
                     const SizedBox(height: 10),
 
-                    // 💰 Price, Location, Transaction Chips
-                    // 💰 Price, Locations (multi), Transaction Chips
+                    // 💰 Price, Locations, Transaction Chips
                     Wrap(
                       spacing: 8,
                       runSpacing: 6,
@@ -1657,19 +1615,19 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                           priceRange,
                           [Colors.green.shade400, Colors.green.shade600],
                         ),
-
-                        // 📍 Multiple Location Chips
                         ...(e['locations'] as List?)
                             ?.map((loc) => _chip(
                           Icons.location_on_outlined,
-                          loc['completeAddress'] ?? loc['name'] ?? 'Unknown',
+                          loc['completeAddress'] ??
+                              loc['name'] ??
+                              'Unknown',
                           Colors.redAccent,
                         ))
                             .toList() ??
                             [
-                              _chip(Icons.location_on_outlined, 'N/A', Colors.redAccent),
+                              _chip(Icons.location_on_outlined, 'N/A',
+                                  Colors.redAccent),
                             ],
-
                         _chip(
                           Icons.swap_horiz_rounded,
                           'For $transactionType',
@@ -1677,7 +1635,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                         ),
                       ],
                     ),
-
 
                     const SizedBox(height: 10),
 
@@ -1706,48 +1663,55 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                     ],
 
                     const SizedBox(height: 10),
-                    Divider(color: Colors.grey.shade300, thickness: 1, height: 10),
+                    Divider(
+                        color: Colors.grey.shade300, thickness: 1, height: 10),
 
                     // 🔘 Status Switch + Actions
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // 🟢 Status Switch
-                        Row(
-                          children: [
-                            Switch(
-                              value: isActive,
-                              activeColor: Colors.white,
-                              activeTrackColor: Colors.green,
-                              inactiveThumbColor: Colors.white,
-                              inactiveTrackColor: Colors.grey.shade400,
-                              onChanged: (val) async {
-                                await _toggleStatus(e['id'], isActive);
-                              },
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              isActive ? "Active" : "Inactive",
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600,
-                                color: isActive ? Colors.green : Colors.grey,
+                        // 🟢 Status Switch (only if own)
+                        if (isOwnRequirement)
+                          Row(
+                            children: [
+                              Switch(
+                                value: isActive,
+                                activeColor: Colors.white,
+                                activeTrackColor: Colors.green,
+                                inactiveThumbColor: Colors.white,
+                                inactiveTrackColor: Colors.grey.shade400,
+                                onChanged: (val) async {
+                                  await _toggleStatus(e['id'], isActive);
+                                },
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(width: 6),
+                              Text(
+                                isActive ? "Active" : "Inactive",
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                  isActive ? Colors.green : Colors.grey,
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          const Spacer(), // ✅ keeps "View" aligned right
 
                         // ✏️ Edit + 👁 View
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            _gradientButton(
-                              icon: Icons.edit_outlined,
-                              text: "Edit",
-                              colors: const [
-                                Color(0xFFFFA726),
-                                Color(0xFFFF7043)
-                              ],
-                              onTap: () => _openEditDialog(e),
-                            ),
+                            if (isOwnRequirement)
+                              _gradientButton(
+                                icon: Icons.edit_outlined,
+                                text: "Edit",
+                                colors: const [
+                                  Color(0xFFFFA726),
+                                  Color(0xFFFF7043)
+                                ],
+                                onTap: () => _openEditDialog(e),
+                              ),
                             const SizedBox(width: 10),
                             _gradientButton(
                               icon: Icons.visibility_outlined,
@@ -2199,27 +2163,43 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
   Future<void> _confirmBulkStatusChange() async {
     if (selectedRequirementIds.isEmpty) return;
 
-
     final confirm = await _showConfirmationDialog(
       "Change Status",
       "Do you want to toggle the status for all selected requirements?",
     );
     if (confirm != true) return;
 
-
     setState(() => isBulkStatusProcessing = true);
 
     try {
       final token = await AuthService.getToken();
+      final brokerId = widget.userData['broker']?['id'];
 
-      // ✅ Loop through all selected requirements
-      for (final id in selectedRequirementIds) {
+      // ✅ Filter: Only include requirements owned by current broker
+      final ownSelectedIds = selectedRequirementIds.where((id) {
+        final req = requirements.firstWhere(
+              (r) => r['id'].toString() == id.toString(),
+          orElse: () => {},
+        );
+        return req['brokerId'] == brokerId;
+      }).toList();
+
+      // Skip if nothing owned
+      if (ownSelectedIds.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No own requirements selected.')),
+        );
+        setState(() => isBulkStatusProcessing = false);
+        return;
+      }
+
+      // 🔁 Loop only through own selected
+      for (final id in ownSelectedIds) {
         final req = requirements.firstWhere(
               (r) => r['id'].toString() == id.toString(),
           orElse: () => {},
         );
 
-        // Skip if no match found
         if (req.isEmpty) continue;
 
         final currentStatus =
@@ -2228,22 +2208,15 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
             .toUpperCase();
         final newStatus = currentStatus == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
-        // 🔄 API call to update each requirement's status
         await http.put(
           Uri.parse('$baseURL/api/requirements/$id'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
           },
-          body: jsonEncode({
-            "listing_status": newStatus,
-          }),
+          body: jsonEncode({"listing_status": newStatus}),
         );
       }
-
-      /*ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Status toggled for selected requirements!')),
-      );*/
 
       await _fetchRequirements(); // Refresh the list
     } catch (e) {
@@ -2253,10 +2226,11 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       );
     }
 
-    setState(() => isBulkStatusProcessing = false);
-    setState(() => selectAll = false);
-    setState(() => selectedRequirementIds.clear());
-
+    setState(() {
+      isBulkStatusProcessing = false;
+      selectAll = false;
+      selectedRequirementIds.clear();
+    });
   }
 
   Future<void> _confirmBulkDelete() async {
@@ -2268,35 +2242,51 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     );
     if (confirm != true) return;
 
-
-
-
     setState(() => isBulkDeleteProcessing = true);
 
     try {
       final token = await AuthService.getToken();
-      for (final id in selectedRequirementIds) {
+      final brokerId = widget.userData['broker']?['id'];
+
+      // ✅ Filter: Only delete own requirements
+      final ownSelectedIds = selectedRequirementIds.where((id) {
+        final req = requirements.firstWhere(
+              (r) => r['id'].toString() == id.toString(),
+          orElse: () => {},
+        );
+        return req['brokerId'] == brokerId;
+      }).toList();
+
+      if (ownSelectedIds.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No own requirements selected for deletion.')),
+        );
+        setState(() => isBulkDeleteProcessing = false);
+        return;
+      }
+
+      for (final id in ownSelectedIds) {
         await http.delete(
           Uri.parse('$baseURL/api/requirements/$id'),
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
+          headers: {'Authorization': 'Bearer $token'},
         );
       }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selected requirements deleted successfully!')),
       );
-      _fetchRequirements();
+      await _fetchRequirements();
     } catch (e) {
       debugPrint("Bulk delete error: $e");
     }
 
-    setState(() => isBulkDeleteProcessing = false);
-    setState(() => selectAll = false);
-    setState(() => selectedRequirementIds.clear());
-
-
+    setState(() {
+      isBulkDeleteProcessing = false;
+      selectAll = false;
+      selectedRequirementIds.clear();
+    });
   }
+
 
 
   // ============ PAGINATION ============
@@ -2463,11 +2453,14 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
   @override
   Widget build(BuildContext context) {
     final list = filteredRequirements.isNotEmpty ? filteredRequirements : [];
-
+    final brokerId = widget.userData['broker']?['id'];
+    final ownFilteredRequirements = filteredRequirements
+        .where((r) => r['brokerId'] == brokerId)
+        .toList();
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: Colors.grey.shade50,
+          backgroundColor: backgroundColor,
           body: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
             child: Column(
@@ -2488,7 +2481,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                       children: [
                         _buildFilterPanel(),
 
-                        if (requirements.isNotEmpty)
+                        if (requirements.isNotEmpty && ownFilteredRequirements.length>0)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             margin: const EdgeInsets.only(bottom: 16),
@@ -2503,109 +2496,133 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                 ),
                               ],
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // 🔘 Select All Checkbox + Count
-                                Row(
-                                  children: [
-                                    Checkbox(
-                                      value: selectAll,
-                                      activeColor: kPrimaryColor,
-                                      onChanged: (checked) {
-                                        setState(() {
-                                          selectAll = checked ?? false;
-                                          if (selectAll) {
-                                            selectedRequirementIds = filteredRequirements
-                                                .map((e) => e['id'].toString())
-                                                .toList();
-                                          } else {
-                                            selectedRequirementIds.clear();
-                                          }
-                                        });
-                                      },
-                                    ),
-                                    Text(
-                                      "Select All",
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      "${selectedRequirementIds.length} out of ${filteredRequirements.length} selected",
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13.5,
-                                        color: Colors.grey.shade700,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                            child: Builder(builder: (context) {
+                              final brokerId = widget.userData['broker']?['id'];
+                              final ownFilteredRequirements = filteredRequirements
+                                  .where((r) => r['brokerId'] == brokerId)
+                                  .toList();
 
-                                // 🔘 Action Buttons
-                                Row(
-                                  children: [
-                                    if (isBulkStatusProcessing)
-                                      const Padding(
-                                        padding: EdgeInsets.only(right: 12),
-                                        child: SizedBox(
-                                          height: 22,
-                                          width: 22,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // 🔘 Select All Checkbox + Count
+                                  Row(
+                                    children: [
+                                      if(ownFilteredRequirements.length>0)
+
+                                        Checkbox(
+                                        value: selectAll,
+                                        activeColor: kPrimaryColor,
+                                        onChanged: (checked) {
+                                          setState(() {
+                                            selectAll = checked ?? false;
+
+                                            if (selectAll) {
+                                              // ✅ Only select your own requirements
+                                              selectedRequirementIds = ownFilteredRequirements
+                                                  .map((e) => e['id'].toString())
+                                                  .toList();
+                                            } else {
+                                              selectedRequirementIds.clear();
+                                            }
+                                          });
+                                        },
+                                      ),
+                                      if(ownFilteredRequirements.length>0)
+                                      Text(
+                                        "Select All",
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
                                         ),
                                       ),
-                                    ElevatedButton.icon(
-                                      onPressed: isBulkStatusProcessing || selectedRequirementIds.isEmpty
-                                          ? null
-                                          : () => _confirmBulkStatusChange(),
-                                      icon: const Icon(Icons.sync_alt_rounded, size: 18),
-                                      label: Text(
-                                        isBulkStatusProcessing ? "Updating..." : "Change Status",
-                                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: kPrimaryColor,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        "${selectedRequirementIds.length} out of ${ownFilteredRequirements.length} selected",
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13.5,
+                                          color: Colors.grey.shade700,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    if (isBulkDeleteProcessing)
-                                      const Padding(
-                                        padding: EdgeInsets.only(right: 12),
-                                        child: SizedBox(
-                                          height: 22,
-                                          width: 22,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                    ],
+                                  ),
+
+                                  if(ownFilteredRequirements.length>0)
+
+                                  // 🔘 Action Buttons
+                                  Row(
+                                    children: [
+                                      if (isBulkStatusProcessing)
+                                        const Padding(
+                                          padding: EdgeInsets.only(right: 12),
+                                          child: SizedBox(
+                                            height: 22,
+                                            width: 22,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          ),
+                                        ),
+                                      ElevatedButton.icon(
+                                        onPressed: isBulkStatusProcessing ||
+                                            selectedRequirementIds.isEmpty
+                                            ? null
+                                            : () => _confirmBulkStatusChange(),
+                                        icon: const Icon(Icons.sync_alt_rounded, size: 18),
+                                        label: Text(
+                                          isBulkStatusProcessing
+                                              ? "Updating..."
+                                              : "Change Status",
+                                          style:
+                                          GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: kPrimaryColor,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
                                         ),
                                       ),
-                                    ElevatedButton.icon(
-                                      onPressed: isBulkDeleteProcessing || selectedRequirementIds.isEmpty
-                                          ? null
-                                          : () => _confirmBulkDelete(),
-                                      icon: const Icon(Icons.delete_outline, size: 18),
-                                      label: Text(
-                                        isBulkDeleteProcessing ? "Deleting..." : "Delete",
-                                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.redAccent,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                      const SizedBox(width: 10),
+                                      if (isBulkDeleteProcessing)
+                                        const Padding(
+                                          padding: EdgeInsets.only(right: 12),
+                                          child: SizedBox(
+                                            height: 22,
+                                            width: 22,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          ),
+                                        ),
+                                      ElevatedButton.icon(
+                                        onPressed: isBulkDeleteProcessing ||
+                                            selectedRequirementIds.isEmpty
+                                            ? null
+                                            : () => _confirmBulkDelete(),
+                                        icon: const Icon(Icons.delete_outline, size: 18),
+                                        label: Text(
+                                          isBulkDeleteProcessing
+                                              ? "Deleting..."
+                                              : "Delete",
+                                          style:
+                                          GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.redAccent,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            }),
                           ),
 
                         /// 🧱 Grid/List Section
@@ -2666,19 +2683,39 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
         ),
 
         // ===== Drawer overlay background =====
-        if (showDrawer && selectedRequirement != null)
-          GestureDetector(
-            onTap: () => setState(() => showDrawer = false),
-            child: Container(color: Colors.black54.withOpacity(0.4)),
+        if (showDrawer)
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            opacity: showDrawer ? 0.4 : 0.0,
+            child: GestureDetector(
+              onTap: () => setState(() => showDrawer = false),
+              child: Container(color: Colors.black.withOpacity(0.3)),
+            ),
           ),
 
-        // ===== Drawer Panel =====
+        // --- Drawer Panel Animation ---
         AnimatedPositioned(
-          duration: const Duration(milliseconds: 300),
-          right: showDrawer ? 0 : -MediaQuery.of(context).size.width * 0.4,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOutCubic,
+          right: showDrawer ? 0 : -MediaQuery.of(context).size.width * 0.45,
           top: 0,
           bottom: 0,
-          child: _buildDrawerPanel(),
+          child: AnimatedOpacity(
+            opacity: showDrawer ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOut,
+            child: AnimatedScale(
+              scale: showDrawer ? 1.0 : 0.96,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutCubic,
+              child: buildRequirementDrawerPanel(
+                context,
+                selectedRequirement ?? {},
+                    () => setState(() => showDrawer = false),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -2739,173 +2776,432 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       ),
     );
   }
-// ---------------- DRAWER PANEL UI ----------------
-  Widget _buildDrawerPanel() {
-    final req = selectedRequirement ?? {};
+
+
+  Widget buildRequirementDrawerPanel(BuildContext context, Map<String, dynamic> req, VoidCallback onClose) {
     final broker = req['broker'] ?? {};
-    final propertyType = req['propertyType']?['name'] ?? 'N/A';
     final location = (req['locations'] != null && req['locations'].isNotEmpty)
         ? req['locations'][0]['completeAddress']
         : 'N/A';
-    final category = req['category'] ?? 'N/A';
-    final type = req['transactionType'] ?? 'N/A';
-    final listing = req['listingStatus'] ?? 'ACTIVE';
 
-    final priceRange = (type == 'RENT')
+    final priceRange = (req['transactionType'] == 'RENT')
         ? "AED ${req['minPrice']} - ${req['maxPrice']} /yr"
         : "AED ${req['minPrice']} - ${req['maxPrice']}";
+    // 🌐 Social Links Section
+    final social = broker['socialLinks'] as Map<String, dynamic>? ?? {};
+
+    final hasAnySocial = [
+      social['linkedin'],
+      social['instagram'],
+      social['facebook'],
+      social['twitter'],
+    ].any((link) => link != null && link.toString().isNotEmpty);
 
     return Material(
-      elevation: 12,
+      color: Colors.white,
+      elevation: 20,
       borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20), bottomLeft: Radius.circular(20)),
+        topLeft: Radius.circular(30),
+        bottomLeft: Radius.circular(30),
+      ),
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.4,
-        color: Colors.white,
-        padding: const EdgeInsets.all(24),
+        width: MediaQuery.of(context).size.width * 0.42,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.white, Colors.grey.shade100],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(30),
+            bottomLeft: Radius.circular(30),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12.withOpacity(0.1),
+              blurRadius: 25,
+              spreadRadius: 3,
+              offset: const Offset(-5, 3),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(26),
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- Header ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text("Requirement Details",
-                      style: GoogleFonts.poppins(
-                          fontSize: 18, fontWeight: FontWeight.w700)),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => setState(() => showDrawer = false),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // --- Title & Reference ---
-              Text(req['title'] ?? 'N/A',
-                  style: GoogleFonts.poppins(
-                      fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text(req['referenceNumber'] ?? '',
-                  style: GoogleFonts.poppins(color: Colors.grey.shade600)),
-              const SizedBox(height: 12),
-
-              // --- Tags ---
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _buildTag(category),
-                  _buildTag(type),
-                  _buildTag(listing),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // --- Description ---
-              Text("Description",
-                  style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600, fontSize: 14)),
-              const SizedBox(height: 6),
-              Text(req['requirementDescription'] ?? 'N/A',
-                  style: GoogleFonts.poppins(fontSize: 13)),
-              const SizedBox(height: 16),
-
-              // --- Property Type & Location ---
-              _infoRow(Icons.home_work_outlined, "Property Type", propertyType),
-              _infoRow(Icons.location_on_outlined, "Location", location),
-              const SizedBox(height: 12),
-
-              // --- Price Range ---
-              _infoRow(Icons.monetization_on_outlined, "Price Range", priceRange),
-              _infoRow(Icons.square_foot_outlined, "Area (sqft)",
-                  "${req['minSizeSqft']} - ${req['maxSizeSqft']}"),
-              const SizedBox(height: 20),
-
-              // --- Broker Section ---
-              Text("Broker Information",
-                  style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600, fontSize: 14)),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundImage: NetworkImage(
-                      broker['user']?['avatar'] ??
-                          'https://via.placeholder.com/80',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(broker['displayName'] ?? 'N/A',
-                            style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600, fontSize: 14)),
-                        Text(broker['email'] ?? '',
-                            style: GoogleFonts.poppins(
-                                fontSize: 12, color: Colors.grey.shade600)),
-                        Text(broker['mobile'] ?? '',
-                            style: GoogleFonts.poppins(
-                                fontSize: 12, color: Colors.grey.shade600)),
-                      ],
-                    ),
-                  )
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // --- Specializations ---
-              if (broker['specializations'] != null &&
-                  broker['specializations'].isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- Header ---
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("Specializations",
-                        style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600, fontSize: 14)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: List.generate(
-                          broker['specializations'].length,
-                              (i) => _buildTag(broker['specializations'][i])),
+                    ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: [kPrimaryColor, kAccentColor],
+                      ).createShader(bounds),
+                      child: Text("Requirement Overview",
+                          style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [kPrimaryColor.withOpacity(0.9), kAccentColor],
+                        ),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: onClose,
+                      ),
                     ),
                   ],
                 ),
-            ],
+                const SizedBox(height: 22),
+
+                // --- Requirement Info ---
+                _glassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionHeader(Icons.apartment_rounded, "Requirement Details"),
+                      const SizedBox(height: 10),
+
+                      // 🏷️ Basic Info
+                      _infoRow(Icons.title_rounded, "Title", req['title']),
+                      _infoRow(Icons.apartment_rounded, "Property Type", req['propertyTypeName']),
+                      _infoRow(Icons.location_on_outlined, "Location", location),
+                      _infoRow(Icons.numbers_rounded, "Reference", req['referenceNumber']),
+                      _infoRow(Icons.category_outlined, "Category", req['category']),
+                      _infoRow(Icons.compare_arrows_rounded, "Type", req['transactionType']),
+                      _infoRow(Icons.timeline_rounded, "Listing", req['listingStatus']),
+
+                      const SizedBox(height: 10),
+
+                      // 💰 Price Range
+                      _sectionHeader(Icons.monetization_on_rounded, "Price Range"),
+                      const SizedBox(height: 6),
+                      _infoRow(Icons.trending_up_rounded, "Min Price", "AED ${req['minPrice'] ?? 'N/A'}"),
+                      _infoRow(Icons.trending_down_rounded, "Max Price", "AED ${req['maxPrice'] ?? 'N/A'}"),
+
+                      const SizedBox(height: 10),
+
+                      // 📏 Size Range
+                      _sectionHeader(Icons.square_foot_rounded, "Size Range (sqft)"),
+                      const SizedBox(height: 6),
+                      _infoRow(Icons.expand_less_rounded, "Min Size", "${req['minSizeSqft'] ?? 'N/A'} sqft"),
+                      _infoRow(Icons.expand_more_rounded, "Max Size", "${req['maxSizeSqft'] ?? 'N/A'} sqft"),
+
+                      const SizedBox(height: 10),
+
+                      // 📝 Description
+                      _sectionHeader(Icons.description_outlined, "Description"),
+                      const SizedBox(height: 6),
+                      Text(
+                        req['requirementDescription']?.toString().isNotEmpty == true
+                            ? req['requirementDescription']
+                            : 'No description provided',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13.5,
+                          color: Colors.grey.shade700,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+
+
+
+                const SizedBox(height: 10),
+
+                // --- Broker Info ---
+                _glassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionHeader(Icons.person_pin_rounded, "Broker Information"),
+                      const SizedBox(height: 14),
+
+                      // 👤 Broker Profile Row
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundImage: NetworkImage(
+                              broker['user']?['avatar'] ??
+                                  'https://via.placeholder.com/100',
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  broker['displayName'] ?? 'N/A',
+                                  style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w600, fontSize: 15),
+                                ),
+                                Text(
+                                  broker['email'] ?? '',
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 12, color: Colors.grey.shade700),
+                                ),
+                                Text(
+                                  broker['mobile'] ?? '',
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 12, color: Colors.grey.shade700),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // 🏢 Basic Info
+                      _infoRow(Icons.location_city_rounded, "Address", broker['address']),
+                      _infoRow(Icons.web_asset_rounded, "Website", broker['website']),
+                      _infoRow(Icons.badge_rounded, "RERA", broker['reraNumber']),
+
+
+          if (hasAnySocial) ...[
+        const SizedBox(height: 18),
+    _sectionHeader(Icons.share_rounded, "Social Links"),
+    const SizedBox(height: 10),
+    Wrap(
+    spacing: 10,
+    runSpacing: 10,
+    children: [
+    if (social['linkedin'] != null && social['linkedin'].toString().isNotEmpty)
+    _socialIconButton(
+      icon: FontAwesomeIcons.linkedin, // ✅ authentic icon
+    label: "Linkedin",
+    url: social['linkedin'],
+    iconColor: const Color(0xFF0A66C2),
+    ),
+    if (social['instagram'] != null && social['instagram'].toString().isNotEmpty)
+    _socialIconButton(
+      icon: FontAwesomeIcons.instagram, // ✅ authentic icon
+    label: "Instagram",
+    url: social['instagram'],
+    iconColor: const Color(0xFFE4405F),
+    ),
+    if (social['facebook'] != null && social['facebook'].toString().isNotEmpty)
+    _socialIconButton(
+      icon: FontAwesomeIcons.facebook, // ✅ authentic icon
+    label: "Facebook",
+    url: social['facebook'],
+    iconColor: const Color(0xFF1877F2),
+    ),
+    if (social['twitter'] != null && social['twitter'].toString().isNotEmpty)
+    _socialIconButton(
+      icon: FontAwesomeIcons.xTwitter, // ✅ authentic icon
+    label: "Twitter",
+    url: social['twitter'],
+    iconColor: Colors.black,
+    ),
+    ],
+    ),
+    ],
+
+
+    // ⭐ Specializations
+                      if (broker['specializations'] != null &&
+                          broker['specializations'].isNotEmpty) ...[
+                        const SizedBox(height: 18),
+                        _sectionHeader(Icons.star_rate_rounded, "Specializations"),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: List.generate(
+                            broker['specializations'].length,
+                                (i) => _tag(broker['specializations'][i]),
+                          ),
+                        ),
+                      ],
+
+                      // 🌍 Languages
+                      if (broker['languages'] != null &&
+                          broker['languages'].isNotEmpty) ...[
+                        const SizedBox(height: 18),
+                        _sectionHeader(Icons.language_rounded, "Languages"),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: List.generate(
+                            broker['languages'].length,
+                                (i) => _tag(broker['languages'][i]),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+
+
+
+
+
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-// --- Helper for info rows in drawer ---
-  Widget _infoRow(IconData icon, String label, String value) {
+  Widget _socialIconButton({
+    required IconData icon,
+    required String label,
+    required String url,
+    required Color iconColor,
+  }) {
+    return GestureDetector(
+      onTap: () async {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: iconColor, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _sectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [kPrimaryColor, kAccentColor],
+          ).createShader(bounds),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+        const SizedBox(width: 8),
+        Text(title,
+            style: GoogleFonts.poppins(
+                fontSize: 14.5, fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, dynamic value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: kPrimaryColor),
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [kPrimaryColor, kAccentColor],
+            ).createShader(bounds),
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
           const SizedBox(width: 8),
-          Text("$label:",
-              style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w500, fontSize: 13.5)),
-          const SizedBox(width: 6),
           Expanded(
-            child: Text(value,
-                style: GoogleFonts.poppins(
-                    fontSize: 13, color: Colors.black87),
-                overflow: TextOverflow.ellipsis),
+            child: RichText(
+              text: TextSpan(
+                style: GoogleFonts.poppins(color: Colors.black87, fontSize: 13.5),
+                children: [
+                  TextSpan(
+                      text: "$label: ",
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  TextSpan(
+                      text: value != null && value.toString().isNotEmpty
+                          ? value.toString()
+                          : "N/A",
+                      style: const TextStyle(fontWeight: FontWeight.w400)),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+
+  Widget _tag(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: kPrimaryColor.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(color: kPrimaryColor, fontSize: 12.5),
+      ),
+    );
+  }
+
+  Widget _glassCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
 
   List<Map<String, dynamic>> formattedLocations = [];
 
@@ -3553,6 +3849,9 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
   Widget _buildRequirementGridCard(Map<String, dynamic> e, int index) {
     final broker = e['broker'] ?? {};
+    final brokerId = widget.userData['broker']?['id'];
+    final isOwnRequirement = e['brokerId'] == brokerId;
+
     final propertyType = e['propertyType']?['name'] ?? 'N/A';
     final location = (e['locations'] != null && e['locations'].isNotEmpty)
         ? e['locations'][0]['completeAddress']
@@ -3602,7 +3901,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Checkbox(
+                if (isOwnRequirement)
+                  Checkbox(
                   value:  isSelected,
                   activeColor: kPrimaryColor,
                   onChanged: (checked) {
@@ -3612,8 +3912,10 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                       } else {
                         selectedRequirementIds.remove(e['id']);
                       }
-                      selectAll =
-                          selectedRequirementIds.length == requirements.length;
+                      final ownReqs = requirements
+                          .where((r) => r['brokerId'] == brokerId)
+                          .toList();
+                      selectAll = selectedRequirementIds.length == ownReqs.length;
                     });
                   },
                 ),
@@ -3735,6 +4037,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                if (isOwnRequirement)
                 // 🟢 Active switch
                 Row(
                   children: [
@@ -3757,18 +4060,21 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                       ),
                     ),
                   ],
-                ),
-
+                )
+                else
+                const Spacer(), // keeps alignment for others
                 // ✏️ Edit + 👁 View
                 Row(
                   children: [
-                    _gradientButton(
+                    if (isOwnRequirement)
+                      _gradientButton(
                       icon: Icons.edit_outlined,
+
                       text: "Edit",
                       colors: const [Color(0xFFFFA726), Color(0xFFFF7043)],
                       onTap: () => _openEditDialog(e),
                     ),
-                    const SizedBox(width: 8),
+                    if (isOwnRequirement) const SizedBox(width: 8),
                     _gradientButton(
                       icon: Icons.visibility_outlined,
                       text: "View",

@@ -37,7 +37,7 @@ class _AdminShellState extends State<AdminShell> {
       ),
       ListingsScreen(userData: userData,),
       RequirementsScreen(userData: userData,),
-      BrokerDirectoryScreen(),
+      BrokerDirectoryScreen(userData: userData,),
       ProfileScreen(),
       TransactionsScreen(),
       A2aformsScreen(),

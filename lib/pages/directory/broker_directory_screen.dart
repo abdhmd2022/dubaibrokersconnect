@@ -11,7 +11,10 @@ import '../../widgets/animated_logo_loader.dart';
 import '../brokermanagement/broker_profile_screen.dart';
 
 class BrokerDirectoryScreen extends StatefulWidget {
-  const BrokerDirectoryScreen({super.key});
+  final Map<String, dynamic> userData;
+
+  const BrokerDirectoryScreen({super.key,
+  required this.userData});
 
   @override
   State<BrokerDirectoryScreen> createState() => _BrokerDirectoryScreenState();
@@ -105,8 +108,8 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
     final verified = b['isVerified'] == true;
     final rating = b['rating']?.toString() ?? 'N/A';
     final email = b['email'];
-    final phone = b['phone'];
-    final whatsapp = b['mobile'];
+    final phone = b['mobile'];
+
     final categories = List<String>.from(b['categories'] ?? []);
 
     return MouseRegion(
@@ -115,7 +118,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => BrokerProfileScreen(brokerId: b['id'])),
+            MaterialPageRoute(builder: (_) => BrokerProfileScreen(brokerId: b['id'],userData: widget.userData,)),
           );
         },
         child: AnimatedContainer(

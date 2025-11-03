@@ -84,6 +84,7 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('access_token', accessToken);
         await prefs.setString('refresh_token', refreshToken);
         await prefs.setString('user_id', userData['id'].toString());
+        await prefs.setBool('isVerified', userData['broker']['isVerified'] ?? false);
 
         if (_rememberMe) {
           await prefs.setString('email', _emailController.text.trim());
