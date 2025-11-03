@@ -36,7 +36,7 @@ class _AdminShellState extends State<AdminShell> {
         },
       ),
       ListingsScreen(userData: userData,),
-      RequirementsScreen(),
+      RequirementsScreen(userData: userData,),
       BrokerDirectoryScreen(),
       ProfileScreen(),
       TransactionsScreen(),

@@ -35,7 +35,7 @@ class _BrokerShellState extends State<BrokerShell> {
           setState(() => _selectedIndex = 3);
         },),
       ListingsScreen(userData: userData,),
-      RequirementsScreen(),
+      RequirementsScreen(userData: userData,),
       BrokerDirectoryScreen(),
       ProfileScreen(),
       TransactionsScreen(),

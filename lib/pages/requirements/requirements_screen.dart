@@ -1,39 +1,3680 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import '../../constants.dart';
+import '../../services/auth_service.dart';
 
-class RequirementsScreen extends StatelessWidget {
-  const RequirementsScreen({super.key});
+class RequirementsScreen extends StatefulWidget {
+  final Map<String, dynamic> userData;
+  const RequirementsScreen({super.key,
+    required this.userData,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(30),
+  State<RequirementsScreen> createState() => _RequirementsScreenState();
+}
+
+class _RequirementsScreenState extends State<RequirementsScreen> {
+  // -------- Data Lists ----------
+  List<dynamic> requirements = [];
+  List<dynamic> propertyTypes = [];
+  List<dynamic> allLocations = [];
+  List<String> selectedLocationIds = [];
+  List<dynamic> filteredRequirements = []; // locally filtered
+  bool isBulkStatusProcessing = false;
+  bool isBulkDeleteProcessing = false;
+  bool showMyRequirements = false; // declare this in your state
+  final minPriceC = TextEditingController();
+  final maxPriceC = TextEditingController();
+  final minSizeC = TextEditingController();
+  final maxSizeC = TextEditingController();
+
+  List<String> selectedRequirementIds = [];
+  bool selectAll = false;
+  bool showingMyRequirements = false;
+
+  TextEditingController locationSearchC = TextEditingController();
+  // -------- Filters ----------
+  String selectedTransaction = "ALL";
+  String selectedCategory = "ALL";
+  String searchQuery = "";
+
+  // -------- UI States ----------
+  bool isLoading = false;
+  bool gridView = false;
+  int currentPage = 1;
+  int totalPages = 1;
+
+  // Drawer control
+  Map<String, dynamic>? selectedRequirement;
+  bool showDrawer = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRequirements();
+    _fetchPropertyTypesAndLocations();
+
+  }
+
+
+  // ============ FETCH REQUIREMENTS ============
+  Future<void> _fetchRequirements({int page = 1}) async {
+    setState(() => isLoading = true);
+
+    try {
+      final token = await AuthService.getToken();
+
+      final query = <String, String>{
+        'page': '$page',
+        'limit': '10',
+      };
+
+
+
+      // 🔹 Category Filter
+      if (selectedCategory != "ALL") {
+        query['category'] = selectedCategory;
+      }
+
+      // 🔹 Search
+      if (searchQuery.isNotEmpty) {
+        query['search'] = searchQuery;
+      }
+
+      final uri =
+      Uri.parse('$baseURL/api/requirements').replace(queryParameters: query);
+
+      final response = await http.get(uri, headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        List<dynamic> fetched = data['data'] ?? [];
+
+        setState(() {
+
+          if (selectedTransaction == "RENT") {
+            fetched = fetched.where((r) => r['transactionType'] == "RENT").toList();
+          } else if (selectedTransaction == "SALE") {
+            fetched = fetched.where((r) => r['transactionType'] == "SALE").toList();
+          } else if (selectedTransaction == "SALE_AND_RENT") {
+            fetched = fetched.where((r) => r['transactionType'] == "SALE_AND_RENT").toList();
+          }
+          requirements = fetched;
+          filteredRequirements = fetched;
+
+          currentPage = data['pagination']['page'] ?? 1;
+          totalPages = data['pagination']['totalPages'] ?? 1;
+
+        });
+      } else {
+        debugPrint("❌ Failed to fetch requirements: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error fetching requirements: $e");
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _fetchPropertyTypesAndLocations() async {
+    try {
+      final token = await AuthService.getToken();
+
+      final propRes = await http.get(
+        Uri.parse('$baseURL/api/property-types'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      final locRes = await http.get(
+        Uri.parse('$baseURL/api/locations'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (propRes.statusCode == 200) {
+        propertyTypes = json.decode(propRes.body)['data'] ?? [];
+      }
+      if (locRes.statusCode == 200) {
+        final jsonBody = json.decode(locRes.body);
+        final data = jsonBody['data'] as List<dynamic>;
+        debugPrint("🟢 Received ${data.length} raw locations from API");
+
+        // Prepare formatted list
+        formattedLocations = data.map<Map<String, dynamic>>((loc) {
+          final parent = loc['parent'] != null ? loc['parent']['name'] : '';
+          final label = parent.isNotEmpty ? "${loc['name']} ($parent)" : loc['name'];
+          return {'id': loc['id'], 'label': label};
+        }).toList();
+
+        debugPrint("🟢 formattedLocations.length = ${formattedLocations.length}");
+        if (formattedLocations.isNotEmpty) {
+          debugPrint("✅ Sample: ${formattedLocations.first}");
+        }
+
+        setState(() {
+          allLocations = data;
+        });
+
+
+      }
+      else {
+        debugPrint("❌ Failed to load locations. Body: ${locRes.body}");
+      }
+    } catch (e) {
+      debugPrint("Error fetching property types / locations: $e");
+    }
+  }
+
+  // ---------------- EDIT DIALOG ----------------
+  Future<void> _openEditDialog(Map<String, dynamic> req) async {
+    await _fetchPropertyTypesAndLocations();
+
+    final formKey = GlobalKey<FormState>();
+    final titleC = TextEditingController(text: req['title'] ?? '');
+    final refC = TextEditingController(text: req['referenceNumber'] ?? '');
+    final descC = TextEditingController(text: req['requirementDescription'] ?? '');
+    final minPriceC = TextEditingController(text: req['minPrice']?.toString() ?? '');
+    final maxPriceC = TextEditingController(text: req['maxPrice']?.toString() ?? '');
+    final minSizeC = TextEditingController(text: req['minSizeSqft']?.toString() ?? '');
+    final maxSizeC = TextEditingController(text: req['maxSizeSqft']?.toString() ?? '');
+
+    String? propertyTypeId = req['propertyTypeId'];
+    List<String> locationIds = req['locations'] != null
+        ? List<String>.from(req['locations'].map((x) => x['id']))
+        : [];
+
+    String transactionType = req['transactionType'] ?? 'SALE';
+    String category = req['category'] ?? 'RESIDENTIAL';
+    bool isMortgageBuyer = req['isMortgageBuyer'] ?? false;
+    DateTime? expireDate = req['autoExpireDate'] != null
+        ? DateTime.tryParse(req['autoExpireDate'])
+        : null;
+    bool isSubmitting = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          Future<void> update() async {
+            if (!formKey.currentState!.validate()) return;
+            setDialogState(() => isSubmitting = true);
+
+            try {
+              final token = await AuthService.getToken();
+              final body = {
+                "title": titleC.text.trim(),
+                "reference_number": refC.text.trim(),
+                "requirement_description": descC.text.trim(),
+                "property_type_id": propertyTypeId,
+                "location_ids": locationIds,
+                "rooms": [],
+                "min_size_sqft": int.tryParse(minSizeC.text) ?? 0,
+                "max_size_sqft": int.tryParse(maxSizeC.text) ?? 0,
+                "min_price": int.tryParse(minPriceC.text) ?? 0,
+                "max_price": int.tryParse(maxPriceC.text) ?? 0,
+                "furnished_status": [],
+                "category": category,
+                "transaction_type": transactionType,
+                "is_mortgage_buyer": isMortgageBuyer,
+                "auto_expire_date": expireDate?.toIso8601String(),
+              };
+
+              final res = await http.put(
+                Uri.parse('$baseURL/api/requirements/${req['id']}'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $token',
+                },
+                body: json.encode(body),
+              );
+
+              if (res.statusCode == 200) {
+                Navigator.pop(context);
+                _fetchRequirements();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Requirement updated successfully!')),
+                );
+              } else {
+                debugPrint("Failed: ${res.body}");
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed: ${res.statusCode}')),
+                );
+              }
+            } catch (e) {
+              debugPrint("Error updating requirement: $e");
+            } finally {
+              setDialogState(() => isSubmitting = false);
+            }
+          }
+
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 50, vertical: 30),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Edit Requirement",
+                          style: GoogleFonts.poppins(
+                              fontSize: 20, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 18),
+
+                      // 🔹 Title
+                      TextFormField(
+                        controller: titleC,
+                        decoration: const InputDecoration(
+                          labelText: "Title",
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) => v!.isEmpty ? "Enter title" : null,
+                      ),
+                      const SizedBox(height: 14),
+
+                      // 🔹 Reference Number
+                      TextFormField(
+                        controller: refC,
+                        decoration: const InputDecoration(
+                          labelText: "Reference Number",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // 🔹 Description
+                      TextFormField(
+                        controller: descC,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: "Description",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // 🔹 Property Type
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: "Property Type",
+                          border: OutlineInputBorder(),
+                        ),
+                        value: propertyTypeId,
+                        items: propertyTypes
+                            .map<DropdownMenuItem<String>>((item) => DropdownMenuItem(
+                          value: item['id'],
+                          child: Text(item['name']),
+                        ))
+                            .toList(),
+                        onChanged: (val) =>
+                            setDialogState(() => propertyTypeId = val),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // 🔹 Locations (multi-select with search)
+                      TypeAheadField<Map<String, dynamic>>(
+                        suggestionsCallback: (pattern) {
+                          if (pattern.isEmpty) return formattedLocations;
+                          return formattedLocations
+                              .where((loc) =>
+                              loc['label'].toLowerCase().contains(pattern.toLowerCase()))
+                              .toList(); // ✅ Convert Iterable → List
+                        },
+                        itemBuilder: (context, suggestion) {
+                          final isSelected = locationIds.contains(suggestion['id']);
+                          return ListTile(
+                            title: Text(suggestion['label']),
+                            trailing: isSelected
+                                ? Icon(Icons.check_circle, color: kPrimaryColor)
+                                : null,
+                          );
+                        },
+                        onSelected: (suggestion) {
+                          setDialogState(() {
+                            if (locationIds.contains(suggestion['id'])) {
+                              locationIds.remove(suggestion['id']);
+                            } else {
+                              locationIds.add(suggestion['id']);
+                            }
+                          });
+                        },
+
+                        hideOnEmpty: true,
+                        hideOnLoading: true,
+                        builder: (context, controller, focusNode) {
+                          return TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            decoration: InputDecoration(
+                              hintText: "Search & Select Multiple Locations",
+                              hintStyle: GoogleFonts.poppins(
+                                color: Colors.grey.shade500,
+                                fontSize: 14,
+                              ),
+                              prefixIcon: const Icon(Icons.location_on_outlined),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: kPrimaryColor, width: 1.5),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // 🔹 Transaction Type & Category
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: transactionType,
+                              decoration: const InputDecoration(
+                                labelText: "Transaction Type",
+                                border: OutlineInputBorder(),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: "SALE", child: Text("Sale")),
+                                DropdownMenuItem(value: "RENT", child: Text("Rent")),
+                                DropdownMenuItem(
+                                    value: "SALE_AND_RENT",
+                                    child: Text("Sale & Rent")),
+                              ],
+                              onChanged: (v) =>
+                                  setDialogState(() => transactionType = v!),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: category,
+                              decoration: const InputDecoration(
+                                labelText: "Category",
+                                border: OutlineInputBorder(),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                    value: "RESIDENTIAL", child: Text("Residential")),
+                                DropdownMenuItem(
+                                    value: "COMMERCIAL", child: Text("Commercial")),
+                              ],
+                              onChanged: (v) =>
+                                  setDialogState(() => category = v!),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // 🔹 Price range
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+
+                              controller: minPriceC,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: "Min Price",
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextFormField(
+
+                              controller: maxPriceC,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: "Max Price",
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // 🔹 Size range
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+
+                              controller: minSizeC,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: "Min Size (sqft)",
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextFormField(
+
+                              controller: maxSizeC,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: "Max Size (sqft)",
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // 🔹 Expiry date
+                      TextButton.icon(
+                        icon: const Icon(Icons.calendar_today),
+                        label: Text(
+                          expireDate == null
+                              ? "Pick Expiry Date"
+                              : expireDate!.toLocal().toString().split(' ')[0],
+                          style: GoogleFonts.poppins(),
+                        ),
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2030),
+                          );
+                          if (date != null) {
+                            setDialogState(() => expireDate = date);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // 🔹 Submit button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: isSubmitting
+                              ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                              : const Icon(Icons.save),
+                          label: Text(
+                            isSubmitting ? "Saving..." : "Update Requirement",
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                          ),
+                          onPressed: isSubmitting ? null : update,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kPrimaryColor,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+
+  // ============ HEADER ============
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text("Broker Requirements",
+            style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700)),
+        Row(
+          children: [
+
+
+        OutlinedButton.icon(
+          onPressed: () {
+            setState(() => showMyRequirements = !showMyRequirements);
+            _applyFilters();
+          },
+
+          icon: Icon(
+        showMyRequirements ? Icons.check_circle_rounded : Icons.circle_outlined,
+        color: showMyRequirements ? Colors.white : kPrimaryColor,
+        size: 20,
+        ),
+        label: Text(
+        "Show My Requirements",
+        style: GoogleFonts.poppins(
+        fontWeight: FontWeight.w600,
+        color: showMyRequirements ? Colors.white : kPrimaryColor,
+        ),
+        ),
+        style: OutlinedButton.styleFrom(
+    backgroundColor:
+    showMyRequirements ? kPrimaryColor : Colors.transparent,
+    side: BorderSide(color: kPrimaryColor, width: 1.4),
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+    ),
+
+
+
+    const SizedBox(width: 10),
+            ElevatedButton.icon(
+              onPressed: _openCreateDialog,
+              icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
+              label:  Text("Post Requirement",
+                style: GoogleFonts.poppins(
+                color: Colors.white
+              ),),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        )
+      ],
+    );
+  }
+
+  // ============ FILTER PANEL ============
+  Widget _buildFilterPanel() {
+    return Container(
+      margin: const EdgeInsets.only(top: 24, bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black12.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Requirements",
-              style: GoogleFonts.poppins(
-                  fontSize: 24, fontWeight: FontWeight.w700)),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 🏷️ TRANSACTION FILTER CONTAINER
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12.withOpacity(0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Client is looking to",
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildFilterChip("All", "ALL", selectedTransaction, (v) {
+                            setState(() {
+                              selectedTransaction = v;
+                              _applyFilters(); // ✅ unified filter logic
+                            });
+                          }),
+                          _buildFilterChip("Rent", "RENT", selectedTransaction, (v) {
+                            setState(() {
+                              selectedTransaction = v;
+                              _applyFilters(); // ✅ unified filter logic
+                            });
+                          }),
+                          _buildFilterChip("Buy", "SALE", selectedTransaction, (v) {
+                            setState(() => selectedTransaction = v);
+                            _applyFilters();
+                          }),
+
+                        ],
+                      ),
+
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              // 🏠 CATEGORY FILTER CONTAINER
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12.withOpacity(0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Property Category",
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildFilterChip("All", "ALL", selectedCategory, (v) {
+                            setState(() {
+                              selectedCategory = v;
+                              _applyFilters(); // ✅ unified filter logic
+                            });
+                          }),
+
+                          _buildFilterChip("Residential", "RESIDENTIAL", selectedCategory,  (v) {
+                          setState(() => selectedCategory = v);
+                          _applyFilters();
+                          }),
+
+                          _buildFilterChip("Commercial", "COMMERCIAL", selectedCategory, (v) {
+                            setState(() => selectedCategory = v);
+                            _applyFilters();
+                          }),
+                        ],
+                      ),
+
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
           const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(30),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white,
+                      Colors.white,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12.withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(color: Colors.grey.shade200, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildModernSegment(
+                      icon: Icons.list_rounded,
+                      label: "List",
+                      isSelected: !gridView,
+                      onTap: () => setState(() => gridView = false),
+                    ),
+                    _buildModernSegment(
+                      icon: Icons.grid_view_rounded,
+                      label: "Grid",
+                      isSelected: gridView,
+                      onTap: () => setState(() => gridView = true),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+              // 🔍 SEARCH + LOCATION ROW
+              Row(
+                children: [
+                  // 🔍 SEARCH FIELD (LEFT)
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          )
+                        ],
+                      ),
+                      child:TextField(
+                        decoration: InputDecoration(
+                          hintText: "Search by Title, Description or Location...",
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          hintStyle: GoogleFonts.poppins(
+                            color: Colors.grey.shade500,
+                            fontSize: 14,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding:
+                          const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onChanged: (val) {
+                          setState(() => searchQuery = val.trim().toLowerCase());
+                          _applyFilters();
+                        },
+
+                      ),
+
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // 📍 LOCATION SEARCH FIELD (MULTI SELECT)
+                  // 📍 LOCATION SEARCH FIELD (from existing requirements)
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      child: TypeAheadField<Map<String, dynamic>>(
+                        suggestionsCallback: (pattern) async {
+                          // 🧩 Extract unique locations from all requirements
+                          final allLocations = requirements
+                              .expand((req) => (req['locations'] as List?) ?? [])
+                              .toList();
+
+                          // 🧩 Make unique list by location name/id
+                          final uniqueLocations = {
+                            for (var loc in allLocations)
+                              loc['id']: {
+                                'id': loc['id'],
+                                'label': loc['completeAddress'] ?? loc['name'] ?? 'Unknown'
+                              }
+                          }.values.toList();
+
+                          // 🧩 Filter by pattern
+                          if (pattern.isEmpty) return uniqueLocations;
+                          return uniqueLocations
+                              .where((loc) =>
+                              loc['label'].toLowerCase().contains(pattern.toLowerCase()))
+                              .toList();
+                        },
+                        itemBuilder: (context, suggestion) {
+                          final isSelected = selectedLocationIds.contains(suggestion['id']);
+                          return ListTile(
+                            dense: true,
+                            title: Text(
+                              suggestion['label'],
+                              style: GoogleFonts.poppins(fontSize: 14),
+                            ),
+                            trailing: isSelected
+                                ? Icon(Icons.check_circle, color: kPrimaryColor, size: 18)
+                                : null,
+                          );
+                        },
+                        onSelected: (suggestion) {
+                          setState(() {
+                            if (selectedLocationIds.contains(suggestion['id'])) {
+                              selectedLocationIds.remove(suggestion['id']);
+                            } else {
+                              selectedLocationIds.add(suggestion['id']);
+                            }
+                          });
+                          _applyFilters(); // ✅ apply location-wise filter
+                        },
+                        hideOnEmpty: true,
+                        hideOnLoading: true,
+                        builder: (context, controller, focusNode) {
+                          return Container(
+                            constraints: const BoxConstraints(minHeight: 40, maxHeight: 120),
+                            child: SingleChildScrollView(
+                              child: Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: [
+                                  // 🏷 Selected location chips
+                                  ...selectedLocationIds.map((id) {
+                                    final allLocations = requirements
+                                        .expand((req) => (req['locations'] as List?) ?? [])
+                                        .toList();
+                                    final loc = allLocations.firstWhere(
+                                          (l) => l['id'] == id,
+                                      orElse: () => {'label': 'Unknown'},
+                                    );
+                                    return Chip(
+                                      backgroundColor: kPrimaryColor.withOpacity(0.1),
+                                      label: Text(
+                                        loc['completeAddress'] ?? loc['name'] ?? 'Unknown',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          color: kPrimaryColor,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      deleteIcon: const Icon(Icons.close_rounded,
+                                          size: 16, color: Colors.black54),
+                                      onDeleted: () {
+                                        setState(() => selectedLocationIds.remove(id));
+                                        _applyFilters();
+                                      },
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        side: BorderSide(color: kPrimaryColor.withOpacity(0.4)),
+                                      ),
+                                      visualDensity:
+                                      const VisualDensity(horizontal: -2, vertical: -2),
+                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    );
+                                  }).toList(),
+
+                                  // ✏️ Inline search input
+                                  ConstrainedBox(
+                                    constraints:
+                                    const BoxConstraints(minWidth: 100, maxWidth: 250),
+                                    child: TextField(
+                                      controller: controller,
+                                      focusNode: focusNode,
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        border: InputBorder.none,
+                                        hintText: "Search & select locations...",
+                                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                                      ),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13.5,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+
+                ],
+              ),
+
+
+              const SizedBox(height: 14),
+
+              // ⚙️ MORE FILTERS + GRID TOGGLE ROW
+              Row(
+                children: [
+
+
+
+                  // More Filters button
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor:
+                      showMoreFilters ? kPrimaryColor : Colors.white,
+                      foregroundColor:
+                      showMoreFilters ? Colors.white : Colors.black87,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: showMoreFilters
+                              ? kPrimaryColor
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                    ),
+                    icon: Icon(
+                      Icons.tune_rounded,
+                      size: 18,
+                      color: showMoreFilters ? Colors.white : kPrimaryColor,
+                    ),
+                    label: Text(
+                      showMoreFilters ? "Hide Filters" : "More Filters",
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    onPressed: () {
+                      setState(() => showMoreFilters = !showMoreFilters);
+                    },
+                  ),
+
+
+                  // Grid/List toggle button
+
+
+
+
+    ],
+              ),
+            ],
+          ),
+
+
+
+
+          const SizedBox(height: 10),
+          _buildMoreFilters(),
+        ],
+      ),
+    );
+  }
+
+// ------------- MORE FILTERS SECTION -------------
+  bool showMoreFilters = false;
+  String? selectedPropertyType;
+  String? selectedRooms;
+  String? selectedFurnishing;
+
+  Widget _buildMoreFilters() {
+    if (!showMoreFilters) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: minPriceC,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: "Min Price",
+                    suffixText: "AED",
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => _applyFilters(), // ✅ triggers live
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: maxPriceC,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: "Max Price",
+                    suffixText: "AED",
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => _applyFilters(),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: minSizeC,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: "Min Size",
+                    suffixText: "sqft",
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => _applyFilters(),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: maxSizeC,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: "Max Size",
+                    suffixText: "sqft",
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => _applyFilters(),
+                ),
+              ),
+              /*const SizedBox(width: 12),
+
+              ElevatedButton.icon(
+                onPressed: _applyFilters, // ✅ apply manually
+                icon: const Icon(Icons.filter_alt, size: 18),
+                label: const Text("Apply"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),*/
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // --- Dropdowns Row ---
+
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: selectedPropertyType,
+                  decoration: const InputDecoration(
+                    labelText: "All Property Types",
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text("All Property Types")),
+                    ...propertyTypes.map<DropdownMenuItem<String>>((item) {
+                      return DropdownMenuItem(
+                        value: item['id'],
+                        child: Text(item['name']),
+                      );
+                    }).toList(),
+                  ],
+
+                  onChanged: (val) {
+                    setState(() => selectedPropertyType = val);
+                    _applyFilters(); // ✅ apply instantly when changed
+                  },
+
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: selectedRooms,
+                  decoration: const InputDecoration(
+                    labelText: "Any Rooms",
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: '', child: Text('Any Rooms')),
+                    DropdownMenuItem(value: '1', child: Text('1 Room')),
+                    DropdownMenuItem(value: '2', child: Text('2 Rooms')),
+                    DropdownMenuItem(value: '3', child: Text('3 Rooms')),
+                    DropdownMenuItem(value: '4', child: Text('4 Rooms')),
+                    DropdownMenuItem(value: '5', child: Text('5 Rooms')),
+                    DropdownMenuItem(value: '5+', child: Text('5+ Rooms')),
+                  ],
+                  onChanged: (val) {
+                    setState(() => selectedRooms = val);
+                    _applyFilters(); // ✅ instantly filter
+                  },
+                ),
+
+
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child:DropdownButtonFormField<String>(
+                  value: selectedFurnishing,
+                  decoration: const InputDecoration(
+                    labelText: "Any Furnishing",
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: '', child: Text("Any Furnishing")),
+                    DropdownMenuItem(value: "FURNISHED", child: Text("Furnished")),
+                    DropdownMenuItem(value: "SEMI_FURNISHED", child: Text("Semi Furnished")),
+                    DropdownMenuItem(value: "UNFURNISHED", child: Text("Unfurnished")),
+                  ],
+                  onChanged: (val) {
+                    setState(() => selectedFurnishing = val);
+                    _applyFilters(); // ✅ trigger instant filtering
+                  },
+                ),
+
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // --- Clear Filters Button ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                icon: const Icon(Icons.filter_alt_off_outlined),
+                label: const Text("Clear All Filters"),
+                onPressed: () {
+                  setState(() {
+                    selectedPropertyType = null;
+                    selectedRooms = null;
+                    selectedFurnishing = null;
+                    minPriceC.clear();
+                    maxPriceC.clear();
+                    minSizeC.clear();
+                    maxSizeC.clear();
+                  });
+                },
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(
+      String label,
+      String value,
+      String selected,
+      Function(String) onTap,
+      ) {
+    final bool isActive = value == selected;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      margin: const EdgeInsets.only(right: 8),
+      decoration: BoxDecoration(
+        color: isActive ? kPrimaryColor : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isActive ? kPrimaryColor : Colors.grey.shade300,
+          width: 1,
+        ),
+        boxShadow: isActive
+            ? [
+          BoxShadow(
+            color: kPrimaryColor.withOpacity(0.25),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          )
+        ]
+            : [],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => onTap(value),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isActive ? Icons.check_circle_rounded : Icons.circle_outlined,
+                size: 16,
+                color: isActive ? Colors.white : kPrimaryColor,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  color: isActive ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+
+
+
+// ------------------- BUILD REQUIREMENT LIST -------------------
+  Widget _buildListRequirements() {
+    // Sort newest first
+    final sortedRequirements = List<Map<String, dynamic>>.from(requirements)
+      ..sort((a, b) {
+        final dateA = DateTime.tryParse(a['createdAt'] ?? '') ?? DateTime(1900);
+        final dateB = DateTime.tryParse(b['createdAt'] ?? '') ?? DateTime(1900);
+        return dateB.compareTo(dateA);
+      });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ✅ Select All Header
+        Row(
+          children: [
+            Checkbox(
+              value: selectAll,
+              activeColor: kPrimaryColor,
+              onChanged: (checked) {
+                setState(() {
+                  selectAll = checked ?? false;
+                  if (selectAll) {
+                    selectedRequirementIds =
+                        sortedRequirements.map((r) => r['id'].toString()).toList();
+                  } else {
+                    selectedRequirementIds.clear();
+                  }
+                });
+              },
+            ),
+            Text(
+              "Select All",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 13.5,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        // ✅ List of Cards
+        ...sortedRequirements.map((e) => _buildRequirementCard(e)).toList(),
+      ],
+    );
+  }
+
+// ------------------- REQUIREMENT CARD -------------------
+  Widget _buildRequirementCard(Map<String, dynamic> e) {
+    final broker = e['broker'] ?? {};
+    final propertyType = e['propertyType']?['name'] ?? 'N/A';
+    final location = (e['locations'] != null && e['locations'].isNotEmpty)
+        ? e['locations'][0]['completeAddress']
+        : 'N/A';
+    final category = e['category'] ?? 'N/A';
+    final transactionType = e['transactionType'] ?? 'N/A';
+    final listing = e['listingStatus'] ?? 'ACTIVE';
+    final furnished = (e['furnishedStatus'] as List?)?.join(', ') ?? 'N/A';
+    final rooms = (e['rooms'] as List?)?.join(', ') ?? 'N/A';
+    final description = e['requirementDescription'] ?? '';
+    final isActive = listing == 'ACTIVE';
+    final createdAt = DateTime.tryParse(e['createdAt'] ?? '');
+    final formattedDate = createdAt != null
+        ? DateFormat('dd-MMM-yyyy').format(createdAt)
+        : '-';
+    final minPrice = e['minPrice'] ?? '-';
+    final maxPrice = e['maxPrice'] ?? '-';
+    final priceRange = transactionType == 'RENT'
+        ? "AED $minPrice - $maxPrice /yr"
+        : "AED $minPrice - $maxPrice";
+
+    return Stack(
+      children: [
+        // 🔹 Base Card
+        Container(
+          margin: const EdgeInsets.only(bottom: 18, top: 6),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12.withOpacity(0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 🖼 Thumbnail
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  color: Colors.grey.shade100,
+                  child: Image.asset('assets/collabrix_logo.png',
+                      fit: BoxFit.contain),
+                ),
+              ),
+              const SizedBox(width: 14),
+
+              // 🔹 Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 🔹 Checkbox + Title
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: selectedRequirementIds.contains(e['id']),
+                          activeColor: kPrimaryColor,
+                          onChanged: (checked) {
+                            setState(() {
+                              if (checked == true) {
+                                selectedRequirementIds.add(e['id']);
+                              } else {
+                                selectedRequirementIds.remove(e['id']);
+                              }
+                              selectAll = selectedRequirementIds.length ==
+                                  requirements.length;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                e['title'] ?? 'Untitled Requirement',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "Created on: $formattedDate",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // 💰 Price, Location, Transaction Chips
+                    // 💰 Price, Locations (multi), Transaction Chips
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _chipWithGradient(
+                          Icons.monetization_on_rounded,
+                          priceRange,
+                          [Colors.green.shade400, Colors.green.shade600],
+                        ),
+
+                        // 📍 Multiple Location Chips
+                        ...(e['locations'] as List?)
+                            ?.map((loc) => _chip(
+                          Icons.location_on_outlined,
+                          loc['completeAddress'] ?? loc['name'] ?? 'Unknown',
+                          Colors.redAccent,
+                        ))
+                            .toList() ??
+                            [
+                              _chip(Icons.location_on_outlined, 'N/A', Colors.redAccent),
+                            ],
+
+                        _chip(
+                          Icons.swap_horiz_rounded,
+                          'For $transactionType',
+                          Colors.indigo,
+                        ),
+                      ],
+                    ),
+
+
+                    const SizedBox(height: 10),
+
+                    // 🛏 Info Icons Row
+                    Row(
+                      children: [
+                        _iconInfo(Icons.king_bed_outlined, "$rooms Rooms"),
+                        _iconInfo(Icons.chair_alt_outlined, furnished),
+                        _iconInfo(Icons.category_rounded, propertyType),
+                        _iconInfo(Icons.apartment_rounded, category),
+                      ],
+                    ),
+
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.black54,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 10),
+                    Divider(color: Colors.grey.shade300, thickness: 1, height: 10),
+
+                    // 🔘 Status Switch + Actions
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // 🟢 Status Switch
+                        Row(
+                          children: [
+                            Switch(
+                              value: isActive,
+                              activeColor: Colors.white,
+                              activeTrackColor: Colors.green,
+                              inactiveThumbColor: Colors.white,
+                              inactiveTrackColor: Colors.grey.shade400,
+                              onChanged: (val) async {
+                                await _toggleStatus(e['id'], isActive);
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isActive ? "Active" : "Inactive",
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                color: isActive ? Colors.green : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // ✏️ Edit + 👁 View
+                        Row(
+                          children: [
+                            _gradientButton(
+                              icon: Icons.edit_outlined,
+                              text: "Edit",
+                              colors: const [
+                                Color(0xFFFFA726),
+                                Color(0xFFFF7043)
+                              ],
+                              onTap: () => _openEditDialog(e),
+                            ),
+                            const SizedBox(width: 10),
+                            _gradientButton(
+                              icon: Icons.visibility_outlined,
+                              text: "View",
+                              colors: const [
+                                Color(0xFF1976D2),
+                                Color(0xFF0D47A1)
+                              ],
+                              onTap: () {
+                                setState(() {
+                                  selectedRequirement = e;
+                                  showDrawer = true;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 🟢 Floating ACTIVE Badge
+        Positioned(
+          top: 24,
+          right: 24,
+          child: _badge(
+            listing,
+            isActive ? Colors.green : Colors.grey,
+            icon:
+            isActive ? Icons.verified_rounded : Icons.block_rounded,
+          ),
+        ),
+
+        // 👤 Broker Info (Bottom-Right)
+        Positioned(
+          bottom: 92,
+          right: 18,
+          child: Container(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5))
+              color: Colors.brown.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.brown.withOpacity(0.25)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.person_outline,
+                    size: 14, color: Colors.brown),
+                const SizedBox(width: 4),
+                Text(
+                  "${broker['displayName'] ?? 'N/A'} ⭐ ${broker['rating'] ?? '-'}",
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.5,
+                    color: Colors.brown.shade700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
-            child: Text("Coming Soon...",
-                style:
-                GoogleFonts.poppins(fontSize: 16, color: Colors.grey[600])),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 💰 Gradient Chip (for price etc.)
+  Widget _chipWithGradient(IconData icon, String text, List<Color> colors) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: colors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: colors.first.withOpacity(0.25),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 14),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
     );
   }
+
+// 📍 Solid Color Chip (for location, type, etc.)
+  Widget _chip(IconData icon, String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+// ✏️ Gradient Button (for Edit/View)
+  Widget _gradientButton({
+    required IconData icon,
+    required String text,
+    required List<Color> colors,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: colors),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: colors.first.withOpacity(0.25),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 16),
+            const SizedBox(width: 4),
+            Text(
+              text,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+// 🏷️ Badge (for floating Active/Inactive chip)
+  Widget _badge(String text, Color color, {IconData? icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+          ],
+          Flexible(
+            child: Text(
+              text,
+              style: GoogleFonts.poppins(
+                color: color,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.visible,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+// ------------------- SMALL HELPERS -------------------
+  Widget _iconInfo(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: Colors.grey.shade700),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            text,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.grey.shade800,
+            ),
+            overflow: TextOverflow.visible,
+          ),
+        ),
+        SizedBox(width: 12,)
+      ],
+    );
+  }
+
+
+
+  Widget _buildStatusChangeDialog(String newStatus) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 100, vertical: 24), // 👈 keeps dialog compact
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 380), // 👈 limit width
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.help_outline_rounded,
+                    color: kPrimaryColor, size: 36),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                "Change Requirement Status?",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "Do you want to change this requirement's status to $newStatus?",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 14.5,
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(context, false),
+                    icon: const Icon(Icons.close, size: 18, color: Colors.black54),
+                    label: const Text("Cancel"),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(context, true),
+                    icon: const Icon(Icons.check_circle_outline,
+                        color: Colors.white, size: 18),
+                    label: const Text("Yes, Change"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 22, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleStatus(String id, bool isActive) async {
+    bool? confirm = true;
+    final newStatus = isActive ? "INACTIVE" : "ACTIVE";
+
+    confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => _buildStatusChangeDialog(newStatus),
+    );
+    if (!confirm!) return;
+
+    try {
+      final token = await AuthService.getToken();
+      final response = await http.put(
+        Uri.parse('$baseURL/api/requirements/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+
+        },
+        body: jsonEncode({"listing_status": newStatus}),
+      );
+
+      print('new status -> $newStatus , url -> ${Uri.parse('$baseURL/api/requirements/$id')}');
+      if (response.statusCode == 200) {
+        /*ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+              Text('Requirement marked as $newStatus successfully!')),
+        );*/
+        _fetchRequirements();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update status')),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error updating status: $e");
+    }
+  }
+
+
+
+  Widget _buildTag(String text) {
+    return Chip(
+      label: Text(
+        text,
+        style: GoogleFonts.poppins(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w500,
+          color: Colors.teal.shade900,
+        ),
+      ),
+      backgroundColor: Colors.teal.withOpacity(0.08),
+      side: BorderSide(color: Colors.teal.withOpacity(0.25)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+    );
+  }
+
+  Future<bool?> _showConfirmationDialog(String title, String message) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 100, vertical: 24), // 👈 keeps it compact
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 380, // 👈 fixed width for compact look
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    color: Colors.orange, size: 42),
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text("Cancel",
+                          style: GoogleFonts.poppins(color: Colors.black87)),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 22, vertical: 12),
+                      ),
+                      child: const Text("Confirm"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  Future<void> _confirmBulkStatusChange() async {
+    if (selectedRequirementIds.isEmpty) return;
+
+
+    final confirm = await _showConfirmationDialog(
+      "Change Status",
+      "Do you want to toggle the status for all selected requirements?",
+    );
+    if (confirm != true) return;
+
+
+    setState(() => isBulkStatusProcessing = true);
+
+    try {
+      final token = await AuthService.getToken();
+
+      // ✅ Loop through all selected requirements
+      for (final id in selectedRequirementIds) {
+        final req = requirements.firstWhere(
+              (r) => r['id'].toString() == id.toString(),
+          orElse: () => {},
+        );
+
+        // Skip if no match found
+        if (req.isEmpty) continue;
+
+        final currentStatus =
+        (req['listingStatus'] ?? req['listing_status'] ?? 'INACTIVE')
+            .toString()
+            .toUpperCase();
+        final newStatus = currentStatus == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
+        // 🔄 API call to update each requirement's status
+        await http.put(
+          Uri.parse('$baseURL/api/requirements/$id'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            "listing_status": newStatus,
+          }),
+        );
+      }
+
+      /*ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Status toggled for selected requirements!')),
+      );*/
+
+      await _fetchRequirements(); // Refresh the list
+    } catch (e) {
+      debugPrint("Bulk status update error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update status.')),
+      );
+    }
+
+    setState(() => isBulkStatusProcessing = false);
+    setState(() => selectAll = false);
+    setState(() => selectedRequirementIds.clear());
+
+  }
+
+  Future<void> _confirmBulkDelete() async {
+    if (selectedRequirementIds.isEmpty) return;
+
+    final confirm = await _showConfirmationDialog(
+      "Delete Requirements",
+      "Do you really want to delete all selected requirements?",
+    );
+    if (confirm != true) return;
+
+
+
+
+    setState(() => isBulkDeleteProcessing = true);
+
+    try {
+      final token = await AuthService.getToken();
+      for (final id in selectedRequirementIds) {
+        await http.delete(
+          Uri.parse('$baseURL/api/requirements/$id'),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selected requirements deleted successfully!')),
+      );
+      _fetchRequirements();
+    } catch (e) {
+      debugPrint("Bulk delete error: $e");
+    }
+
+    setState(() => isBulkDeleteProcessing = false);
+    setState(() => selectAll = false);
+    setState(() => selectedRequirementIds.clear());
+
+
+  }
+
+
+  // ============ PAGINATION ============
+  Widget _buildPagination() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: currentPage > 1
+              ? () => _fetchRequirements(page: currentPage - 1)
+              : null,
+        ),
+        Text("Page $currentPage of $totalPages",
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          onPressed: currentPage < totalPages
+              ? () => _fetchRequirements(page: currentPage + 1)
+              : null,
+        ),
+      ],
+    );
+  }
+
+  void _applyFilters() {
+    final brokerId = widget.userData['broker']?['id'];
+
+    // 👤 Base list (Show My Requirements or All)
+    List filtered = showMyRequirements
+        ? requirements.where((r) => r['brokerId'] == brokerId).toList()
+        : List.from(requirements);
+
+    // 🏢 Category Filter
+    if (selectedCategory != null &&
+        selectedCategory!.isNotEmpty &&
+        selectedCategory != "ALL") {
+      filtered = filtered.where((r) {
+        final cat = r['category']?.toString().toUpperCase() ?? '';
+        return cat == selectedCategory!.toUpperCase();
+      }).toList();
+    }
+
+
+    // 🔁 Transaction Type Filter
+    if (selectedTransaction != null &&
+        selectedTransaction!.isNotEmpty &&
+        selectedTransaction != "ALL") {
+      filtered = filtered.where((r) {
+        final type = r['transactionType']?.toString().toUpperCase() ?? '';
+        return type == selectedTransaction!.toUpperCase();
+      }).toList();
+    }
+
+    // 🏠 Property Type Filter
+    if (selectedPropertyType != null && selectedPropertyType!.isNotEmpty) {
+      filtered = filtered
+          .where((r) => r['propertyTypeId'] == selectedPropertyType)
+          .toList();
+    }
+
+    // 🛏 Rooms Filter
+    if (selectedRooms != null && selectedRooms!.isNotEmpty) {
+      filtered = filtered.where((r) {
+        final roomList = (r['rooms'] as List?)
+            ?.map((e) => int.tryParse(e.toString()) ?? 0)
+            .toList() ??
+            [];
+
+        if (selectedRooms == '5+') {
+          // ✅ Include all with 5 or more rooms
+          return roomList.any((room) => room >= 5);
+        } else {
+          final selectedRoomNum = int.tryParse(selectedRooms!) ?? 0;
+          return roomList.contains(selectedRoomNum);
+        }
+      }).toList();
+    }
+
+    // 🪑 Furnishing Filter
+    if (selectedFurnishing != null && selectedFurnishing!.isNotEmpty) {
+      filtered = filtered.where((r) {
+        final furnishingList = (r['furnishedStatus'] as List?)
+            ?.map((e) => e.toString().toUpperCase())
+            .toList() ??
+            [];
+
+        return furnishingList.contains(selectedFurnishing!.toUpperCase());
+      }).toList();
+    }
+
+
+    // 📍 Location Filter (multi-select)
+    if (selectedLocationIds.isNotEmpty) {
+      filtered = filtered.where((r) {
+        final locations = (r['locations'] as List?) ?? [];
+        final locationIds = locations
+            .map((loc) => loc['id']?.toString())
+            .whereType<String>()
+            .toList();
+        return selectedLocationIds.any(
+                (selId) => locationIds.contains(selId.toString()));
+      }).toList();
+    }
+
+    // 💰 Price Range Filter
+    final minPrice = double.tryParse(minPriceC.text) ?? 0;
+    final maxPrice = double.tryParse(maxPriceC.text) ?? double.infinity;
+    if (minPriceC.text.isNotEmpty || maxPriceC.text.isNotEmpty) {
+      filtered = filtered.where((r) {
+        final rMin = double.tryParse(
+          (r['minPrice'] ?? '').toString().replaceAll(RegExp(r'[^0-9.]'), ''),
+        ) ??
+            0;
+
+        final rMax = double.tryParse(
+          (r['maxPrice'] ?? '').toString().replaceAll(RegExp(r'[^0-9.]'), ''),
+        ) ??
+            0;
+
+        return (rMax >= minPrice && rMin <= maxPrice);
+      }).toList();
+    }
+
+    // 📏 Size Range Filter
+    final minSize = double.tryParse(minSizeC.text) ?? 0;
+    final maxSize = double.tryParse(maxSizeC.text) ?? double.infinity;
+    if (minSizeC.text.isNotEmpty || maxSizeC.text.isNotEmpty) {
+      filtered = filtered.where((r) {
+        final rMin = double.tryParse(
+            (r['minSizeSqft'] ?? '').toString().replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+        final rMax = double.tryParse(
+            (r['maxSizeSqft'] ?? '').toString().replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+
+        return (rMax >= minSize && rMin <= maxSize);
+      }).toList();
+    }
+
+    // 🔍 Search Filter
+    if (searchQuery.isNotEmpty) {
+      filtered = filtered.where((r) {
+        final title = r['title']?.toString().toLowerCase() ?? '';
+        final desc =
+            r['requirementDescription']?.toString().toLowerCase() ?? '';
+        final locationNames = (r['locations'] as List?)
+            ?.map((l) =>
+            (l['name'] ?? l['completeAddress'] ?? '')
+                .toString()
+                .toLowerCase())
+            .join(' ') ??
+            '';
+        return title.contains(searchQuery) ||
+            desc.contains(searchQuery) ||
+            locationNames.contains(searchQuery);
+      }).toList();
+    }
+
+    setState(() => filteredRequirements = filtered);
+  }
+
+
+  // ================= RIGHT-SIDE DRAWER PANEL =================
+
+  @override
+  Widget build(BuildContext context) {
+    final list = filteredRequirements.isNotEmpty ? filteredRequirements : [];
+
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Colors.grey.shade50,
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 18,),
+
+                /// 🧭 Fixed Header (stays on top)
+                _buildHeader(),
+                const SizedBox(height: 10),
+
+                /// 🧾 Scrollable Content (everything below header)
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFilterPanel(),
+
+                        if (requirements.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // 🔘 Select All Checkbox + Count
+                                Row(
+                                  children: [
+                                    Checkbox(
+                                      value: selectAll,
+                                      activeColor: kPrimaryColor,
+                                      onChanged: (checked) {
+                                        setState(() {
+                                          selectAll = checked ?? false;
+                                          if (selectAll) {
+                                            selectedRequirementIds = filteredRequirements
+                                                .map((e) => e['id'].toString())
+                                                .toList();
+                                          } else {
+                                            selectedRequirementIds.clear();
+                                          }
+                                        });
+                                      },
+                                    ),
+                                    Text(
+                                      "Select All",
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      "${selectedRequirementIds.length} out of ${filteredRequirements.length} selected",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13.5,
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                // 🔘 Action Buttons
+                                Row(
+                                  children: [
+                                    if (isBulkStatusProcessing)
+                                      const Padding(
+                                        padding: EdgeInsets.only(right: 12),
+                                        child: SizedBox(
+                                          height: 22,
+                                          width: 22,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                      ),
+                                    ElevatedButton.icon(
+                                      onPressed: isBulkStatusProcessing || selectedRequirementIds.isEmpty
+                                          ? null
+                                          : () => _confirmBulkStatusChange(),
+                                      icon: const Icon(Icons.sync_alt_rounded, size: 18),
+                                      label: Text(
+                                        isBulkStatusProcessing ? "Updating..." : "Change Status",
+                                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: kPrimaryColor,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    if (isBulkDeleteProcessing)
+                                      const Padding(
+                                        padding: EdgeInsets.only(right: 12),
+                                        child: SizedBox(
+                                          height: 22,
+                                          width: 22,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                      ),
+                                    ElevatedButton.icon(
+                                      onPressed: isBulkDeleteProcessing || selectedRequirementIds.isEmpty
+                                          ? null
+                                          : () => _confirmBulkDelete(),
+                                      icon: const Icon(Icons.delete_outline, size: 18),
+                                      label: Text(
+                                        isBulkDeleteProcessing ? "Deleting..." : "Delete",
+                                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.redAccent,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        /// 🧱 Grid/List Section
+                        isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : list.isEmpty
+                            ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 100),
+                            child: Text(
+                              "No requirements found",
+                              style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey),
+                            ),
+                          ),
+                        )
+                            : gridView
+                            ? GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: MediaQuery.of(context).size.width < 900 ? 2 : 3,
+                            crossAxisSpacing: 20,
+                            mainAxisSpacing: 20,
+                            childAspectRatio: 0.78,
+                          ),
+
+                          itemCount: list.length,
+                          itemBuilder: (_, i) =>
+                              _buildRequirementGridCard(list[i], i),
+                        )
+                            : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: list.length,
+                          itemBuilder: (_, i) =>
+                              _buildRequirementCard(list[i]),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        /// 🔻 Pagination
+                        _buildPagination(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // ===== Drawer overlay background =====
+        if (showDrawer && selectedRequirement != null)
+          GestureDetector(
+            onTap: () => setState(() => showDrawer = false),
+            child: Container(color: Colors.black54.withOpacity(0.4)),
+          ),
+
+        // ===== Drawer Panel =====
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 300),
+          right: showDrawer ? 0 : -MediaQuery.of(context).size.width * 0.4,
+          top: 0,
+          bottom: 0,
+          child: _buildDrawerPanel(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernSegment({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? kPrimaryColor
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: isSelected
+            ? [
+          BoxShadow(
+            color: kPrimaryColor.withOpacity(0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ]
+            : [],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        splashColor: kPrimaryColor.withOpacity(0.2),
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isSelected ? Colors.white : kPrimaryColor,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 13.5,
+                  fontWeight:
+                  isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? Colors.white : kPrimaryColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+// ---------------- DRAWER PANEL UI ----------------
+  Widget _buildDrawerPanel() {
+    final req = selectedRequirement ?? {};
+    final broker = req['broker'] ?? {};
+    final propertyType = req['propertyType']?['name'] ?? 'N/A';
+    final location = (req['locations'] != null && req['locations'].isNotEmpty)
+        ? req['locations'][0]['completeAddress']
+        : 'N/A';
+    final category = req['category'] ?? 'N/A';
+    final type = req['transactionType'] ?? 'N/A';
+    final listing = req['listingStatus'] ?? 'ACTIVE';
+
+    final priceRange = (type == 'RENT')
+        ? "AED ${req['minPrice']} - ${req['maxPrice']} /yr"
+        : "AED ${req['minPrice']} - ${req['maxPrice']}";
+
+    return Material(
+      elevation: 12,
+      borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20), bottomLeft: Radius.circular(20)),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.4,
+        color: Colors.white,
+        padding: const EdgeInsets.all(24),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- Header ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Requirement Details",
+                      style: GoogleFonts.poppins(
+                          fontSize: 18, fontWeight: FontWeight.w700)),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => setState(() => showDrawer = false),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // --- Title & Reference ---
+              Text(req['title'] ?? 'N/A',
+                  style: GoogleFonts.poppins(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text(req['referenceNumber'] ?? '',
+                  style: GoogleFonts.poppins(color: Colors.grey.shade600)),
+              const SizedBox(height: 12),
+
+              // --- Tags ---
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _buildTag(category),
+                  _buildTag(type),
+                  _buildTag(listing),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // --- Description ---
+              Text("Description",
+                  style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600, fontSize: 14)),
+              const SizedBox(height: 6),
+              Text(req['requirementDescription'] ?? 'N/A',
+                  style: GoogleFonts.poppins(fontSize: 13)),
+              const SizedBox(height: 16),
+
+              // --- Property Type & Location ---
+              _infoRow(Icons.home_work_outlined, "Property Type", propertyType),
+              _infoRow(Icons.location_on_outlined, "Location", location),
+              const SizedBox(height: 12),
+
+              // --- Price Range ---
+              _infoRow(Icons.monetization_on_outlined, "Price Range", priceRange),
+              _infoRow(Icons.square_foot_outlined, "Area (sqft)",
+                  "${req['minSizeSqft']} - ${req['maxSizeSqft']}"),
+              const SizedBox(height: 20),
+
+              // --- Broker Section ---
+              Text("Broker Information",
+                  style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600, fontSize: 14)),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundImage: NetworkImage(
+                      broker['user']?['avatar'] ??
+                          'https://via.placeholder.com/80',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(broker['displayName'] ?? 'N/A',
+                            style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600, fontSize: 14)),
+                        Text(broker['email'] ?? '',
+                            style: GoogleFonts.poppins(
+                                fontSize: 12, color: Colors.grey.shade600)),
+                        Text(broker['mobile'] ?? '',
+                            style: GoogleFonts.poppins(
+                                fontSize: 12, color: Colors.grey.shade600)),
+                      ],
+                    ),
+                  )
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // --- Specializations ---
+              if (broker['specializations'] != null &&
+                  broker['specializations'].isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Specializations",
+                        style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: List.generate(
+                          broker['specializations'].length,
+                              (i) => _buildTag(broker['specializations'][i])),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+// --- Helper for info rows in drawer ---
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: kPrimaryColor),
+          const SizedBox(width: 8),
+          Text("$label:",
+              style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w500, fontSize: 13.5)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(value,
+                style: GoogleFonts.poppins(
+                    fontSize: 13, color: Colors.black87),
+                overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> formattedLocations = [];
+
+  void _prepareLocations(List<dynamic> allLocations) {
+    formattedLocations = allLocations.map<Map<String, dynamic>>((loc) {
+      final parent = loc['parent'] != null ? loc['parent']['name'] : '';
+      final label = parent.isNotEmpty ? "${loc['name']} ($parent)" : loc['name'];
+      return {'id': loc['id'], 'label': label};
+    }).toList();
+  }
+
+
+// ============ CREATE & EDIT REQUIREMENT DIALOGS ============
+
+
+// ---------------- CREATE DIALOG ----------------
+  Future<void> _openCreateDialog() async {
+    final tagController = TextEditingController();
+
+    await _fetchPropertyTypesAndLocations();
+
+    final formKey = GlobalKey<FormState>();
+    final titleC = TextEditingController();
+    final refC = TextEditingController();
+    final descC = TextEditingController();
+    final minPriceC = TextEditingController();
+    final maxPriceC = TextEditingController();
+    final minSizeC = TextEditingController();
+    final maxSizeC = TextEditingController();
+
+    String? propertyTypeId;
+    List<String> locationIds = [];
+    String transactionType = 'SALE';
+    String category = 'RESIDENTIAL';
+    String? rooms;
+    String? furnishedStatus;
+    List<String> keywords = [];
+    bool isSubmitting = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 700;
+
+            return StatefulBuilder(
+              builder: (context, setDialogState) {
+                Future<void> submit() async {
+                  if (!formKey.currentState!.validate()) return;
+                  setDialogState(() => isSubmitting = true);
+
+                  try {
+                    final token = await AuthService.getToken();
+
+                    final autoExpireDate = DateTime.now()
+                        .add(const Duration(days: 30))
+                        .toIso8601String();
+
+                    final body = {
+                      "title": titleC.text.trim(),
+                      "reference_number": refC.text.trim(),
+                      "requirement_description": descC.text.trim(),
+                      "property_type_id": propertyTypeId,
+                      "location_ids": locationIds,
+                      if (widget.userData['role'].toLowerCase() == 'admin')
+                        "broker_id": widget.userData['broker']['id'],
+                      "rooms": rooms != null ? [rooms] : [],
+                      "min_size_sqft": int.tryParse(minSizeC.text) ?? 0,
+                      "max_size_sqft": int.tryParse(maxSizeC.text) ?? 0,
+                      "min_price": int.tryParse(minPriceC.text) ?? 0,
+                      "max_price": int.tryParse(maxPriceC.text) ?? 0,
+                      "furnished_status":
+                      furnishedStatus != null ? [furnishedStatus] : [],
+                      "category": category,
+                      "transaction_type": transactionType,
+                      "is_mortgage_buyer": false,
+                      "auto_expire_date": autoExpireDate,
+                      "keywords": keywords,
+                    };
+
+                    final res = await http.post(
+                      Uri.parse('$baseURL/api/requirements'),
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer $token',
+                      },
+                      body: json.encode(body),
+                    );
+
+                    if (res.statusCode == 200 || res.statusCode == 201) {
+                      Navigator.pop(context);
+                      _fetchRequirements();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content:
+                            Text('Requirement created successfully!')),
+                      );
+                    } else {
+                      debugPrint("Failed: ${res.body}");
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed: ${res.statusCode}')),
+                      );
+                    }
+                  } catch (e) {
+                    debugPrint("Error posting requirement: $e");
+                  } finally {
+                    setDialogState(() => isSubmitting = false);
+                  }
+                }
+
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 900),
+                  child: SingleChildScrollView(
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Post a Requirement",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 24),
+                                color: Colors.grey.shade700,
+                                tooltip: "Close",
+                                splashRadius: 22,
+                                onPressed: () => Navigator.pop(context), // ✅ close dialog
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // -------- Form Grid --------
+                          Wrap(
+                            spacing: 20,
+                            runSpacing: 20,
+                            children: [
+                              // Title
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: TextFormField(
+                                  controller: titleC,
+                                  decoration: InputDecoration(
+                                    labelText: "Requirement Title *",
+                                    hintText:
+                                    "e.g., Young couple seeking 2BR in Downtown",
+                                    hintStyle: GoogleFonts.poppins(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 14,
+                                    ),
+                                    border: const OutlineInputBorder(),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: kPrimaryColor, width: 1.5),
+                                    ),
+                                  ),
+                                  validator: (v) =>
+                                  v!.isEmpty ? "Enter title" : null,
+                                ),
+                              ),
+
+                              // Reference
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: TextFormField(
+                                  controller: refC,
+                                  decoration: InputDecoration(
+                                    labelText: "Reference Number *",
+                                    hintText: "e.g., REQ-001",
+                                    hintStyle: GoogleFonts.poppins(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 14,
+                                    ),
+                                    border: const OutlineInputBorder(),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: kPrimaryColor, width: 1.5),
+                                    ),
+                                  ),
+                                  validator: (v) =>
+                                  v!.isEmpty ? "Enter reference" : null,
+                                ),
+
+                              ),
+
+                              // Transaction Type
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: DropdownButtonFormField<String>(
+                                  value: transactionType,
+                                  decoration: InputDecoration(
+                                    labelText: "Looking to",
+                                    border: const OutlineInputBorder(),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: kPrimaryColor, width: 1.5),
+                                    ),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                        value: "SALE", child: Text("Buy")),
+                                    DropdownMenuItem(
+                                        value: "RENT", child: Text("Rent")),
+                                    DropdownMenuItem(
+                                        value: "SALE_AND_RENT",
+                                        child: Text("Rent & Buy")),
+                                  ],
+                                  onChanged: (v) =>
+                                      setDialogState(() => transactionType = v!),
+                                ),
+                              ),
+
+                              // Category
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: DropdownButtonFormField<String>(
+                                  value: category,
+                                  decoration: InputDecoration(
+                                    labelText: "Property Category",
+                                    border: const OutlineInputBorder(),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: kPrimaryColor, width: 1.5),
+                                    ),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                        value: "RESIDENTIAL",
+                                        child: Text("Residential")),
+                                    DropdownMenuItem(
+                                        value: "COMMERCIAL",
+                                        child: Text("Commercial")),
+                                  ],
+                                  onChanged: (v) =>
+                                      setDialogState(() => category = v!),
+                                ),
+                              ),
+
+                              // Property Type
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: DropdownButtonFormField<String>(
+                                  decoration: InputDecoration(
+                                    labelText: "Property Type *",
+                                    border: const OutlineInputBorder(),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: kPrimaryColor, width: 1.5),
+                                    ),
+                                  ),
+                                  value: propertyTypeId,
+                                  items: propertyTypes
+                                      .map<DropdownMenuItem<String>>((item) =>
+                                      DropdownMenuItem(
+                                        value: item['id'],
+                                        child: Text(item['name']),
+                                      ))
+                                      .toList(),
+                                  onChanged: (val) => setDialogState(
+                                          () => propertyTypeId = val),
+                                  validator: (v) =>
+                                  v == null ? "Select property type" : null,
+                                ),
+                              ),
+
+                              // Rooms
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: DropdownButtonFormField<String>(
+                                  value: rooms,
+                                  decoration: InputDecoration(
+                                    labelText: "Rooms",
+                                    border: const OutlineInputBorder(),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: kPrimaryColor, width: 1.5),
+                                    ),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                        value: "Studio", child: Text("Studio")),
+                                    DropdownMenuItem(value: "1", child: Text("1")),
+                                    DropdownMenuItem(value: "2", child: Text("2")),
+                                    DropdownMenuItem(value: "3", child: Text("3")),
+                                    DropdownMenuItem(value: "4", child: Text("4")),
+                                    DropdownMenuItem(value: "5", child: Text("5")),
+
+                                    DropdownMenuItem(
+                                        value: "5+", child: Text("5+")),
+                                  ],
+                                  onChanged: (v) => setDialogState(() => rooms = v),
+                                ),
+                              ),
+
+                              // Furnished Status
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: DropdownButtonFormField<String>(
+                                  value: furnishedStatus,
+                                  decoration: InputDecoration(
+                                    labelText: "Furnished Status",
+                                    border: const OutlineInputBorder(),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: kPrimaryColor, width: 1.5),
+                                    ),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                        value: "Furnished",
+                                        child: Text("Furnished")),
+                                    DropdownMenuItem(
+                                        value: "Semi-Furnished",
+                                        child: Text("Semi-Furnished")),
+                                    DropdownMenuItem(
+                                        value: "Unfurnished",
+                                        child: Text("Unfurnished")),
+                                  ],
+                                  onChanged: (v) =>
+                                      setDialogState(() => furnishedStatus = v),
+                                ),
+                              ),
+
+                              // Locations
+                              SizedBox(
+                                width: isWide ? 820 : double.infinity,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Preferred Locations *",
+                                        style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w600)),
+                                    const SizedBox(height: 6),
+                                    TypeAheadField<Map<String, dynamic>>(
+                                      suggestionsCallback: (pattern) {
+                                        if (pattern.isEmpty) {
+                                          return formattedLocations;
+                                        }
+                                        return formattedLocations
+                                            .where((loc) => loc['label']
+                                            .toLowerCase()
+                                            .contains(pattern.toLowerCase()))
+                                            .toList();
+                                      },
+                                      itemBuilder: (context, suggestion) {
+                                        final isSelected = locationIds
+                                            .contains(suggestion['id']);
+                                        return ListTile(
+                                          title: Text(suggestion['label']),
+                                          trailing: isSelected
+                                              ? Icon(Icons.check_circle,
+                                              color: kPrimaryColor)
+                                              : null,
+                                        );
+                                      },
+                                      onSelected: (suggestion) {
+                                        setDialogState(() {
+                                          if (locationIds
+                                              .contains(suggestion['id'])) {
+                                            locationIds.remove(suggestion['id']);
+                                          } else {
+                                            locationIds.add(suggestion['id']);
+                                          }
+                                        });
+                                      },
+                                      builder:
+                                          (context, controller, focusNode) {
+                                        return TextField(
+                                          controller: controller,
+                                          focusNode: focusNode,
+                                          decoration: InputDecoration(
+                                            hintText:
+                                            "Search & select multiple locations",
+                                            hintStyle: GoogleFonts.poppins(
+                                              color: Colors.grey.shade500,
+                                              fontSize: 14,
+                                            ),
+                                            prefixIcon: const Icon(
+                                                Icons.location_on_outlined),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                              BorderRadius.circular(10),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(
+                                                  color: kPrimaryColor,
+                                                  width: 1.5),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: locationIds.map((id) {
+                                        final loc = formattedLocations.firstWhere(
+                                              (l) => l['id'] == id,
+                                          orElse: () => {},
+                                        );
+                                        if (loc.isEmpty) return const SizedBox();
+
+                                        return AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          curve: Curves.easeOut,
+                                          decoration: BoxDecoration(
+                                            color: kPrimaryColor,
+                                            borderRadius: BorderRadius.circular(30),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black12.withOpacity(0.05),
+                                                blurRadius: 6,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                            ],
+                                            border: Border.all(color: kPrimaryColor.withOpacity(0.2)),
+                                          ),
+                                          child: InkWell(
+                                            borderRadius: BorderRadius.circular(30),
+                                            onTap: () {},
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.location_on_rounded,
+                                                      color: Colors.white, size: 16),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    loc['label'],
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 13.5,
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  GestureDetector(
+                                                    onTap: () => setDialogState(() => locationIds.remove(id)),
+                                                    child: Icon(Icons.close_rounded,
+                                                        size: 17, color: Colors.white),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+
+                                  ],
+                                ),
+                              ),
+
+                              // Price Range with AED suffix
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextFormField(
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly, // ✅ allows only integers
+                                        ],
+                                        controller: minPriceC,
+                                        decoration: InputDecoration(
+                                          labelText: "Min Price",
+                                          suffixText: "AED د.إ",
+                                          suffixStyle: TextStyle(
+                                              color: Colors.grey.shade600),
+                                          border: const OutlineInputBorder(),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: kPrimaryColor, width: 1.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: maxPriceC,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly, // ✅ allows only integers
+                                        ],
+                                        decoration: InputDecoration(
+                                          labelText: "Max Price",
+                                          suffixText: "AED د.إ",
+                                          suffixStyle: TextStyle(
+                                              color: Colors.grey.shade600),
+                                          border: const OutlineInputBorder(),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: kPrimaryColor, width: 1.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Size Range
+                              SizedBox(
+                                width: isWide ? 400 : double.infinity,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: minSizeC,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly, // ✅ allows only integers
+                                        ],
+                                        decoration: InputDecoration(
+                                          labelText: "Min Size",
+                                          suffixText: "sqft",
+                                          suffixStyle: TextStyle(
+                                              color: Colors.grey.shade600),
+                                          border: const OutlineInputBorder(),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: kPrimaryColor, width: 1.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: TextFormField(
+                                        controller: maxSizeC,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly, // ✅ allows only integers
+                                        ],                                        decoration: InputDecoration(
+                                          labelText: "Max Size",
+                                          suffixText: "sqft",
+                                          suffixStyle: TextStyle(
+                                              color: Colors.grey.shade600),
+                                          border: const OutlineInputBorder(),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: kPrimaryColor, width: 1.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Keywords
+                          Text("Keywords / Tags",
+                              style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: tagController, // ✅ attach controller
+                            decoration: InputDecoration(
+                              hintText:
+                              "Press Enter to add tags (e.g., Near Metro, Sea View)",
+                              hintStyle: GoogleFonts.poppins(
+                                color: Colors.grey.shade500,
+                                fontSize: 14,
+                              ),
+                              border: const OutlineInputBorder(),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide:
+                                BorderSide(color: kPrimaryColor, width: 1.5),
+                              ),
+                              prefixIcon: const Icon(Icons.tag_outlined),
+                            ),
+
+                            onSubmitted: (value) {
+                              final tag = value.trim();
+                              if (tag.isNotEmpty &&
+                                  !keywords.contains(tag) &&
+                                  keywords.length < 10) {
+                                setDialogState(() => keywords.add(tag));
+                                tagController.clear(); // ✅ clears the field after adding tag
+
+
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: keywords.map((tag) {
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeOut,
+                                decoration: BoxDecoration(
+                                  color: kPrimaryColor,
+                                  borderRadius: BorderRadius.circular(30),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black12.withOpacity(0.05),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                  border: Border.all(color: kPrimaryColor.withOpacity(0.2)),
+                                ),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(30),
+                                  onTap: () {},
+                                  child: Padding(
+                                    padding:
+                                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.sell_outlined,
+                                            color: Colors.white, size: 16),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          tag,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13.5,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        GestureDetector(
+                                          onTap: () => setDialogState(() => keywords.remove(tag)),
+                                          child: Icon(Icons.close_rounded,
+                                              size: 17, color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+
+
+                          const SizedBox(height: 24),
+
+                          // Description
+                          TextFormField(
+                            controller: descC,
+                            maxLines: 4,
+                            decoration: InputDecoration(
+                              labelText: "Requirement Description *",
+                              hintText:
+                              "Describe your client's needs in detail...",
+                              hintStyle: GoogleFonts.poppins(
+                                color: Colors.grey.shade500,
+                                fontSize: 14,
+                              ),
+                              border: const OutlineInputBorder(),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide:
+                                BorderSide(color: kPrimaryColor, width: 1.5),
+                              ),
+                            ),
+                            validator: (v) =>
+                            v!.isEmpty ? "Enter description" : null,
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          // Submit Button
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: ElevatedButton.icon(
+                              onPressed: isSubmitting ? null : submit,
+                              icon: isSubmitting
+                                  ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                                  : const Icon(Icons.send_rounded,color: Colors.white,),
+                              label: Text(
+                                isSubmitting ? "Posting..." : "Post Requirement",
+                                style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kPrimaryColor,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 28, vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          }),
+        );
+      },
+    );
+  }
+
+// Add this field at the top of your State class
+  int hoveredIndex = -1;
+
+  Widget _buildRequirementGridCard(Map<String, dynamic> e, int index) {
+    final broker = e['broker'] ?? {};
+    final propertyType = e['propertyType']?['name'] ?? 'N/A';
+    final location = (e['locations'] != null && e['locations'].isNotEmpty)
+        ? e['locations'][0]['completeAddress']
+        : 'N/A';
+    final category = e['category'] ?? 'N/A';
+    final transactionType = e['transactionType'] ?? 'N/A';
+    final listing = e['listingStatus'] ?? 'ACTIVE';
+    final furnished = (e['furnishedStatus'] as List?)?.join(', ') ?? 'N/A';
+    final rooms = (e['rooms'] as List?)?.join(', ') ?? 'N/A';
+    final description = e['requirementDescription'] ?? '';
+    final isActive = listing == 'ACTIVE';
+    final createdAt = DateTime.tryParse(e['createdAt'] ?? '');
+    final formattedDate =
+    createdAt != null ? DateFormat('dd-MMM-yyyy').format(createdAt) : '-';
+    final minPrice = e['minPrice'] ?? '-';
+    final maxPrice = e['maxPrice'] ?? '-';
+    final priceRange = transactionType == 'RENT'
+        ? "AED $minPrice - $maxPrice /yr"
+        : "AED $minPrice - $maxPrice";
+
+    final bool isHovered = hoveredIndex == index;
+    final bool isSelected = selectedRequirementIds.contains(e['id']);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => hoveredIndex = index),
+      onExit: (_) => setState(() => hoveredIndex = -1),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        transform:
+        isHovered ? (Matrix4.identity()..translate(0.0, -6.0, 0.0)) : Matrix4.identity(),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12.withOpacity(0.06),
+              blurRadius: isHovered ? 12 : 10,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 🔹 Title + Date
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Checkbox(
+                  value:  isSelected,
+                  activeColor: kPrimaryColor,
+                  onChanged: (checked) {
+                    setState(() {
+                      if (checked == true) {
+                        selectedRequirementIds.add(e['id']);
+                      } else {
+                        selectedRequirementIds.remove(e['id']);
+                      }
+                      selectAll =
+                          selectedRequirementIds.length == requirements.length;
+                    });
+                  },
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      e['title'] ?? 'Untitled Requirement',
+                      style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w700, fontSize: 14.5),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "Created on: $formattedDate",
+                      style:
+                      GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // 💰 Price + Location + Type chips
+            // 💰 Price, Locations (multi), Transaction Chips
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _chipWithGradient(
+                  Icons.monetization_on_rounded,
+                  priceRange,
+                  [Colors.green.shade400, Colors.green.shade600],
+                ),
+
+                // 📍 Multiple Location Chips
+                ...(e['locations'] as List?)
+                    ?.map((loc) => _chip(
+                  Icons.location_on_outlined,
+                  loc['completeAddress'] ?? loc['name'] ?? 'Unknown',
+                  Colors.redAccent,
+                ))
+                    .toList() ??
+                    [
+                      _chip(Icons.location_on_outlined, 'N/A', Colors.redAccent),
+                    ],
+
+                _chip(
+                  Icons.swap_horiz_rounded,
+                  'For $transactionType',
+                  Colors.indigo,
+                ),
+              ],
+            ),
+
+
+            const SizedBox(height: 8),
+
+            // 🛏 Info (all 4 in one wrap)
+            Wrap(
+              spacing: 10,
+              runSpacing: 6,
+              children: [
+                _iconInfo(Icons.king_bed_outlined, "$rooms Rooms"),
+                _iconInfo(Icons.chair_alt_outlined, furnished),
+                _iconInfo(Icons.category_rounded, propertyType),
+                _iconInfo(Icons.apartment_rounded, category),
+              ],
+            ),
+
+
+            if (description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.black54, height: 1.4),
+              ),
+            ],
+
+            const Spacer(),
+
+            // 👤 Broker info
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.brown.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.brown.withOpacity(0.25)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.person_outline, size: 14, color: Colors.brown),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      "${broker['displayName'] ?? 'N/A'} ⭐ ${broker['rating'] ?? '-'}",
+                      style: GoogleFonts.poppins(
+                        fontSize: 12.5,
+                        color: Colors.brown.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 10),
+            Divider(color: Colors.grey.shade300, thickness: 1, height: 10),
+            const SizedBox(height: 6),
+
+            // 🔘 Status switch + Edit/View
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // 🟢 Active switch
+                Row(
+                  children: [
+                    Switch(
+                      value: isActive,
+                      activeColor: Colors.white,
+                      activeTrackColor: Colors.green,
+                      inactiveThumbColor: Colors.white,
+                      inactiveTrackColor: Colors.grey.shade400,
+                      onChanged: (val) async {
+                        await _toggleStatus(e['id'], isActive);
+                      },
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isActive ? "Active" : "Inactive",
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        color: isActive ? Colors.green : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // ✏️ Edit + 👁 View
+                Row(
+                  children: [
+                    _gradientButton(
+                      icon: Icons.edit_outlined,
+                      text: "Edit",
+                      colors: const [Color(0xFFFFA726), Color(0xFFFF7043)],
+                      onTap: () => _openEditDialog(e),
+                    ),
+                    const SizedBox(width: 8),
+                    _gradientButton(
+                      icon: Icons.visibility_outlined,
+                      text: "View",
+                      colors: const [Color(0xFF1976D2), Color(0xFF0D47A1)],
+                      onTap: () {
+                        setState(() {
+                          selectedRequirement = e;
+                          showDrawer = true;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+
 }

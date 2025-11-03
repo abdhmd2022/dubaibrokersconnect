@@ -51,6 +51,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
   List<String> selectedAmenityName = [];
   bool isAmenitiesLoading = true;
 
+
+
   List<Map<String, dynamic>> locations = [];
   bool isLocationsLoading = true;
   String? selectedLocationId;
