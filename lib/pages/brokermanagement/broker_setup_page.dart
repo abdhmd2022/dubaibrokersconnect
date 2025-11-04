@@ -115,7 +115,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       "bio": bioC.text.trim(),
       "license_number": isFreelancer ? null : licenseC.text.trim(),
       "rera_number": isFreelancer ? null : reraC.text.trim(),
-      "establishment_license": isFreelancer ? null : establishC.text.trim(),
+      "establishment_license": null,
       "address": addressC.text.trim(),
       "city": cityC.text.trim(),
       "state": stateC.text.trim(),
@@ -535,13 +535,13 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                                     keyboardType: TextInputType.text,
                                     icon: Icons.confirmation_number_outlined,
                                   ),
-                                  const SizedBox(height: 14),
+                                  /*const SizedBox(height: 14),
                                   _buildTextField(
                                     establishC,
                                     "Establishment License",
                                     keyboardType: TextInputType.text,
                                     icon: Icons.apartment_outlined,
-                                  ),
+                                  ),*/
                                 ]),
 
                               ],
@@ -582,8 +582,8 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                                       _buildDateField("Issue Date", brnIssueDate, true),
                                       const SizedBox(height: 14),
                                       _buildDateField("Expiry Date", brnExpiryDate, false),
-                                      /*const SizedBox(height: 14),
-                                      _buildUploadPlaceholder("Upload BRN Card Copy"),*/
+                                      const SizedBox(height: 14),
+                                      _buildUploadPlaceholder("Upload BRN Card Copy"),
 
                                     ],
                                   )
