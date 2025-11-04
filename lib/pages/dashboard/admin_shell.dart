@@ -35,6 +35,9 @@ class _AdminShellState extends State<AdminShell> {
         onNavigateToBrokers: () {
           setState(() => _selectedIndex = 3); // 👈 opens Broker Directory
         },
+        onNavigateToBrokerManagement: () {
+          setState(() => _selectedIndex = 7); // 👈 opens Broker Directory
+        },
       ),
       ListingsScreen(userData: userData,),
       RequirementsScreen(userData: userData,),
@@ -46,6 +49,7 @@ class _AdminShellState extends State<AdminShell> {
       TagManagementScreen(),
       PropertyTypesScreen(),
       LocationsScreen(),
+
     ];
 
     return Scaffold(

@@ -37,7 +37,8 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
   final countryC = TextEditingController(text: "UAE");
   final postalCodeC = TextEditingController();
 
-
+  final List<String> categories = ["RESIDENTIAL", "COMMERCIAL"];
+  List<String> selectedCategories = [];
   /// Company details
   final companyC = TextEditingController();
   final licenseC = TextEditingController();
@@ -62,6 +63,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
 
   @override
   void initState() {
+
     super.initState();
 
     final firstName = widget.userData['firstName'] ?? '';
@@ -116,6 +118,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       "phone": phoneC.text.trim(),
       "mobile": mobileC.text.trim(),
       "email": emailC.text.trim(),
+      "categories": selectedCategories,
       "website": websiteC.text.trim(),
       "whatsapp": whatsappC.text.trim(),
       "social_links": {
@@ -141,6 +144,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
 
       final data = jsonDecode(res.body);
       print('done -> $data');
+
 
       if (res.statusCode == 201 && data['success'] == true) {
 
@@ -289,6 +293,10 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                           const SizedBox(height: 14),
                           _buildMultiSelect("Languages", languages, selectedLangs),
                           const SizedBox(height: 14),
+
+                          _buildMultiSelect("Category", categories, selectedCategories),
+                          const SizedBox(height: 14),
+
                           _buildMultilineField(bioC, "Bio"),
                         ]),
 
@@ -586,8 +594,9 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                                       _buildDateField("Issue Date", brnIssueDate, true),
                                       const SizedBox(height: 14),
                                       _buildDateField("Expiry Date", brnExpiryDate, false),
-                                      const SizedBox(height: 14),
-                                      _buildUploadPlaceholder("Upload BRN Card Copy"),
+                                      /*const SizedBox(height: 14),
+                                      _buildUploadPlaceholder("Upload BRN Card Copy"),*/
+
                                     ],
                                   )
                                       : const SizedBox.shrink(),
@@ -612,7 +621,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                           _buildTextField(facebookC, "Facebook"),
                         ]),
 
-                        const SizedBox(height: 26),
+                        /*const SizedBox(height: 26),
 
                         /// ---------- PRIVILEGE & UPLOAD ----------
                         _buildCard([
@@ -624,7 +633,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                           }),
                           const SizedBox(height: 14),
                           _buildUploadPlaceholder("Upload Profile Picture"),
-                        ]),
+                        ]),*/
 
                         const SizedBox(height: 40),
 

@@ -38,6 +38,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     final isVerified = widget.userData['broker']['isVerified'] == true;
     activeSection = isVerified ? "Listings" : "Reviews";
 
+
     fetchBrokerById();
   }
 

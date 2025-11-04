@@ -9,10 +9,13 @@ import '../../widgets/animated_logo_loader.dart' show AnimatedLogoLoader;
 class AdminDashboardContent extends StatefulWidget {
   final Map<String, dynamic> userData;
   final VoidCallback? onNavigateToBrokers; // 👈 added
+  final VoidCallback? onNavigateToBrokerManagement; // 👈 added
 
   const AdminDashboardContent({super.key,
     required this.userData,
     this.onNavigateToBrokers,
+    this.onNavigateToBrokerManagement,
+
   });
 
   @override
@@ -172,9 +175,8 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
                     "Review and approve broker profiles, manage user access and platform permissions.",
                     "Open Admin Panel",
                     kPrimaryColor,
-                    onPressed: () {
-                      // 🔹 Navigate to Manage Brokers screen
-                    },
+                    onPressed: widget.onNavigateToBrokerManagement!, // 👈 triggers shell navigation
+
                   ),
                   _actionCard(
                     "Broker Directory",
