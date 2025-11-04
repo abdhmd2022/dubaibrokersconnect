@@ -4,6 +4,7 @@ import 'package:a2abrokerapp/pages/listings/property_details_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants.dart';
 import 'package:http/http.dart' as http;
@@ -253,6 +254,186 @@ class _ListingsScreenState extends State<ListingsScreen> {
       );
       return null;
     }
+
+  }
+  Widget _buildAmenitiesTypeAhead(Function(void Function()) setDialogState) {
+
+    final TextEditingController controller = TextEditingController();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 🔹 Title + Clear All
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Amenities",
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: Colors.black87,
+                ),
+              ),
+              if (selectedAmenityName.isNotEmpty)
+                GestureDetector(
+                  onTap: () {
+                    setState(() => selectedAmenityName.clear());
+                  },
+                  child: Text(
+                    "Clear All",
+                    style: GoogleFonts.poppins(
+                      color: kPrimaryColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          TypeAheadField<Map<String, dynamic>>(
+            suggestionsCallback: (pattern) async {
+              if (pattern.isEmpty) return amenitiesList;
+              return amenitiesList
+                  .where((a) => (a['name'] ?? '')
+                  .toLowerCase()
+                  .contains(pattern.toLowerCase()))
+                  .toList();
+            },
+            builder: (context, textEditingController, focusNode) {
+              controller.value = textEditingController.value;
+              return TextField(
+                controller: textEditingController,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  hintText: "Search and select amenities...",
+                  hintStyle: GoogleFonts.poppins(
+                    color: Colors.grey.shade500,
+                    fontSize: 13.5,
+                  ),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: kPrimaryColor, width: 1.5),
+                  ),
+                ),
+                style: GoogleFonts.poppins(fontSize: 14),
+              );
+            },
+            itemBuilder: (context, suggestion) {
+              final name = suggestion['name'] ?? 'Unknown';
+              final isSelected = selectedAmenityName.contains(name);
+              return ListTile(
+                dense: true,
+                title: Text(
+                  name,
+                  style: GoogleFonts.poppins(
+                    color: isSelected ? kPrimaryColor : Colors.black87,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+                trailing: Icon(
+                  isSelected ? Icons.check_circle : Icons.add_circle_outline,
+                  color: isSelected ? kPrimaryColor : Colors.grey,
+                ),
+              );
+            },
+
+            onSelected: (suggestion) {
+              final name = suggestion['name'];
+              setDialogState(() {
+                if (selectedAmenityName.contains(name)) {
+                  selectedAmenityName.remove(name);
+                } else {
+                  selectedAmenityName.add(name);
+                }
+              });
+            },
+            decorationBuilder: (context, child) => Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(10),
+              color: Colors.white,
+              child: child,
+            ),
+            hideOnEmpty: true,
+            hideOnLoading: true,
+          ),
+
+          const SizedBox(height: 12),
+
+          // 🔹 Scrollable Chips with Smooth UI
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: selectedAmenityName.isEmpty
+                ? Text(
+              "No amenities selected",
+              key: const ValueKey('no_amenities'),
+              style: GoogleFonts.poppins(
+                color: Colors.grey.shade500,
+                fontSize: 13,
+              ),
+            )
+                : ConstrainedBox(
+              key: const ValueKey('amenities_wrap'),
+              constraints: const BoxConstraints(maxHeight: 120),
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: selectedAmenityName.map((amenity) {
+                    return Chip(
+                      backgroundColor: kPrimaryColor.withOpacity(0.12),
+                      side:
+                      BorderSide(color: kPrimaryColor.withOpacity(0.3)),
+                      label: Text(
+                        amenity,
+                        style: GoogleFonts.poppins(
+                          color: kPrimaryColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                      deleteIcon: const Icon(Icons.close_rounded,
+                          size: 16, color: Colors.black54),
+                      onDeleted: () {
+                        setState(() => selectedAmenityName.remove(amenity));
+                      },
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   List<String> _buildLocationPath(Map<String, dynamic> location) {
@@ -269,6 +450,45 @@ class _ListingsScreenState extends State<ListingsScreen> {
     }
 
     return path;
+  }
+
+  Widget _buildSegment({
+    required double width,
+    required String label,
+    required String value,
+    required bool selected,
+    required Color color,
+    required bool isLeft,
+    required VoidCallback onTap,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: width,
+      decoration: BoxDecoration(
+        color: selected ? color : Colors.white,
+        border: Border(
+          right: BorderSide(
+            color: isLeft
+                ? Colors.transparent // ✅ no divider line
+                : Colors.transparent,
+            width: 0,
+          ),
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        child: Center(
+          child: Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: selected ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
 
@@ -307,14 +527,14 @@ class _ListingsScreenState extends State<ListingsScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
-        return StatefulBuilder(builder: (context, setState) {
+        return StatefulBuilder(builder: (context, setDialogState) {
           return Dialog(
             insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             backgroundColor: Colors.transparent,
             child: Center(
               child: ConstrainedBox(constraints: const BoxConstraints(
-                maxWidth: 600, // ✅ limits width for desktop/web
+                maxWidth: 700, // ✅ limits width for desktop/web
                 maxHeight: 720, // ✅ keeps popup compact
 
               ),
@@ -388,386 +608,400 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                           Divider(color: Colors.grey.shade300, thickness: 1),
 
-                         /* const SizedBox(height: 5),
-
-                          GestureDetector(
-                            onTap: () => setState(() => isFeatured = !isFeatured),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 100),
-                              curve: Curves.easeInOut,
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
-                                gradient: isFeatured
-                                    ? LinearGradient(
-                                  colors: [kPrimaryColor, kAccentColor],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                )
-                                    : null,
-                                color: isFeatured ? null : Colors.white,
-                                border: Border.all(
-                                  color: isFeatured ? kPrimaryColor.withOpacity(0.4) : Colors.grey.shade300,
-                                  width: 1.2,
+                          /// ───────────── CATEGORY & TRANSACTION TYPE (SEGMENTED INSIDE CARD) ─────────────
+                          Container(
+                            margin: const EdgeInsets.only(top: 10, bottom: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
                                 ),
-                                boxShadow: [
-                                  if (isFeatured)
-                                    BoxShadow(
-                                      color: kPrimaryColor.withOpacity(0.25),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  if (!isFeatured)
-                                    BoxShadow(
-                                      color: Colors.black12.withOpacity(0.05),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  AnimatedContainer(
-                                    duration: const Duration(milliseconds: 250),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: isFeatured ? Colors.white : kPrimaryColor.withOpacity(0.12),
-                                    ),
-                                    padding: const EdgeInsets.all(6),
-                                    child: Icon(
-                                      isFeatured ? Icons.star_rounded : Icons.star_border_rounded,
-                                      size: 20,
-                                      color: isFeatured ? kPrimaryColor : Colors.grey.shade600,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    isFeatured ? "Featured Enabled" : "Mark as Featured",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: isFeatured ? Colors.white : Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              ],
+                              border: Border.all(color: Colors.grey.shade200, width: 1),
                             ),
-                          ),*/
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Listing Details",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
 
-                          const SizedBox(height: 10),
+                                /// 🔹 CATEGORY + TRANSACTION TYPE
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Category",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          _buildToggleChips(
+                                            ["RESIDENTIAL", "COMMERCIAL"],
+                                            setDialogState: setDialogState, // 👈 pass this when inside dialog
+
+                                            category ?? "",
+                                                (val) => setDialogState(() => category = val),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Transaction Type",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          _buildToggleChips(
+                                            ["SALE", "RENT"],
+                                            transactionType ?? "",
+                                                (val) {
+                                              setDialogState(() {
+                                                transactionType = val;
+
+                                                // ✅ define new allowed status options
+                                                final newStatusOptions = transactionType == "RENT"
+                                                    ? ["READY_TO_MOVE", "AVAILABLE_FROM_NOW"]
+                                                    : ["READY_TO_MOVE", "OFF_PLAN", "RENTED"];
+
+                                                // ✅ if current status not valid anymore → reset it
+                                                if (status == null || !newStatusOptions.contains(status)) {
+                                                  status = newStatusOptions.first;
+                                                }
+                                              });
+                                            },
+                                            setDialogState: setDialogState,
+                                          ),
+
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 14),
+
+                                /// 🔹 FURNISH + STATUS (dynamic + auto-select + disable logic)
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildDropdownField(
+                                        "Furnish Status",
+                                        ["FURNISHED", "SEMI_FURNISHED", "UNFURNISHED"],
+                                        furnishing,
+                                            (v) => setState(() => furnishing = v!),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: IgnorePointer(
+                                        ignoring: transactionType == null || transactionType!.isEmpty,
+                                        child: Opacity(
+                                          opacity: transactionType == null || transactionType!.isEmpty
+                                              ? 0.5 // 🔒 faded when disabled
+                                              : 1,
+                                          child: _buildDropdownField(
+                                            "Status",
+                                            transactionType == "RENT"
+                                                ? ["READY_TO_MOVE", "AVAILABLE_FROM_NOW"]
+                                                : ["READY_TO_MOVE", "OFF_PLAN", "RENTED"],
+                                            status,
+                                                (v) => setDialogState(() => status = v!),
+                                          ),
+
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
 
                           /// ───────────── BASIC INFO ─────────────
-                          Text(
-                            "Basic Information",
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                              border: Border.all(color: Colors.grey.shade300, width: 1),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Basic Information",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+
+                                _buildDialogTextField("Title", titleC, Icons.home_rounded),
+                                const SizedBox(height: 10),
+
+                                /// 🔹 Reference Number + Property Type side by side
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildDialogTextField(
+                                        "Reference Number",
+                                        refC,
+                                        Icons.tag_rounded,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: isPropertyTypesLoading
+                                          ? const Center(child: CircularProgressIndicator())
+                                          :_buildCompactDropdown(
+                                        title: "Property Type",
+                                        value: selectedPropertyType,
+                                        items: propertyTypeNames,
+                                        onChanged: (val) =>
+                                            setState(() => selectedPropertyType = val),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+
+                                /// 🔹 Description below the row
+                                _buildDialogTextField(
+                                  "Description", descC, Icons.description_outlined,
+                                  maxLines: 3,
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 10),
 
-                          _buildDialogTextField("Title", titleC, Icons.home_rounded),
-                          const SizedBox(height: 10),
-
-                          /// 🔹 Reference Number + Property Type side by side
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDialogTextField(
-                                  "Reference Number",
-                                  refC,
-                                  Icons.tag_rounded,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: isPropertyTypesLoading
-                                    ? const Center(child: CircularProgressIndicator())
-                                    :_buildCompactDropdown(
-                                  title: "Property Type",
-                                  value: selectedPropertyType,
-                                  items: propertyTypeNames,
-                                  onChanged: (val) =>
-                                      setState(() => selectedPropertyType = val),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-
-                          /// 🔹 Description below the row
-                          _buildDialogTextField(
-                            "Description", descC, Icons.description_outlined,
-                            maxLines: 3,
-                          ),
 
 
                           const SizedBox(height: 18),
 
                           /// ───────────── PRICING & SIZE ─────────────
-                          Text(
-                            "Pricing & Area",
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                              border: Border.all(color: Colors.grey.shade300, width: 1),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Pricing & Area",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildDialogTextField(
+                                        "Price (AED)",
+                                        priceC,
+                                        Icons.currency_exchange_rounded,
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildDialogTextField(
+                                        "Size (sqft)",
+                                        sizeC,
+                                        Icons.square_foot_rounded,
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 10),
 
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDialogTextField(
-                                  "Price (AED)",
-                                  priceC,
-                                  Icons.currency_exchange_rounded,
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDialogTextField(
-                                  "Size (sqft)",
-                                  sizeC,
-                                  Icons.square_foot_rounded,
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                            ],
-                          ),
                           const SizedBox(height: 16),
 
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                              border: Border.all(color: Colors.grey.shade300, width: 1),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Property Details",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
 
-                          Text(
-                            "Property Details",
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildDialogTextField(
+                                        "Rooms",
+                                        roomsC,
+                                        Icons.king_bed_rounded,
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildDialogTextField(
+                                        "Bathrooms",
+                                        bathsC,
+                                        Icons.bathtub_rounded,
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildDialogTextField(
+                                        "Parking Spaces",
+                                        parkingC,
+                                        Icons.local_parking_rounded,
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 10),
 
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDialogTextField(
-                                  "Rooms",
-                                  roomsC,
-                                  Icons.king_bed_rounded,
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDialogTextField(
-                                  "Bathrooms",
-                                  bathsC,
-                                  Icons.bathtub_rounded,
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDialogTextField(
-                                  "Parking Spaces",
-                                  parkingC,
-                                  Icons.local_parking_rounded,
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                            ],
-                          ),
                           const SizedBox(height: 16),
 
-                          /// ───────────── LOCATION ─────────────
-                          Text(
-                            "Property Location",
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                              border: Border.all(color: Colors.grey.shade300, width: 1),
                             ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          isLocationsLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : _buildCompactDropdown(
-                            title: "Select Location",
-                            value: selectedLocationName,
-                            items: locations.map((e) => e['name'] as String).toList(),
-                            onChanged: (val) {
-                              final matched = locations.firstWhere(
-                                    (loc) => loc['name'] == val,
-                                orElse: () => {},
-                              );
-
-                              setState(() {
-                                selectedLocationId = matched['id'];
-                                selectedLocationName = matched['name'];
-
-                                // ✅ Now treat this as the property address too
-                                locationFullPath = [
-                                  "United Arab Emirates",
-                                  if (matched['parent'] != null &&
-                                      matched['parent']['name'] != null)
-                                    matched['parent']['name'],
-                                  matched['name']
-                                ];
-                              });
-                            },
-                          ),
-
-
-                          SizedBox(height: 10,),
-
-                          /// ───────────── CATEGORY & STATUS ─────────────
-                          Text(
-                            "Listing Details",
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDropdownField(
-                                  "Category",
-                                  ["RESIDENTIAL", "COMMERCIAL"],
-                                  category,
-                                      (v) => setState(() => category = v),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDropdownField(
-                                  "Transaction Type",
-                                  ["SALE", "RENT"],
-                                  transactionType,
-                                      (v) => setState(() => transactionType = v!),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDropdownField(
-                                  "Furnish Status",
-                                  ["FURNISHED", "SEMI_FURNISHED", "UNFURNISHED"],
-                                  furnishing,
-                                      (v) => setState(() => furnishing = v!),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildDropdownField(
-                                  "Status",
-                                  ["READY_TO_MOVE", "OFF_PLAN", "RENTED"],
-                                  status,
-                                      (v) => setState(() => status = v!),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          if(amenitiesList.isNotEmpty)...[
-
-                            const SizedBox(height: 10),
-
-                            Text(
-                              "Amenities",
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                              "Property Location",
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 16),
+
+                            isLocationsLoading
+                                ? const Center(child: CircularProgressIndicator())
+                                : _buildCompactDropdown(
+                              title: "Select Location",
+                              value: selectedLocationName,
+                              items: locations.map((e) => e['name'] as String).toList(),
+                              onChanged: (val) {
+                                final matched = locations.firstWhere(
+                                      (loc) => loc['name'] == val,
+                                  orElse: () => {},
+                                );
+
+                                setState(() {
+                                  selectedLocationId = matched['id'];
+                                  selectedLocationName = matched['name'];
+
+                                  // ✅ Now treat this as the property address too
+                                  locationFullPath = [
+                                    "United Arab Emirates",
+                                    if (matched['parent'] != null &&
+                                        matched['parent']['name'] != null)
+                                      matched['parent']['name'],
+                                    matched['name']
+                                  ];
+                                });
+                              },
+                            ),
+                              ],
+                            ),
+                          ),
+
+
+
+                          SizedBox(height: 10,),
+
+
+
+                          if (amenitiesList.isNotEmpty) ...[
+
 
                             isAmenitiesLoading
                                 ? const Center(child: CircularProgressIndicator())
-                                :Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              children: amenitiesList.map((amenity) {
-                                final amenityId = amenity['name'] as String;
-                                final isSelected = selectedAmenityName.contains(amenityId);
-
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 50),
-                                  decoration: BoxDecoration(
-                                    gradient: isSelected
-                                        ? LinearGradient(
-                                      colors: [kPrimaryColor, kAccentColor],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    )
-                                        : null,
-                                    color: isSelected ? null : Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: isSelected ? kPrimaryColor : Colors.grey.shade300,
-                                      width: 1.2,
-                                    ),
-                                    boxShadow: [
-                                      if (isSelected)
-                                        BoxShadow(
-                                          color: kPrimaryColor.withOpacity(0.25),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 3),
-                                        )
-                                      else
-                                        BoxShadow(
-                                          color: Colors.black12.withOpacity(0.05),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                    ],
-                                  ),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: () {
-                                      setState(() {
-                                        if (isSelected) {
-                                          selectedAmenityName.remove(amenityId);
-                                        } else {
-                                          selectedAmenityName.add(amenityId);
-                                        }
-                                      });
-                                    },
-                                    child: Padding(
-                                      padding:
-                                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            isSelected ? Icons.check_circle : Icons.circle_outlined,
-                                            size: 18,
-                                            color: isSelected ? Colors.white : kPrimaryColor,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            amenity['name'],
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 13.8,
-                                              fontWeight: FontWeight.w600,
-                                              color: isSelected ? Colors.white : Colors.black87,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
+                                : _buildAmenitiesTypeAhead(setDialogState),
                           ],
-
 
                           /*SizedBox(height: 20,),
                           /// ───────────── PROPERTY IMAGES ─────────────
@@ -3147,23 +3381,33 @@ class _ListingsScreenState extends State<ListingsScreen> {
   }
 
   Widget _buildToggleChips(
-      List<String> options, String selected, Function(String) onSelected) {
+      List<String> options,
+      String selected,
+      Function(String) onSelected, {
+        Function(void Function())? setDialogState, // 👈 optional now
+      }) {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: kPrimaryColor.withOpacity(0.05),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kPrimaryColor.withOpacity(0.1),),
+        border: Border.all(color: kPrimaryColor.withOpacity(0.1)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: options.map((option) {
           final isActive = selected == option;
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: GestureDetector(
-                onTap: () => onSelected(option),
+                onTap: () {
+                  // 👇 if inside dialog → use setDialogState, else → use outer setState
+                  if (setDialogState != null) {
+                    setDialogState(() => onSelected(option));
+                  } else {
+                    setState(() => onSelected(option));
+                  }
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   padding:
@@ -3172,10 +3416,16 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     color: isActive ? kPrimaryColor : Colors.white,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isActive
-                          ? kPrimaryColor
-                          : Colors.grey.shade300,
+                      color: isActive ? kPrimaryColor : Colors.grey.shade300,
                     ),
+                    boxShadow: [
+                      if (isActive)
+                        BoxShadow(
+                          color: kPrimaryColor.withOpacity(0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                    ],
                   ),
                   child: Center(
                     child: Text(
@@ -3183,7 +3433,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w600,
                         color: isActive ? Colors.white : Colors.black87,
-                        fontSize: 13,
+                        fontSize: 13.5,
                       ),
                     ),
                   ),
@@ -3195,6 +3445,11 @@ class _ListingsScreenState extends State<ListingsScreen> {
       ),
     );
   }
+
+
+
+
+
   /// 🔹 Reusable badge
   Widget _badge(String text, Color color, {IconData? icon}) {
     return Container(
