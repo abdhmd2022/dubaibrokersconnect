@@ -1096,7 +1096,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                           const SizedBox(height: 25),
 */
-
+                          const SizedBox(height: 25),
 
                           /// ───────────── SUBMIT BUTTON ─────────────
                           Align(

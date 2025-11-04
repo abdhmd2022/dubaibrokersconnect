@@ -5,10 +5,13 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:intl_phone_field/country_picker_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants.dart';
 import '../dashboard/broker_shell.dart';
 import '../dashboard/brokerdashboard.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:intl_phone_field/phone_number.dart';
 
 class BrokerSetupPage extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -23,6 +26,8 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
   final _formKey = GlobalKey<FormState>();
   bool sameAsMobile = true;
 
+  String? fullMobileNumber;
+  String? fullWhatsappNumber;
   /// Controllers
   final displayNameC = TextEditingController();
   final profileTitleC = TextEditingController();
@@ -116,20 +121,25 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       "state": stateC.text.trim(),
       "country": countryC.text.trim(),
       "postal_code": postalCodeC.text.trim(),
-      "phone": phoneC.text.trim(),
-      "mobile": mobileC.text.trim(),
+      "phone":fullMobileNumber ?? '',
+      "mobile": fullMobileNumber ?? '',
+      "whatsapp": fullWhatsappNumber ?? '',
+
       "email": emailC.text.trim(),
       "categories": selectedCategories,
       "website": websiteC.text.trim(),
-      "whatsapp": whatsappC.text.trim(),
       "social_links": {
         "linkedin": linkedinC.text.trim(),
+
         "twitter": twitterC.text.trim(),
         "facebook": facebookC.text.trim(),
       },
       "specializations": selectedSpecs,
       "languages": selectedLangs,
     };
+
+
+    print('body -> $body');
 
     final url = Uri.parse('$baseURL/api/brokers');
 
@@ -324,149 +334,126 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                             ),*/
                           const SizedBox(height: 14),
 
-
-// --- Mobile Field with WhatsApp Checkbox ---
-                          TextFormField(
+                          // 🌍 MOBILE FIELD
+                          IntlPhoneField(
                             controller: mobileC,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'^[0-9+]*$')), // allow digits + plus sign
-                              LengthLimitingTextInputFormatter(15),
-                            ],
-                            style: GoogleFonts.poppins(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                            pickerDialogStyle: PickerDialogStyle(width: 400),
+                            initialCountryCode: 'AE',
+                            decoration: InputDecoration(
+                              labelText: 'Mobile Number',
+                              filled: true,
+                              fillColor: Colors.white,
+                              labelStyle: GoogleFonts.poppins(color: Colors.grey.shade600, fontSize: 14),
+                              floatingLabelStyle: GoogleFonts.poppins(
+                                color: kPrimaryColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: kPrimaryColor, width: 1.6),
+                              ),
                             ),
-                            onChanged: (value) {
-                              // Auto-mirror to WhatsApp when toggled on
+                            onChanged: (phone) {
+                              fullMobileNumber = phone.completeNumber;
+
+
                               if (sameAsMobile) {
                                 setState(() {
-                                  whatsappC.text = value;
+                                  fullWhatsappNumber = phone.completeNumber;
+                                  whatsappC.text = phone.number; // keep controller text consistent too
                                 });
                               }
                             },
-                            decoration: InputDecoration(
-                              labelText: "Mobile Number",
-                              labelStyle: GoogleFonts.poppins(
-                                color: Colors.grey.shade600,
-                                fontSize: 14,
-                              ),
-                              floatingLabelStyle: GoogleFonts.poppins(
-                                color: kPrimaryColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.only(left: 10, right: 6),
-                                child: Icon(
-                                  Icons.smartphone_outlined,
-                                  size: 20,
-                                  color: kPrimaryColor,
+
+                            onCountryChanged: (country) {
+                              debugPrint('Country changed: ${country.name} (${country.dialCode})');
+                            },
+                            validator: (phone) {
+                              if (phone == null || phone.number.isEmpty) {
+                                return 'Please enter a valid number';
+                              }
+                              return null;
+                            },
+                          ),
+
+
+
+// ✅ Checkbox below Mobile field
+                          Row(
+                            children: [
+                              Transform.scale(
+                                scale: 0.9,
+                                child: Checkbox(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                  activeColor: kPrimaryColor,
+                                  value: sameAsMobile,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      sameAsMobile = val ?? false;
+
+                                      if (sameAsMobile) {
+                                        // ✅ Mirror both text and full number
+                                        whatsappC.text = mobileC.text;
+                                        fullWhatsappNumber = fullMobileNumber;
+                                      } else {
+                                        // ✅ Fully clear both text and stored number
+                                        whatsappC.clear();
+                                        fullWhatsappNumber = null;
+                                      }
+                                    });
+                                  },
+
                                 ),
                               ),
-                              prefixIconConstraints:
-                              const BoxConstraints(minWidth: 40, maxHeight: 26),
-
-                              // --- WhatsApp toggle inside Mobile field ---
-                              suffixIcon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(FontAwesomeIcons.whatsapp,
-                                      color: Colors.green.shade600, size: 20),
-                                  const SizedBox(width: 6),
-                                  Transform.scale(
-                                    scale: 0.9,
-                                    child: Checkbox(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      activeColor: kPrimaryColor,
-                                      value: sameAsMobile,
-                                      onChanged: (val) {
-                                        setState(() {
-                                          sameAsMobile = val ?? false;
-                                          if (sameAsMobile) {
-                                            whatsappC.text = mobileC.text;
-                                          } else {
-                                            whatsappC.clear();
-                                          }
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                ],
+                              Text(
+                                "Same as WhatsApp number",
+                                style: GoogleFonts.poppins(fontSize: 13.5, color: Colors.black87),
                               ),
-
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide:
-                                BorderSide(color: Colors.grey.shade300, width: 1),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide:
-                                BorderSide(color: kPrimaryColor, width: 1.6),
-                              ),
-                            ),
+                            ],
                           ),
+
                           const SizedBox(height: 14),
 
-// --- WhatsApp Field ---
-                          TextFormField(
-                            controller: whatsappC,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'^[0-9+]*$')),
-                              LengthLimitingTextInputFormatter(15),
-                            ],
-                            enabled: !sameAsMobile,
-                            style: GoogleFonts.poppins(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w500,
-                              color: sameAsMobile ? Colors.grey : Colors.black87,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: "WhatsApp Number",
-                              labelStyle: GoogleFonts.poppins(
-                                color: Colors.grey.shade600,
-                                fontSize: 14,
-                              ),
-                              floatingLabelStyle: GoogleFonts.poppins(
-                                color: kPrimaryColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.only(left: 10, right: 6),
-                                child: Icon(
-                                  FontAwesomeIcons.whatsapp,
-                                  size: 20,
-                                  color: sameAsMobile ? Colors.grey : kPrimaryColor,
+// 🌍 WHATSAPP FIELD — Hides automatically if sameAsMobile is true
+                          if (!sameAsMobile)
+                            IntlPhoneField(
+                              controller: whatsappC,
+                              pickerDialogStyle: PickerDialogStyle(width: 400),
+                              initialCountryCode: 'AE',
+                              decoration: InputDecoration(
+                                labelText: 'WhatsApp Number',
+                                filled: true,
+                                fillColor: Colors.white,
+                                labelStyle: GoogleFonts.poppins(color: Colors.grey.shade600, fontSize: 14),
+                                floatingLabelStyle: GoogleFonts.poppins(
+                                  color: kPrimaryColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: kPrimaryColor, width: 1.6),
                                 ),
                               ),
-                              prefixIconConstraints:
-                              const BoxConstraints(minWidth: 40, maxHeight: 26),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide:
-                                BorderSide(color: Colors.grey.shade300, width: 1),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide:
-                                BorderSide(color: kPrimaryColor, width: 1.6),
-                              ),
-                              disabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide:
-                                BorderSide(color: Colors.grey.shade200, width: 1),
-                              ),
+                              onChanged: (phone) {
+                                fullWhatsappNumber = phone.completeNumber;
+                              },
+                              validator: (phone) {
+                                if (!sameAsMobile && (phone == null || phone.number.isEmpty)) {
+                                  return 'Please enter a valid WhatsApp number';
+                                }
+                                return null;
+                              },
                             ),
-                          ),
+
+
 
 
 

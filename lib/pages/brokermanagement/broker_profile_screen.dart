@@ -106,6 +106,8 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     final avatar = broker!['user']?['avatar'];
     final email = broker!['email'];
     final phone = broker!['mobile'];
+    final whatsapp = broker!['whatsappno'];
+
     final bio = broker!['bio'] ?? '';
     final rating = broker!['rating'] ?? 'N/A';
     final requirements = broker!['requirements'] ?? [];
@@ -353,8 +355,9 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                     const SizedBox(height: 10),
                     _contactButton(
                         FontAwesomeIcons.whatsapp,
+
                         "WhatsApp",
-                        "https://wa.me/${phone.toString().replaceAll('+', '')}"),
+                        "https://wa.me/${whatsapp.toString().replaceAll('+', '')}"),
                     const SizedBox(height: 10),
                     _contactButton(Icons.email_outlined, "Email", "mailto:$email"),
                   ],
