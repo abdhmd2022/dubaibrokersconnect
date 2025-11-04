@@ -27,9 +27,10 @@ class _BrokerShellState extends State<BrokerShell> {
   @override
   Widget build(BuildContext context) {
     final userData = widget.userData;
-    final bool isVerified = userData['isVerified'] == true;
+    final bool isVerified = userData['broker']['isVerified'] == true;
     final List<Widget> _pages = [
       isVerified
+
           ? BrokerDashboardContent(userData: userData,
         onNavigateToListings: () => setState(() => _selectedIndex = 1),
         onNavigateToRequirements: () => setState(() => _selectedIndex = 2),

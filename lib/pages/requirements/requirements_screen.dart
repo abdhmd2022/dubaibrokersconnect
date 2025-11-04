@@ -1003,6 +1003,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
               const SizedBox(height: 20),
               // 🔍 SEARCH + LOCATION ROW
               Row(
+
                 children: [
                   // 🔍 SEARCH FIELD (LEFT)
                   Expanded(
@@ -1050,7 +1051,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
                   const SizedBox(width: 12),
 
-                  // 📍 LOCATION SEARCH FIELD (MULTI SELECT)
                   // 📍 LOCATION SEARCH FIELD (from existing requirements)
                   Expanded(
                     child: Container(
@@ -1159,24 +1159,28 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                   }).toList(),
 
                                   // ✏️ Inline search input
-                                  ConstrainedBox(
-                                    constraints:
-                                    const BoxConstraints(minWidth: 100, maxWidth: 250),
-                                    child: TextField(
-                                      controller: controller,
-                                      focusNode: focusNode,
-                                      decoration: const InputDecoration(
-                                        isDense: true,
-                                        border: InputBorder.none,
-                                        hintText: "Search & select locations...",
-                                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                                      ),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13.5,
-                                        color: Colors.black87,
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child:  ConstrainedBox(
+                                      constraints:
+                                      const BoxConstraints(minWidth: 100, maxWidth: 250),
+                                      child: TextField(
+                                        controller: controller,
+                                        focusNode: focusNode,
+                                        decoration: const InputDecoration(
+                                          isDense: true,
+                                          border: InputBorder.none,
+                                          hintText: "Search & select locations...",
+                                          hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                                        ),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13.5,
+                                          color: Colors.black87,
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                  )
+
                                 ],
                               ),
                             ),

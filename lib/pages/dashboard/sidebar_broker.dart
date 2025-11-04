@@ -19,7 +19,7 @@ class BrokerSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isVerified = userData['isVerified'] == true;
+    final bool isVerified = userData['broker']['isVerified'] == true;
 
     final items = [
       {'icon': Icons.dashboard, 'label': 'Dashboard'},
@@ -200,7 +200,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final name = fullName.isNotEmpty ? fullName : {widget.userData['broker']['displayName']}.isNotEmpty ? '${widget.userData['broker']['displayName']}':  "";
     final email = widget.userData['broker']['email'] ?? '';
     final avatar = widget.userData['avatar'] ?? '';
-    final bool isVerified = widget.userData['isVerified'] == true;
+    final bool isVerified = widget.userData['broker']['isVerified'] == true;
     final String role = widget.userData['role']?.toString().toUpperCase() ?? 'BROKER';
 
 

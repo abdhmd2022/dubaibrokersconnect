@@ -76,15 +76,19 @@ class _LoginPageState extends State<LoginPage> {
       final data = jsonDecode(res.body);
 
       if (res.statusCode == 200 && data['success'] == true) {
+
+
         final userData = data['data']['user'];
         final accessToken = data['data']['accessToken'];
         final refreshToken = data['data']['refreshToken'];
         final prefs = await SharedPreferences.getInstance();
 
+        final isVerified = userData['broker']?['isVerified'] ?? false;
         await prefs.setString('access_token', accessToken);
         await prefs.setString('refresh_token', refreshToken);
         await prefs.setString('user_id', userData['id'].toString());
-        await prefs.setBool('isVerified', userData['broker']['isVerified'] ?? false);
+        await prefs.setBool('isVerified',isVerified );
+
 
         if (_rememberMe) {
           await prefs.setString('email', _emailController.text.trim());

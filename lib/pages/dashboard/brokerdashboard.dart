@@ -27,7 +27,7 @@ class BrokerDashboardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final String fullName =
     '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
-    final bool isVerified = userData['isVerified'] == true;
+    final bool isVerified = userData['broker']['isVerified'] == true;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),

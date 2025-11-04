@@ -140,14 +140,33 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       );
 
       final data = jsonDecode(res.body);
-      print('done');
+      print('done -> $data');
 
       if (res.statusCode == 201 && data['success'] == true) {
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => BrokerShell(userData: widget.userData)),
-        );
+        final url = Uri.parse('$baseURL/api/auth/me');
+
+        print('url -> $url');
+        try {
+          final res = await http.get(
+            url,
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json'},
+          );
+
+
+          final data_user = jsonDecode(res.body);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => BrokerShell(userData: data_user['data']['user'])),
+          );
+        }
+        catch (e)
+        {
+
+        }
+
 
 
       } else {

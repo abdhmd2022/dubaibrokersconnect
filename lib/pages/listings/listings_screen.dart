@@ -1523,7 +1523,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final bool isVerified = widget.userData['isVerified'] == true;
+    final bool isVerified = widget.userData['role'] == 'ADMIN' ? widget.userData['isVerified'] == true : widget.userData['broker']['isVerified'];
 
     return Scaffold(
       backgroundColor: backgroundColor,
