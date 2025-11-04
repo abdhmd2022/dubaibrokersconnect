@@ -178,7 +178,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                 icon: Icons.currency_exchange_rounded,
                 label: "Price",
                 value:
-                "${propertyData['currency'] ?? 'AED'} ${propertyData['price'] ?? '0'} /yr",
+                "${propertyData['currency'] ?? 'AED'} ${propertyData['price'] ?? '0'}",
                 highlight: true,
               ),
               _detailItem(

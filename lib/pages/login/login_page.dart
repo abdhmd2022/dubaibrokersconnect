@@ -151,18 +151,18 @@ class _LoginPageState extends State<LoginPage> {
 
         print('registration response -> ${data}');
         final userData = data['data']['user'];
-        final accessToken = data['data']['accessToken'];
+        //final accessToken = data['data']['accessToken'];
         // Save user & token for next screen
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('access_token', accessToken);
-        await prefs.setString('user_id', userData['id'].toString());
+        //final prefs = await SharedPreferences.getInstance();
+       // await prefs.setString('access_token', accessToken);
+        //await prefs.setString('user_id', userData['id'].toString());
 
         // 🚀 Go to Broker Setup Page instead of Login
-        Navigator.pushReplacement(
+       /* Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => BrokerSetupPage(userData: userData)),
 
-        );
+        );*/
         setState(() => _mode = AuthMode.login);
       } else {
         _showError(data['message'] ?? 'Registration failed');

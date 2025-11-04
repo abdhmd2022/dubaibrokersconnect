@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants.dart';
 import '../dashboard/broker_shell.dart';
@@ -923,7 +924,8 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
             Text(
               value == null
                   ? "Select $label"
-                  : "$label: ${value.day}/${value.month}/${value.year}",
+                  : "$label: ${DateFormat('dd-MMM-yyyy').format(value)}",
+
               style: GoogleFonts.poppins(color: Colors.black87, fontSize: 14),
             ),
             const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.grey),
@@ -1106,3 +1108,4 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
     );
   }
 }
+

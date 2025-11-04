@@ -88,11 +88,11 @@ class BrokerDashboardContent extends StatelessWidget {
                 spacing: 20,
                 runSpacing: 20,
                 children: [
-                  _statCard("Active Listings", "34",
+                  _statCard("Active Listings", "0",
                       Icons.home_work_outlined, Colors.blue, Colors.blue.shade50, cardWidth),
-                  _statCard("Pending Deals", "7",
+                  _statCard("Pending Deals", "0",
                       Icons.pending_actions, Colors.orange, Colors.orange.shade50, cardWidth),
-                  _statCard("Closed Deals", "12",
+                  _statCard("Closed Deals", "0",
                       Icons.verified_user, Colors.green, Colors.green.shade50, cardWidth),
                 ],
               );

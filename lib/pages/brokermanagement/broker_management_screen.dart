@@ -134,32 +134,33 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
   void _applyFilters() {
     List<dynamic> list = brokers;
 
-    // 🧩 Handle filters
+    // 🧩 Handle filters (including Disabled & All)
     if (activeFilter != 'All') {
-      if (activeFilter == 'Disabled') {
-        list = list
-            .where((b) => b['user'] != null && b['user']['isActive'] == false)
-            .toList();
-      } else {
-        list = list
-            .where((b) =>
-        (b['approvalStatus'] ?? '').toString().toUpperCase() ==
-            activeFilter.toUpperCase())
-            .toList();
-      }
+      list = list.where((b) {
+        final approvalStatus = (b['approvalStatus'] ?? '').toString().toUpperCase();
+        final isActive = b['user']?['isActive'] == true;
+
+        switch (activeFilter.toUpperCase()) {
+          case 'DISABLED':
+            return !isActive; // show inactive ones
+          case 'PENDING':
+          case 'APPROVED':
+          case 'REJECTED':
+            return isActive && approvalStatus == activeFilter.toUpperCase();
+          default:
+            return true; // fallback
+        }
+      }).toList();
     }
 
-    // 🔍 Handle search
+    // 🔍 Handle search query
     if (searchQuery.isNotEmpty) {
+      final q = searchQuery.toLowerCase();
       list = list.where((b) {
-        final displayName = (b['displayName'] ?? '').toLowerCase();
-        final companyName = (b['user']?['companyName'] ?? '').toLowerCase();
-        final email = (b['email'] ?? '').toLowerCase();
-        final query = searchQuery.toLowerCase();
-
-        return displayName.contains(query) ||
-            companyName.contains(query) ||
-            email.contains(query);
+        final displayName = (b['displayName'] ?? '').toString().toLowerCase();
+        final company = (b['user']?['companyName'] ?? '').toString().toLowerCase();
+        final email = (b['email'] ?? '').toString().toLowerCase();
+        return displayName.contains(q) || company.contains(q) || email.contains(q);
       }).toList();
     }
 
@@ -369,7 +370,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
       {'label': 'Pending', 'icon': Icons.access_time_filled_rounded, 'color': Colors.amber},
       {'label': 'Approved', 'icon': Icons.verified, 'color': Colors.green},
       {'label': 'Rejected', 'icon': FontAwesomeIcons.circleXmark, 'color': Colors.redAccent},
-      {'label': 'Disabled', 'icon': FontAwesomeIcons.ban, 'color': Colors.grey},
+      //{'label': 'Disabled', 'icon': FontAwesomeIcons.ban, 'color': Colors.grey},
     ];
 
     return SingleChildScrollView(
@@ -528,7 +529,6 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     final total = stats?['brokers']?['total'] ?? 0;
     final pending = stats?['brokers']?['pending'] ?? 0;
     final approved = stats?['brokers']?['approved'] ?? 0;
-
     return Scaffold(
         backgroundColor: backgroundColor,
         floatingActionButton: FloatingActionButton(
@@ -673,6 +673,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     final formattedDate = created != null
         ? "Registered on ${DateFormat('dd-MMM-yyyy').format(created)}"
         : '-';
+
     final bool isActive = user['isActive'] == true;
     final bool isDisabled = !isActive;
 
@@ -767,7 +768,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                             ),
                           ),
                           SizedBox(width: 8,),
-                          _statusChip(b['approvalStatus'] ?? '', isVerified: b['isVerified'] == true),
+                          _statusChip(b['approvalStatus'] ?? '', isVerified: b['isVerified'] == true,isActive: isActive),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -916,8 +917,10 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     );
   }
 
-  Widget _statusChip(String status, {bool isVerified = false}) {
+  Widget _statusChip(String status, {bool isVerified = false, bool isActive = true}) {
     status = status.toUpperCase();
+    if (!isActive) status = 'DISABLED';
+
 
     // 🔹 Helper to build your existing chip style
     Widget buildChip(String text, Color color, IconData icon) {
@@ -975,7 +978,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
           icon = FontAwesomeIcons.circleXmark;
           break;
         case 'DISABLED':
-          color = Colors.grey.shade500;
+          color = Colors.grey.shade600;
           icon = FontAwesomeIcons.ban;
           break;
         default:
