@@ -531,7 +531,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                                   const SizedBox(height: 14),
                                   _buildTextField(
                                     reraC,
-                                    "RERA Number",
+                                    "RERA Number (ORN)",
                                     keyboardType: TextInputType.text,
                                     icon: Icons.confirmation_number_outlined,
                                   ),
