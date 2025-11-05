@@ -29,6 +29,11 @@ class AdminSidebar extends StatelessWidget {
       {'icon': Icons.swap_horiz, 'label': 'My Transactions'},
       {'icon': Icons.assignment_outlined, 'label': 'A2A Forms'},
       {
+        'icon': Icons.cloud_download_outlined,
+        'label': 'Import from Bayut',
+      },
+
+      {
         'icon': Icons.account_tree_outlined,
         'label': 'Broker Management',
         'badge': Icons.workspace_premium_rounded, // 👑 admin-style badge

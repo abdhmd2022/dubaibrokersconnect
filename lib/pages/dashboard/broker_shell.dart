@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../constants.dart';
 import '../brokermanagement/broker_profile_screen.dart';
+import '../import/import_from_bayut_screen.dart';
 import 'UnverifiedBrokerDashboard.dart';
 import 'brokerdashboard.dart';
 import '../listings/listings_screen.dart';
@@ -50,6 +51,7 @@ class _BrokerShellState extends State<BrokerShell> {
 
       TransactionsScreen(),
       A2aformsScreen(),
+      ImportFromBayutScreen(),
     ];
 
     return Scaffold(

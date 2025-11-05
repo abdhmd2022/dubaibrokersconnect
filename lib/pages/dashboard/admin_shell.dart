@@ -5,6 +5,7 @@ import 'package:a2abrokerapp/pages/tagmanagement/tag_management_screen.dart';
 import 'package:flutter/material.dart';
 import '../../constants.dart';
 import '../brokermanagement/broker_profile_screen.dart';
+import '../import/import_from_bayut_screen.dart';
 import 'admindashboard.dart';
 import '../listings/listings_screen.dart';
 import '../requirements/requirements_screen.dart';
@@ -36,8 +37,9 @@ class _AdminShellState extends State<AdminShell> {
           setState(() => _selectedIndex = 3); // 👈 opens Broker Directory
         },
         onNavigateToBrokerManagement: () {
-          setState(() => _selectedIndex = 7); // 👈 opens Broker Directory
+          setState(() => _selectedIndex = 8); // 👈 opens Broker Directory
         },
+
       ),
       ListingsScreen(userData: userData,),
       RequirementsScreen(userData: userData,),
@@ -45,6 +47,7 @@ class _AdminShellState extends State<AdminShell> {
       ProfileScreen(brokerId: userData['broker']['id'], userData: userData),
       TransactionsScreen(),
       A2aformsScreen(),
+      ImportFromBayutScreen(),
       BrokerManagementScreen(),
       TagManagementScreen(),
       PropertyTypesScreen(),

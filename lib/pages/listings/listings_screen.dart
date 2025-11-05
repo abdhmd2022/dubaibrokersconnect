@@ -521,8 +521,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     String? selectedPropertyType;
     selectedAmenityName = []; // ✅ ensures no amenity is selected by default
 
-
-
     await showDialog(
       context: context,
       barrierDismissible: false,
