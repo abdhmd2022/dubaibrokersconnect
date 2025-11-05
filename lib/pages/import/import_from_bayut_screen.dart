@@ -325,8 +325,11 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 750,maxHeight: 650),
-            child: Container(
+            constraints: const BoxConstraints(
+              maxWidth: 750, // keep width limit
+            ),
+            child: IntrinsicHeight( // 👈 auto adjusts height to its content
+              child: Container(
 
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
@@ -358,7 +361,7 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
                   ),
                 ],
               ),
-            ),
+            ),)
           ),
         ),
       ),
@@ -368,6 +371,27 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
   Widget _buildHeader() {
     return Row(
       children: [
+        // 🔙 Back icon for navigating steps (not popping screen)
+        if (_currentStep > 1)
+          InkWell(
+            onTap: () => _goToStep(_currentStep - 1),
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 20,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        if (_currentStep > 1) const SizedBox(width: 12),
+
+        // 🟩 Import icon
         Container(
           decoration: BoxDecoration(
             color: kPrimaryColor.withOpacity(0.1),
@@ -377,8 +401,14 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
           child: Icon(Icons.import_export_rounded, color: kPrimaryColor, size: 24),
         ),
         const SizedBox(width: 10),
+
+        // 🏷️ Dynamic header title
         Text(
-          "Import from Bayut",
+          _currentStep == 1
+              ? "Import from Bayut"
+              : _currentStep == 2
+              ? "Importing Property URL"
+              : "Review Imported Data",
           style: GoogleFonts.poppins(
             fontSize: 22,
             fontWeight: FontWeight.w600,
@@ -589,7 +619,7 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
           ],
         ),
 
-        const Spacer(),
+        SizedBox(height: 60),
 
         // ✅ Validation added here
         Align(
@@ -759,7 +789,7 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
             fontSize: 12.5,
           ),
         ),
-        const Spacer(),
+        /*const Spacer(),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -770,7 +800,7 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
             ),
 
           ],
-        ),
+        ),*/
       ],
     );
 
@@ -867,14 +897,8 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Step 3: Review Imported Data",
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 20),
+
+          const SizedBox(height: 10),
 
           // --- Row 1 ---
           Row(
@@ -1184,11 +1208,12 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextButton.icon(
+              /*TextButton.icon(
                 icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
                 label: const Text("Back"),
                 onPressed: () => _goToStep(2),
-              ),
+              ),*/
+              Spacer(),
               ElevatedButton.icon(
                 icon: const Icon(Icons.check_circle_outline, size: 18),
                 label: const Text("Create Listing"),
