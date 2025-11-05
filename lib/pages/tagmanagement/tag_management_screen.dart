@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
+import 'dart:ui' as ui;
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 class TagManagementScreen extends StatefulWidget {
   const TagManagementScreen({Key? key}) : super(key: key);
@@ -620,22 +622,18 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                         )
 
 
-                            : GridView.builder(
+                            : MasonryGridView.count(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 14,
                           itemCount: _filteredTags.length,
-                          gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 350,
-                            mainAxisExtent: 185,
-                            crossAxisSpacing: 14,
-                            mainAxisSpacing: 14,
-                          ),
                           itemBuilder: (context, index) {
                             final tag = _filteredTags[index];
-                            final isSelected =
-                            _selectedTagIds.contains(tag['id']);
+                            final isSelected = _selectedTagIds.contains(tag['id']);
                             return _buildTagCard(tag, isSelected);
                           },
-                        ),
+                        )
+
                       ),
                     ],
                   ),
@@ -650,13 +648,8 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
 
   Widget _buildTagCard(Map<String, dynamic> tag, bool isSelected) {
     final bool isActive = tag['isActive'] == true;
-     String description = tag['description'] ;
-
-    if(description.isEmpty)
-      {
-        description = 'N/A';
-      }
-
+    String description = tag['description'] ?? "";
+    if (description.isEmpty) description = 'N/A';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -681,8 +674,10 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
         ],
       ),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      margin:  const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // ✅ lets height adjust automatically
         children: [
           // 🏷 Title Row — Checkbox + Name
           Row(
@@ -704,8 +699,10 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
               ),
             ],
           ),
+
           const SizedBox(height: 6),
 
+          // 🔖 Type Badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
             decoration: BoxDecoration(
@@ -715,7 +712,6 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                 color: _getTypeColor(tag['type']).withOpacity(0.3),
                 width: 1,
               ),
-
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -738,30 +734,79 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
             ),
           ),
 
-
           const SizedBox(height: 6),
 
+          // 📝 Description
+          // 📝 Description with show more / show less
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final maxLines = 2; // show only first 3 lines
+              final textSpan = TextSpan(
+                text: 'Description: ',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12.5,
+                  color: Colors.black87,
+                ),
+                children: [
+                  TextSpan(
+                    text: description,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w400,
+                      color: Colors.grey.shade700,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+              );
 
-          Text(
-            'Description: ${description}',
-            style: GoogleFonts.poppins(
-              color: Colors.grey.shade700,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w500,
-            ),
+              final textPainter = TextPainter(
+                text: textSpan,
+                maxLines: maxLines,
+                textDirection: ui.TextDirection.ltr,
+              )..layout(maxWidth: constraints.maxWidth);
+
+              final isOverflowing = textPainter.didExceedMaxLines;
+              bool expanded = false;
+
+              return StatefulBuilder(
+                builder: (context, setInnerState) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.rich(
+                        textSpan,
+                        maxLines: expanded ? null : maxLines,
+                        overflow: TextOverflow.fade,
+                        softWrap: true,
+                      ),
+                      if (isOverflowing)
+                        GestureDetector(
+                          onTap: () => setInnerState(() => expanded = !expanded),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              expanded ? "Show less" : "Show more",
+                              style: GoogleFonts.poppins(
+                                color: kPrimaryColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
 
 
+          const SizedBox(height: 8),
 
-
-
-
-
-          const Spacer(),
-
-          // ⚙️ Bottom Bar — Switch on Left, Buttons on Right
+          // ⚙️ Bottom Bar — Switch + Delete
           Container(
-            margin: const EdgeInsets.only(top: 8),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: const Color(0xFFF9FAFB),
@@ -770,7 +815,6 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // 🔘 Active Switch (Left bottom)
                 Row(
                   children: [
                     Switch(
@@ -781,38 +825,21 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                     Text(
                       isActive ? "Active" : "Inactive",
                       style: GoogleFonts.poppins(
-                        color: isActive
-                            ? kPrimaryColor
-                            : Colors.grey.shade600,
+                        color: isActive ? kPrimaryColor : Colors.grey.shade600,
                         fontWeight: FontWeight.w500,
                         fontSize: 13,
                       ),
                     ),
                   ],
                 ),
-
-                // ✏️ Edit + 🗑 Delete (Right bottom)
-                Row(
-                  children: [
-                   /* IconButton(
-                      icon: const Icon(Icons.edit_outlined,
-                          color: Colors.blueAccent, size: 20),
-                      tooltip: "Edit",
-                      onPressed: () {
-                        // TODO: open edit dialog
-                      },
-                    ),*/
-
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline,
-                          color: Colors.redAccent, size: 20),
-                      tooltip: "Delete",
-                      onPressed: () async {
-                        await _deleteTag(tag['id']);
-                        _fetchTags();
-    }
-                    ),
-                  ],
+                IconButton(
+                  icon: const Icon(Icons.delete_outline,
+                      color: Colors.redAccent, size: 20),
+                  tooltip: "Delete",
+                  onPressed: () async {
+                    await _deleteTag(tag['id']);
+                    _fetchTags();
+                  },
                 ),
               ],
             ),

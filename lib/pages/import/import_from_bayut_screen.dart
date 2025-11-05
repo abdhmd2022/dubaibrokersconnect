@@ -273,7 +273,6 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
           }
         }
 
-
         // category = data['category'] ?? category;
         // lookingFor = (data['transaction_type'] == 'SALE') ? 'Sale' : 'Rent';
 
