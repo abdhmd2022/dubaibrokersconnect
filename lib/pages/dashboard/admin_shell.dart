@@ -48,7 +48,7 @@ class _AdminShellState extends State<AdminShell> {
       BrokerManagementScreen(),
       TagManagementScreen(),
       PropertyTypesScreen(),
-      LocationsScreen(),
+      LocationManagementScreen(),
 
     ];
 
