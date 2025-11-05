@@ -1114,7 +1114,23 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                     return;
                                   }
 
+                                  String? brokerId;
+                                  final userRole = widget.userData['role'];
+                                  if (userRole == "ADMIN") {
+                                    brokerId = widget.userData['broker']?['id'];
+                                  } else if (userRole == "BROKER") {
+                                    brokerId = widget.userData['id'];
+                                  }
 
+                                  if (brokerId == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("⚠️ Broker ID not found — cannot create listing"),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                    return;
+                                  }
                                   final selectedTypeId =
                                       propertyTypeMap[selectedPropertyType] ??
                                           "";
@@ -1125,7 +1141,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                     "description": descC.text.trim(),
                                     "property_type_id": selectedTypeId,
                                     "location_id": selectedLocationId ?? "",
-                                    "broker_id" : "083f94db-3bcd-432e-be1b-9d2242dc356e",
+                                    "broker_id" : brokerId,
                                     "address": selectedLocationName,
                                     "building_name": buildingC.text.trim(),
                                     "master_project_name": "",

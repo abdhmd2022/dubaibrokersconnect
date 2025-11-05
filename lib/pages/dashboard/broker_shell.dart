@@ -51,7 +51,7 @@ class _BrokerShellState extends State<BrokerShell> {
 
       TransactionsScreen(),
       A2aformsScreen(),
-      ImportFromBayutScreen(),
+      ImportFromBayutScreen(userData: userData,),
     ];
 
     return Scaffold(

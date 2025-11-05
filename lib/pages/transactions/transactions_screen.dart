@@ -5,7 +5,8 @@ class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context)
+  {
     return Padding(
       padding: const EdgeInsets.all(30),
       child: Column(
