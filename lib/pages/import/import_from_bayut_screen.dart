@@ -24,6 +24,10 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  String? selectedPropertyTypeId;
+  List<Map<String, dynamic>> allPropertyTypes = [];
+  List<Map<String, dynamic>> filteredPropertyTypes = [];
+  bool _loadingPropertyTypes = false;
   bool _isImporting = false; // 👈 ADD THIS LINE
   // --- State variables ---
   List<Map<String, dynamic>> allAmenities = [];
@@ -57,6 +61,50 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
   String category = "";
   final TextEditingController bayutUrlC = TextEditingController();
 
+  Future<void> _fetchPropertyTypes() async {
+    setState(() => _loadingPropertyTypes = true);
+
+    final token = await AuthService.getToken();
+    final url = Uri.parse("$baseURL/api/property-types");
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final List<dynamic> data = json['data'] ?? [];
+
+        setState(() {
+          allPropertyTypes = data
+              .where((e) => e['isActive'] == true)
+              .map<Map<String, dynamic>>((e) => {
+            "id": e['id'],
+            "name": e['name'],
+            "category": e['category'],
+          })
+              .toList();
+
+          // Initially filter based on the current category selection
+          filteredPropertyTypes = allPropertyTypes
+              .where((e) => e['category'].toUpperCase() == category.toUpperCase())
+              .toList();
+        });
+      } else {
+        debugPrint("⚠️ Failed to fetch property types: ${response.body}");
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching property types: $e");
+    } finally {
+      setState(() => _loadingPropertyTypes = false);
+    }
+  }
+
   Future<void> _submitListing() async {
     final token = await AuthService.getToken();
     final url = "$baseURL/api/properties";
@@ -87,9 +135,10 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
       "title": titleC.text.trim(),
       "reference_number": refNoC.text.trim(),
       "description": descriptionC.text.trim(),
-      "property_type_name": propertyType,
+      "property_type_id": selectedPropertyTypeId,
       "location_name": locationC.text,
       "category": category ?? "RESIDENTIAL",
+
       "transaction_type": (lookingFor == "Rent") ? "RENT" : "SALE",
       "price": rentC.text.isEmpty ? 0 : int.tryParse(rentC.text.replaceAll(',', '')) ?? 0,
       "currency": "AED",
@@ -210,6 +259,21 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
         // status = data['status'] ?? '';
          propertyType = data['property_type_name'];
 
+        // ✅ Try to auto-select the imported property type from master list
+        if (propertyType != null && propertyType!.isNotEmpty && allPropertyTypes.isNotEmpty) {
+          final match = allPropertyTypes.firstWhere(
+                (e) => e['name'].toLowerCase() == propertyType!.toLowerCase(),
+            orElse: () => {},
+          );
+          if (match.isNotEmpty) {
+            setState(() {
+              propertyType = match['name'];
+              selectedPropertyTypeId = match['id']; // ✅ store id
+            });
+          }
+        }
+
+
         // category = data['category'] ?? category;
         // lookingFor = (data['transaction_type'] == 'SALE') ? 'Sale' : 'Rent';
 
@@ -265,6 +329,8 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
     _controller.forward();
+    _fetchPropertyTypes(); // 👈 fetch master list
+
     // _fetchAmenities();
   }
 
@@ -601,13 +667,24 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
                         _buildSegmentedButton(
                           "Residential",
                           category == "Residential",
-                              () => setState(() => category = "Residential"),
+                              () => setState(() {
+                                category = "Residential";
+                                filteredPropertyTypes = allPropertyTypes
+                                    .where((e) => e['category'].toUpperCase() == category.toUpperCase())
+                                    .toList();
+                              }),
+
                           Icons.home_outlined,
                         ),
                         _buildSegmentedButton(
                           "Commercial",
                           category == "Commercial",
-                              () => setState(() => category = "Commercial"),
+                              () => setState(() {
+                                category = "Commercial";
+                                filteredPropertyTypes = allPropertyTypes
+                                    .where((e) => e['category'].toUpperCase() == category.toUpperCase())
+                                    .toList();
+                              }),
                           Icons.apartment_outlined,
                         ),
                       ],
@@ -916,13 +993,30 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
               Expanded(child: _buildTextField("Location", locationC)),
               const SizedBox(width: 24),
               Expanded(
-                child: _buildDropdown(
+                child: _loadingPropertyTypes
+                    ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                    : _buildDropdown(
                   "Property Type",
-                  ["Villa", "Apartment", "Townhouse"],
+                  filteredPropertyTypes.map((e) => e['name'] as String).toList(),
                   propertyType,
-                      (val) => setState(() => propertyType = val),
+                      (val) {
+                    setState(() {
+                      propertyType = val;
+
+                      // 🧭 Find matching ID from list
+                      final match = allPropertyTypes.firstWhere(
+                            (e) => e['name'] == val,
+                        orElse: () => {},
+                      );
+                      if (match.isNotEmpty) {
+                        selectedPropertyTypeId = match['id'];
+                      }
+                    });
+                  },
                 ),
               ),
+
+
             ],
           ),
           const SizedBox(height: 20),
