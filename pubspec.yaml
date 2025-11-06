@@ -37,6 +37,7 @@ dependencies:
   font_awesome_flutter:
   url_launcher_web:
   data_table_2:
+  dropdown_button2:
   intl:
   file_picker:
   flutter_typeahead:

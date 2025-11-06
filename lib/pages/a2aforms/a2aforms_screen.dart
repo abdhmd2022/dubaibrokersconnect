@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:ui';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -275,6 +276,8 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
   final buyerCommissionC = TextEditingController();
   final buyerNameC = TextEditingController();
   final buyerBudgetC = TextEditingController();
+
+  final TextEditingController _searchController = TextEditingController();
 
   String? transferFeeBy;
   bool buyerHasFinanceApproval = false;
@@ -1100,18 +1103,70 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
         if (_sellerMode == 'directory')
           _loadingBrokers
               ? _buildShimmerPlaceholder()
-              : DropdownButtonFormField<String>(
+              : DropdownButtonFormField2<String>(
             decoration: InputDecoration(
               labelText: "Select Seller's Agent",
               labelStyle: GoogleFonts.poppins(fontSize: 13),
               filled: true,
               fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(color: Colors.grey.shade300),
               ),
+            ),
+            isExpanded: true,
+            dropdownStyleData: DropdownStyleData(
+              maxHeight: 300,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+            ),
+            menuItemStyleData: const MenuItemStyleData(
+              height: 42,
+              padding: EdgeInsets.symmetric(horizontal: 12),
+            ),
+            dropdownSearchData: DropdownSearchData(
+              searchController: _searchController,
+              searchInnerWidgetHeight: 50,
+              searchInnerWidget: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search broker...',
+                    hintStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                ),
+              ),
+              searchMatchFn: (item, searchValue) {
+                return item.value
+                    .toString()
+                    .toLowerCase()
+                    .contains(searchValue.toLowerCase()) ||
+                    (item.child is Text &&
+                        (item.child as Text)
+                            .data!
+                            .toLowerCase()
+                            .contains(searchValue.toLowerCase()));
+              },
             ),
             items: _brokers
                 .map((b) => DropdownMenuItem<String>(
@@ -1126,22 +1181,21 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
               final broker = _brokers.firstWhere((b) => b["id"] == id);
               setState(() {
                 _selectedBroker = broker;
-                // Autofill (future-safe)
                 sellerAgentC.text = broker["displayName"] ?? '';
-                sellerEstablishmentC.text =
-                    broker["user"]?["companyName"] ?? '';
+                sellerEstablishmentC.text = broker["user"]?["companyName"] ?? '';
                 sellerOrnC.text = broker["reraNumber"] ?? '';
                 sellerBrnC.text = broker["licenseNumber"] ?? '';
                 sellerMobileC.text = broker["mobile"] ?? '';
                 sellerEmailC.text = broker["email"] ?? '';
                 sellerOfficeAddressC.text = broker["address"] ?? '';
-                sellerDedLicenseC.text =
-                    broker["establishmentLicense"] ?? '';
+                sellerDedLicenseC.text = broker["establishmentLicense"] ?? '';
                 sellerPoBoxC.text = broker["postalCode"] ?? '';
+                _searchController.clear();
               });
             },
             value: _selectedBroker?["id"],
           ),
+
 
         if(_sellerMode == 'directory')...[
           const SizedBox(height: 10),
