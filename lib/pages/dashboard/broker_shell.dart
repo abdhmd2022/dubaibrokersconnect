@@ -47,10 +47,8 @@ class _BrokerShellState extends State<BrokerShell> {
       RequirementsScreen(userData: userData,),
       BrokerDirectoryScreen(userData: userData,),
       ProfileScreen(brokerId: userData['broker']['id'], userData: userData),
-
-
       TransactionsScreen(),
-      A2aformsScreen(),
+      A2AFormsScreen(userData: userData,),
       ImportFromBayutScreen(userData: userData,),
     ];
 
