@@ -312,8 +312,8 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 
     return SafeArea(
       child: Container(
-        color: const Color(0xFFF8FAFB),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        color: backgroundColor,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -330,7 +330,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                       "A2A Forms",
                       style: GoogleFonts.poppins(
                         fontSize: 22,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -348,6 +348,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                   label: Text(
                     "Create New Form",
                     style: GoogleFonts.poppins(fontSize: 13,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white),
 
                   ),
@@ -386,7 +387,44 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                   ],
                 ),
               )
-                  : Container(
+                  : _forms.isEmpty
+                  ?Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1976D2).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.insert_drive_file_outlined,
+                        color: Color(0xFF1976D2),
+                        size: 42,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      "No A2A Forms Available",
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Create a new form to get started.",
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ):
+              Container(
 
                 width: double.infinity,
                 margin: const EdgeInsets.only(top: 8),
@@ -553,7 +591,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                                 // 👁 View button (always visible)
                                 _buildActionButton(
                                 Icons.visibility_rounded,
-                                  currentBrokerId.toString(),
+                                  "View",
                                 color: const Color(0xFF1976D2),
                                 ),
                                   if (isOwnForm) const SizedBox(width: 8),
@@ -1254,7 +1292,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Form Title / Reference",
+                              "Form Title / Reference *",
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -1265,6 +1303,12 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                             TextFormField(
                               controller: formTitleC,
                               decoration: InputDecoration(
+                                labelText: "Property Title",
+                                labelStyle: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade800,
+                                  fontWeight: FontWeight.w500,
+                                ),
                                 hintText: "e.g. Villa 123 - Marina",
                                 hintStyle: GoogleFonts.poppins(
                                   fontSize: 12,
@@ -1276,19 +1320,39 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                                 const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                                  borderSide:
+                                  BorderSide(color: Colors.grey.shade300, width: 1),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                                  borderSide:
+                                  BorderSide(color: Colors.grey.shade300, width: 1),
                                 ),
                                 focusedBorder: const OutlineInputBorder(
                                   borderRadius: BorderRadius.all(Radius.circular(12)),
-                                  borderSide: BorderSide(color: Color(0xFF1976D2), width: 1),
+                                  borderSide:
+                                  BorderSide(color: Color(0xFF1976D2), width: 1.2),
+                                ),
+                                errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                  const BorderSide(color: Colors.redAccent, width: 1.2),
+                                ),
+                                focusedErrorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                  const BorderSide(color: Colors.redAccent, width: 1.2),
                                 ),
                               ),
                               style: GoogleFonts.poppins(fontSize: 13),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return "Please enter the property title";
+                                }
+                                return null;
+                              },
                             ),
+
                           ],
                         ),
                       ),
