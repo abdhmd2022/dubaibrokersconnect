@@ -115,7 +115,6 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       "bio": bioC.text.trim(),
       "license_number": isFreelancer ? null : licenseC.text.trim(),
       "rera_number": isFreelancer ? null : reraC.text.trim(),
-      "establishment_license": null,
       "address": addressC.text.trim(),
       "city": cityC.text.trim(),
       "state": stateC.text.trim(),

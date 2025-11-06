@@ -1,13 +1,16 @@
 import 'dart:convert';
 import 'dart:ui';
+import 'package:data_table_2/data_table_2.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/animated_logo_loader.dart';
 
 class A2AFormsScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -24,18 +27,289 @@ class A2AFormsScreen extends StatefulWidget {
 class _A2AFormsScreenState extends State<A2AFormsScreen> {
   bool _loading = false;
 
-  final List<Map<String, String>> _forms = [
-    {
-      "title": "Form #21",
-      "date": "03-Nov-2025",
-      "address": "JVC Villa 12",
-      "buyer": "Ahmed Ali",
-      "status": "Draft",
-    },
-  ];
+  List<Map<String, dynamic>> _forms = [];
+  int _page = 1;
+  int _totalPages = 1;
+  final int _limit = 9;
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    fetchA2AForms(page: 1);
+  }
+
+  Widget _buildDeleteConfirmationDialog() {
+    return Dialog(
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24), // margin from edges
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      backgroundColor: Colors.white.withOpacity(0.9),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400), // ✅ prevent full width
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: LinearGradient(
+              colors: [Colors.white.withOpacity(0.96), Colors.grey.shade100],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 58,
+                color: Color(0xFFD32F2F),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Delete A2A Form?",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "This action cannot be undone. Are you sure you want to delete this form?",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 13.5,
+                  color: Colors.grey.shade700,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade300,
+                        foregroundColor: Colors.black87,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(
+                        "Cancel",
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD32F2F),
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text(
+                        "Delete",
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  Future<void> _deleteA2AForm(String formId) async {
+
+    print('id -> $formId');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+        builder: (context) => _buildDeleteConfirmationDialog(),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final token = await AuthService.getToken();
+      final response = await http.delete(
+        Uri.parse("${baseURL}/api/a2a/$formId"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "A2A form deleted successfully",
+                style: GoogleFonts.poppins(color: Colors.white),
+              ),
+              backgroundColor: Colors.green.shade600,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        // Refresh list after deletion
+        await fetchA2AForms();
+      } else {
+        _showError("Failed to delete form (${response.body})");
+      }
+    } catch (e) {
+      _showError("Error deleting form: $e");
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins(color: Colors.white)),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    Color bgColor;
+    Color textColor;
+
+    switch (status.toUpperCase()) {
+      case "APPROVED":
+        bgColor = const Color(0xFFE8F5E9);
+        textColor = const Color(0xFF2E7D32);
+        break;
+      case "REJECTED":
+        bgColor = const Color(0xFFFFEBEE);
+        textColor = const Color(0xFFC62828);
+        break;
+      case "PENDING":
+        bgColor = const Color(0xFFFFF8E1);
+        textColor = const Color(0xFFF9A825);
+        break;
+      case "DRAFT":
+      default:
+        bgColor = Colors.grey.shade200;
+        textColor = Colors.grey.shade800;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Text(
+        status,
+        style: GoogleFonts.poppins(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+
+  // =======================================================
+// 📄 Fetch A2A Forms (API Integration)
+// =======================================================
+
+  Future<void> fetchA2AForms({int page = 1}) async {
+    setState(() => _loading = true);
+
+    try {
+      final token = await AuthService.getToken();
+      final role = widget.userData["role"];
+      String? currentBrokerId;
+
+      // ✅ Determine brokerId based on role
+      if (role == "ADMIN") {
+        currentBrokerId = widget.userData["broker"]?["id"];
+      } else if (role == "BROKER") {
+        currentBrokerId = widget.userData["broker"]["id"];
+      }
+
+      print('current broker id - > $currentBrokerId');
+
+
+      final response = await http.get(
+        Uri.parse('${baseURL}/api/a2a?page=$page&limit=$_limit'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final List data = json["data"] ?? [];
+        final pagination = json["pagination"] ?? {};
+
+        setState(() {
+          _page = pagination["page"] ?? page;
+          _totalPages = pagination["totalPages"] ?? 1;
+
+          _forms = data.map((f) {
+            final date = f["agreementDate"] != null
+                ? DateFormat('dd-MMM-yyyy')
+                .format(DateTime.parse(f["agreementDate"]))
+                : "-";
+            final price = f["listedPrice"] != null
+                ? "AED ${NumberFormat('#,##0').format(double.tryParse(f["listedPrice"]) ?? 0)}"
+                : "-";
+
+            return {
+              "id": f["id"],
+              "brokerId": f["brokerId"],
+              "title": f["formTitle"] ?? "-",
+              "date": date,
+              "address": f["propertyAddress"] ?? "-",
+              "buyer": f["buyerName"] ?? "-",
+              "status": f["status"] ?? "-",
+              "price": price,
+            };
+          }).toList();
+        });
+      } else {
+        debugPrint("⚠️ Failed to fetch A2A forms (${response.statusCode})");
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching A2A forms: $e");
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
+
     return SafeArea(
       child: Container(
         color: const Color(0xFFF8FAFB),
@@ -43,6 +317,8 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
+            SizedBox(height: 24,),
             // 🔹 Header Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -86,7 +362,10 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                     showDialog(
                       context: context,
                       barrierColor: Colors.black.withOpacity(0.4),
-                      builder: (_) =>  CreateA2AFormDialog(userData: widget.userData,),
+                      builder: (_) => CreateA2AFormDialog(
+                        userData: widget.userData,
+                        onFormCreated: () => fetchA2AForms(page: 1), // 👈 callback
+                      ),
                     );
                   },
                 ),
@@ -98,124 +377,350 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
             // 🔹 Table/List Card
             Expanded(
               child: _loading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 80),
+                    AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
+                  ],
+                ),
+              )
                   : Container(
+
                 width: double.infinity,
+                margin: const EdgeInsets.only(top: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black12.withOpacity(0.05),
+                      color: Colors.black12.withOpacity(0.04),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columnSpacing: 40,
-                    headingRowColor:
-                    WidgetStateProperty.all(Colors.grey.shade100),
-                    headingTextStyle: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600, fontSize: 13),
-                    dataTextStyle: GoogleFonts.poppins(fontSize: 13),
-                    columns: const [
-                      DataColumn(label: Text("Form Title")),
-                      DataColumn(label: Text("Agreement Date")),
-                      DataColumn(label: Text("Property Address")),
-                      DataColumn(label: Text("Buyer Name")),
-                      DataColumn(label: Text("Status")),
-                      DataColumn(label: Text("Actions")),
-                    ],
-                    rows: _forms
-                        .map(
-                          (f) => DataRow(cells: [
-                        DataCell(Text(f["title"]!)),
-                        DataCell(Text(f["date"]!)),
-                        DataCell(Text(f["address"]!)),
-                        DataCell(Text(f["buyer"]!)),
-                        DataCell(_buildStatusChip(f["status"]!)),
-                        DataCell(Row(
-                          children: [
-                            _buildActionButton(Icons.visibility, "View"),
-                            const SizedBox(width: 8),
-                            _buildActionButton(Icons.edit, "Edit"),
-                            const SizedBox(width: 8),
-                            _buildActionButton(Icons.delete, "Delete",
-                                color: Colors.redAccent),
-                          ],
-                        )),
-                      ]),
-                    )
-                        .toList(),
-                  ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: // Inside your Container where you currently build the DataTable:
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.white,
+                                  Colors.grey.shade50,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: DataTable2(
+                              fixedTopRows: 1, // ✅ Keeps header fixed
+                              showCheckboxColumn: false,
+                              headingRowColor: WidgetStateProperty.all(
+                                Colors.blueGrey.shade50.withOpacity(0.95),
+                              ),
+                              headingRowDecoration: BoxDecoration(
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+                                ),
+                              ),
+                              headingTextStyle: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13.5,
+                                color: Colors.black87,
+                                letterSpacing: 0.2,
+                              ),
+                              dataTextStyle: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: Colors.grey.shade800,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              columnSpacing: 30,
+                              horizontalMargin: 12,
+                              dataRowHeight: 54,
+                              dividerThickness: 0.4,
+                              border: TableBorder.symmetric(
+                                inside: BorderSide(color: Colors.grey.shade200, width: 0.6),
+                              ),
+                              minWidth: 1100,
+                              columns: const [
+                                DataColumn2(
+                                  label: Center(child:
+                                  Text("Form Title")),
+                                  size: ColumnSize.M,
+                                  numeric: false,
+                                  tooltip: "Form Title",
+
+
+
+                                ),
+                                DataColumn2(
+                                  label: Center(child: Text("Agreement Date")),
+                                  size: ColumnSize.S,
+                                ),
+                                DataColumn2(
+                                  label: Center(child: Text("Property Address")),
+                                  size: ColumnSize.L,
+                                ),
+                                DataColumn2(
+                                  label: Center(child: Text("Buyer Name")),
+                                  size: ColumnSize.M,
+                                ),
+                                DataColumn2(
+                                  label: Center(child: Text("Status")),
+                                  size: ColumnSize.S,
+                                ),
+                                DataColumn2(
+                                  label: Center(child: Text("Actions")),
+                                  size: ColumnSize.S,
+                                ),
+                              ],
+                              rows: _forms.map((f) {
+                                final role = widget.userData["role"];
+                                final currentBrokerId  = widget.userData['broker']["id"];
+
+
+                                final isOwnForm = f["brokerId"] == currentBrokerId.toString().trim();
+                                return DataRow(
+                                  color: WidgetStateProperty.resolveWith<Color?>(
+                                        (Set<WidgetState> states) {
+                                      if (states.contains(WidgetState.hovered)) {
+                                        return Colors.blue.shade50.withOpacity(0.4);
+                                      }
+                                      return Colors.transparent;
+                                    },
+                                  ),
+                                  cells: [
+
+                                    DataCell(Center(
+                                      child: Text(
+                                        f["title"] ?? "-",
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.black87,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    )),
+                                    DataCell(Center(
+                                      child: Text(
+                                        f["date"] ?? "-",
+                                        textAlign: TextAlign.center,
+
+                                        style: GoogleFonts.poppins(color: Colors.grey.shade700),
+                                      ),
+                                    )),
+                                    DataCell(Center(
+                                      child: Text(
+                                        f["address"] ?? "-",
+                                        textAlign: TextAlign.center,
+
+                                        style: GoogleFonts.poppins(color: Colors.grey.shade700),
+                                      ),
+                                    )),
+                                    DataCell(Center(
+                                      child: Text(
+                                        f["buyer"] ?? "-",
+                                        textAlign: TextAlign.center,
+
+                                        style: GoogleFonts.poppins(color: Colors.grey.shade700),
+                                      ),
+                                    )),
+                                    DataCell(Center(child: _buildStatusChip(f["status"] ?? "-"))),
+                                DataCell(
+                                Center(
+                                child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                // 👁 View button (always visible)
+                                _buildActionButton(
+                                Icons.visibility_rounded,
+                                  currentBrokerId.toString(),
+                                color: const Color(0xFF1976D2),
+                                ),
+                                  if (isOwnForm) const SizedBox(width: 8),
+
+                                // ✏️ Edit button (only visible for owned forms)
+                                if (isOwnForm)
+                                _buildActionButton(
+                                Icons.edit_rounded,
+                                "Edit",
+                                color: Colors.orangeAccent,
+                                ),
+                                if (isOwnForm) const SizedBox(width: 8),
+
+                                // 🗑 Delete button (only visible for owned forms)
+                                if (isOwnForm)
+                                _buildActionButton(
+                                Icons.delete_rounded,
+                                "Delete",
+                                color: Colors.redAccent,
+                                onTap: () => _deleteA2AForm(f["id"]),
+                                ),
+                                ],
+                                ),
+                                ),
+                                ),                                  ],
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        },
+                      )
+
+
+                    ),
+
+                    // Pagination bar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: _page > 1
+                                ? () => fetchA2AForms(page: _page - 1)
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.grey.shade100,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              "Previous",
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Text(
+                            "Page $_page of $_totalPages",
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: _page < _totalPages
+                                ? () => fetchA2AForms(page: _page + 1)
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.grey.shade100,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              "Next",
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+            )
+
+
+
+
+
+
+
           ],
         ),
       ),
     );
   }
 
-  // 🔹 Status chip
-  static Widget _buildStatusChip(String status) {
-    Color color;
-    switch (status.toLowerCase()) {
-      case "draft":
-        color = Colors.orange.shade100;
-        break;
-      case "approved":
-        color = Colors.green.shade100;
-        break;
-      case "rejected":
-        color = Colors.red.shade100;
-        break;
-      default:
-        color = Colors.grey.shade200;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+
+  // 🔹 Action Button (small)
+  Widget _buildActionButton(
+      IconData icon,
+      String tooltip, {
+        Color color = const Color(0xFF1976D2),
+        VoidCallback? onTap,
+      }) {
+    return Tooltip(
+      message: tooltip,
+      textStyle: GoogleFonts.poppins(color: Colors.white, fontSize: 12),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        status,
-        style: GoogleFonts.poppins(fontSize: 12, color: Colors.black87),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        splashColor: color.withOpacity(0.2),
+        highlightColor: Colors.transparent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withOpacity(0.15), width: 1),
+          ),
+          child: Icon(
+            icon,
+            color: color,
+            size: 18,
+          ),
+        ),
       ),
     );
   }
 
-  // 🔹 Action Button (small)
-  Widget _buildActionButton(IconData icon, String tooltip,
-      {Color color = const Color(0xFF1976D2)}) {
-    return InkWell(
-      onTap: () {},
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: color, size: 18),
-      ),
-    );
-  }
 }
 
 class CreateA2AFormDialog extends StatefulWidget {
   final Map<String, dynamic> userData;
+  final VoidCallback? onFormCreated; // 👈 new
 
   const CreateA2AFormDialog({
     super.key,
     required this.userData,
-
+    this.onFormCreated,
   });
   @override
   State<CreateA2AFormDialog> createState() => _CreateA2AFormDialogState();
@@ -234,6 +739,8 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
   bool _buyerFieldsReadOnly = true; // all fields except last are disabled
 
   // Text Controllers
+  final formTitleC = TextEditingController();
+
   final sellerAgentC = TextEditingController();
   final sellerEstablishmentC = TextEditingController();
   final sellerOrnC = TextEditingController();
@@ -302,23 +809,28 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
     if (user == null) return;
 
     final role = user['role']?.toString().toUpperCase();
-    final broker = role == 'ADMIN' ? user['broker'] : user;
+    final broker = user['broker']?? {};
+
+    print('broker -> $broker');
+
 
     // 🧩 Safely map values to text fields
     buyerAgentNameC.text = broker?['displayName'] ?? '${user['firstName']} ${user['lastName']}';
     buyerEstablishmentNameC.text = user['companyName'] ?? broker?['user']?['companyName'] ?? '';
     buyerOfficeAddressC.text = broker?['address'] ?? '';
-    buyerPhoneC.text = broker?['mobile'] ?? user['phone'] ?? '';
+    buyerPhoneC.text = broker?['phone'] ?? broker['mobile'] ?? '';
     buyerFaxC.text = '';
     buyerEmailC.text = broker?['email'] ?? user['email'] ?? '';
-    buyerDedLicenseC.text = broker?['establishmentLicense'] ?? '';
+    buyerDedLicenseC.text = broker?['licenseNumber'] ?? '';
     buyerPoBoxC.text = broker?['postalCode'] ?? '';
     buyerOrnC.text = broker?['reraNumber'] ?? '';
-    buyerBrnC.text = broker?['licenseNumber'] ?? '';
-    buyerBrnIssueDateC.text = '';
+    buyerBrnC.text = broker?['brnNumber'] ?? '';
+    buyerBrnIssueDateC.text = broker?['brnIssuesDate'] != null
+        ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(broker!['brnIssuesDate']))
+        : '';
     buyerMobileC.text = broker?['mobile'] ?? user['phone'] ?? '';
     buyerFormBStrC.text = '';
-
+    setState(() {});
   }
 
 
@@ -343,7 +855,15 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
           final data = jsonDecode(res.body);
           final List<dynamic> brokers = data["data"] ?? [];
           final pagination = data["pagination"];
-          all.addAll(brokers.where((b) => b["isVerified"] == true));
+          // 🧩 Get current broker ID from userData
+          final currentUser = widget.userData;
+          final currentBrokerId = currentUser['broker']?['id'];
+
+          // 🧩 Add only verified brokers other than current broker
+          all.addAll(brokers.where((b) =>
+          b["isVerified"] == true &&
+              b["id"].toString() != currentBrokerId.toString()));
+
           page++;
           hasMore = pagination["page"] < pagination["totalPages"];
         } else {
@@ -552,6 +1072,136 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
     );
   }
 
+  Future<void> createA2AForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      setState(() => _loadingBrokers = true);
+      final token = await AuthService.getToken();
+      final user = widget.userData;
+
+      // 🔹 Determine broker and company IDs
+      final role = user["role"];
+      final brokerId = user["broker"]?["id"];
+
+      // For now, we’ll reuse broker ID as company until your API gives a2a_company_id explicitly
+      final companyId = "550e8400-e29b-41d4-a716-446655440012";
+
+      // 🧾 Prepare body
+      final body = {
+        "broker_id": brokerId,
+        "form_title": formTitleC.text.trim().isEmpty
+            ? "A2A Form - Untitled"
+            : formTitleC.text.trim(),
+        "agreement_date": DateTime.now().toIso8601String(),
+        "status": "draft",
+        "a2a_company_id": companyId,
+
+        // 🟣 SELLER’S AGENT (Part 1A)
+        "seller_agent_establishment": sellerEstablishmentC.text.trim(),
+        "seller_agent_address": sellerOfficeAddressC.text.trim(),
+        "seller_agent_phone": sellerOfficePhoneC.text.trim(),
+        "seller_agent_fax": sellerFaxC.text.trim(),
+        "seller_agent_email": sellerEmailC.text.trim(),
+        "seller_agent_orn": sellerOrnC.text.trim(),
+        "seller_agent_ded_license": sellerDedLicenseC.text.trim(),
+        "seller_agent_po_box": sellerPoBoxC.text.trim(),
+        "seller_agent_name": sellerAgentC.text.trim(),
+        "seller_agent_brn": sellerBrnC.text.trim(),
+        "seller_agent_brn_date": sellerBrnIssueDateC.text.isNotEmpty
+            ? DateFormat('dd-MMM-yyyy')
+            .parse(sellerBrnIssueDateC.text)
+            .toIso8601String()
+            : null,
+        "seller_agent_mobile": sellerMobileC.text.trim(),
+        "seller_form_a_str": sellerFormAStrC.text.trim(),
+
+        // 🟣 BUYER’S AGENT (Part 1B)
+        "buyer_agent_establishment": buyerEstablishmentNameC.text.trim(),
+        "buyer_agent_address": buyerOfficeAddressC.text.trim(),
+        "buyer_agent_phone": buyerPhoneC.text.trim(),
+        "buyer_agent_fax": buyerFaxC.text.trim(),
+        "buyer_agent_email": buyerEmailC.text.trim(),
+        "buyer_agent_orn": buyerOrnC.text.trim(),
+        "buyer_agent_ded_license": buyerDedLicenseC.text.trim(),
+        "buyer_agent_po_box": buyerPoBoxC.text.trim(),
+        "buyer_agent_name": buyerAgentNameC.text.trim(),
+        "buyer_agent_brn": buyerBrnC.text.trim(),
+        "buyer_agent_brn_date": buyerBrnIssueDateC.text.isNotEmpty
+            ? DateFormat('dd-MMM-yyyy')
+            .parse(buyerBrnIssueDateC.text)
+            .toIso8601String()
+
+            : null,
+        "buyer_agent_mobile": buyerMobileC.text.trim(),
+        "buyer_form_b_str": buyerFormBStrC.text.trim(),
+
+        // 🟣 PROPERTY DETAILS (Part 2)
+        "property_address": propertyAddressC.text.trim(),
+        "master_developer": masterDeveloperC.text.trim(),
+        "master_project_name": masterProjectNameC.text.trim(),
+        "building_name": buildingNameC.text.trim(),
+        "listed_price": listedPriceC.text.trim(),
+        "property_description": propertyDescriptionC.text.trim(),
+        "maintenance_fee": maintenanceFeeC.text.trim(),
+
+        // 🟣 COMMISSION & BUYER DETAILS (Part 3)
+        "seller_commission_percentage": sellerCommissionC.text.trim(),
+        "buyer_commission_percentage": buyerCommissionC.text.trim(),
+        "buyer_name": buyerNameC.text.trim(),
+        "budget": buyerBudgetC.text.trim(),
+        "transfer_fee_paid_by": transferFeeBy?.toLowerCase() ?? "buyer",
+        "has_pre_finance_approval": buyerHasFinanceApproval,
+        "mou_exists": buyerHasMOU,
+        "buyer_contacted_listing_agent": buyerContactedListing,
+        "is_property_tenanted": propertyIsTenanted,
+      };
+
+      // 🌐 API Call
+      final response = await http.post(
+        Uri.parse("$baseURL/api/a2a"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(body),
+      );
+
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        widget.onFormCreated?.call(); // 🔥 triggers refresh in parent
+
+        Navigator.pop(context); // close dialog
+
+      } else {
+        final err = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red.shade700,
+            content: Text(
+              "Failed: ${err["message"] ?? "Unable to create form."}",
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("❌ Error creating A2A Form: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red.shade700,
+          content: Text(
+            "Error: ${e.toString()}",
+            style: GoogleFonts.poppins(color: Colors.white),
+          ),
+        ),
+      );
+    } finally {
+      setState(() => _loadingBrokers = false);
+    }
+  }
+
+
   // ==========================================================
   // 🔹 BUILD UI
   // ==========================================================
@@ -588,7 +1238,115 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 24),
+
+                // 🧾 Form Title + Company Profile (Equal Width Layout)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 🧾 Form Title / Reference
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Form Title / Reference",
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: formTitleC,
+                              decoration: InputDecoration(
+                                hintText: "e.g. Villa 123 - Marina",
+                                hintStyle: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                                ),
+                                focusedBorder: const OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                                  borderSide: BorderSide(color: Color(0xFF1976D2), width: 1),
+                                ),
+                              ),
+                              style: GoogleFonts.poppins(fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 16),
+
+                      // 🏢 Company Profile Dropdown
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Your Company Profile",
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade300, width: 1),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  isExpanded: true,
+                                  value: widget.userData["companyName"],
+                                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                                      color: Colors.black54),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.black87,
+                                  ),
+                                  items: [
+                                    DropdownMenuItem<String>(
+                                      value: widget.userData["companyName"],
+                                      child: Text(
+                                          '${widget.userData["companyName"]} (ORN: ${widget.userData['broker']["reraNumber"]})' ?? "No Company Found",
+                                        style: GoogleFonts.poppins(fontSize: 13),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (_) {},
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
 
                 // 🟩 Seller’s Agent (Dynamic Section)
                 _buildSellerAgentSection(),
@@ -627,11 +1385,10 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         if (_formKey.currentState!.validate()) {
-                          // TODO: implement API call to create A2A form
-                          Navigator.pop(context);
-                        }
+                          await createA2AForm();
+                      }
                       },
                       child: Text(
                         "Create Form",
@@ -1184,11 +1941,15 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                 sellerAgentC.text = broker["displayName"] ?? '';
                 sellerEstablishmentC.text = broker["user"]?["companyName"] ?? '';
                 sellerOrnC.text = broker["reraNumber"] ?? '';
-                sellerBrnC.text = broker["licenseNumber"] ?? '';
+                sellerBrnC.text = broker["brnNumber"] ?? '';
                 sellerMobileC.text = broker["mobile"] ?? '';
                 sellerEmailC.text = broker["email"] ?? '';
                 sellerOfficeAddressC.text = broker["address"] ?? '';
-                sellerDedLicenseC.text = broker["establishmentLicense"] ?? '';
+                sellerOfficePhoneC.text = broker['user']["phone"] ?? broker["mobile"];
+                sellerDedLicenseC.text = broker["licenseNumber"] ?? '';
+                sellerBrnIssueDateC.text = broker?['brnIssuesDate'] != null
+                    ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(broker!['brnIssuesDate']))
+                    : '';
                 sellerPoBoxC.text = broker["postalCode"] ?? '';
                 _searchController.clear();
               });
