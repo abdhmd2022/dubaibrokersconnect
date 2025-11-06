@@ -649,7 +649,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
       String label, {
         required TextEditingController controller,
         String? hint,
-        double step = 1.0,
+        double step = 0.5, // default step allows decimal increments
         double min = 0,
         double max = 100,
       }) {
@@ -671,18 +671,18 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
           const TextInputType.numberWithOptions(decimal: true, signed: false),
           textAlign: TextAlign.left,
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-            // 🧩 Prevents typing minus or non-numeric chars
-            FilteringTextInputFormatter.digitsOnly,
+            // ✅ allow digits + optional decimal up to 2 places
+            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}$')),
           ],
           onChanged: (value) {
-            // Prevent manually entering negative or empty
             if (value.isEmpty) return;
-            final val = double.tryParse(value) ?? 0;
-            if (val < min) controller.text = min.toStringAsFixed(0);
+            final val = double.tryParse(value) ?? min;
+            // ✅ auto-correct if user enters < min or > max
+            if (val < min) controller.text = min.toStringAsFixed(2);
+            if (val > max) controller.text = max.toStringAsFixed(2);
           },
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: hint ?? "0",
             filled: true,
             fillColor: Colors.white,
             contentPadding:
@@ -695,14 +695,14 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.black87, width: 1),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(10)),
+              borderSide: BorderSide(color: Colors.black87, width: 1),
             ),
 
-            // 🔽🔼 suffix arrows inside field
+            // 🔼🔽 arrows inside suffix
             suffixIcon: SizedBox(
-              width: 36,
+              width: 40,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -711,7 +711,8 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                       double current = double.tryParse(controller.text) ?? min;
                       if (current < max) {
                         current += step;
-                        controller.text = current.toStringAsFixed(0);
+                        if (current > max) current = max;
+                        controller.text = current.toStringAsFixed(2);
                       }
                     },
                     child: const Icon(
@@ -723,11 +724,10 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                   InkWell(
                     onTap: () {
                       double current = double.tryParse(controller.text) ?? min;
-                      // 🧩 Block negative result
                       if (current > min) {
                         current -= step;
                         if (current < min) current = min;
-                        controller.text = current.toStringAsFixed(0);
+                        controller.text = current.toStringAsFixed(2);
                       }
                     },
                     child: const Icon(
@@ -745,6 +745,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
       ],
     );
   }
+
 
 
 
