@@ -11,6 +11,10 @@ import 'package:shimmer/shimmer.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/animated_logo_loader.dart';
+import 'dart:io';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 
 class A2AFormsScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -39,6 +43,955 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 
     fetchA2AForms(page: 1);
   }
+
+
+  Future<void> _viewA2AFormPdf(String formId) async {
+    try {
+      final token = await AuthService.getToken();
+      final response = await http.get(
+        Uri.parse('$baseURL/api/a2a/$formId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body)['data'];
+
+        print('data -> $data');
+
+        // 🧩 Build mapped data structure for PDF generator
+        /*final pdfData = {
+          "seller": {
+            "establishment": data["sellerAgentEstablishment"] ?? "",
+            "address": data["sellerAgentAddress"] ?? "",
+            "phone": data["sellerAgentPhone"] ?? "",
+            "fax": data["sellerAgentFax"] ?? "",
+            "email": data["sellerAgentEmail"] ?? "",
+            "orn": data["sellerAgentOrn"] ?? "",
+            "ded": data["sellerAgentDedLicense"] ?? "",
+            "poBox": data["sellerAgentPoBox"] ?? "",
+            "agentName": data["sellerAgentName"] ?? "",
+            "brn": data["sellerAgentBrn"] ?? "",
+            "dateIssued": data["sellerAgentBrnDate"] != null
+                ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(data["seller_agent_brn_date"]))
+                : "",
+            "mobile": data["sellerAgentMobile"] ?? "",
+            "agentEmail": data["sellerAgentEmail"] ?? "",
+            "declaration":
+            "I hereby declare, I have read and understood the Real Estate Brokers Code of Ethics, I have a current signed Seller's Agreement FORM A, I shall respond to a reasonable offer to purchase the listed property from Agent B, and shall not contact Agent B's Buyer nor confer with their client under no circumstances unless the nominated Buyer herein has already discussed the stated listed property with our Office."
+          },
+          "buyer": {
+            "establishment": data["buyerAgentEstablishment"] ?? "",
+            "address": data["buyerAgentAddress"] ?? "",
+            "phone": data["buyerAgentPhone"] ?? "",
+            "fax": data["buyerAgentFax"] ?? "",
+            "email": data["buyerAgentEmail"] ?? "",
+            "orn": data["buyerAgentOrn"] ?? "",
+            "ded": data["buyerAgentDedLicense"] ?? "",
+            "poBox": data["buyerAgentPoBox"] ?? "",
+            "agentName": data["buyerAgentName"] ?? "",
+            "brn": data["buyerAgentBrn"] ?? "",
+            "dateIssued": data["buyerAgentBrnDate"] != null
+                ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(data["buyer_agent_brn_date"]))
+                : "",
+            "mobile": data["buyerAgentMobile"] ?? "",
+            "agentEmail": data["buyerAgentEmail"] ?? "",
+            "declaration":
+            "I hereby declare, I have read and understood the Real Estate Brokers Code of Ethics, I have a current signed Buyer's Agreement FORM B, I shall encourage my Buyers as named herein, to submit a reasonable offer for the stated property and not contact Agent A’s Seller nor confer with their client under no circumstances unless the Agent A has delayed our proposal on the prescribed FORM with a reasonable reply within 24 hours."
+          },
+          "propertyAddress": data["propertyAddress"] ?? "",
+          "listedPrice": "AED ${data["listedPrice"] ?? "-"}",
+          "maintenanceFee": data["maintenanceFee"] ?? "",
+          "masterDeveloper": data["masterDeveloper"] ?? "",
+          "projectName": data["masterProjectName"] ?? "",
+          "building": data["buildingName"] ?? "",
+          "description": data["propertyDescription"] ?? "",
+          "sellerCommission": data["sellerCommissionPercentage"] ?? "",
+          "buyerCommission": data["buyerCommissionPercentage"] ?? "",
+          "buyerName": data["buyerName"] ?? "",
+          "budget": "AED ${data["budget"] ?? ""}",
+          "transferFeePaidBy": data["transferFeePaidBy"] ?? "",
+          "preFinance": data["hasPreFinanceApproval"] == true ? "Yes" : "No",
+          "mouExists": data["mouExists"] == true ? "Yes" : "No",
+          "buyerContacted": data["buyerContactedListingAgent"] == true ? "Yes" : "No",
+          "tenanted": data["isPropertyTenanted"] == true ? "Yes" : "No",
+        };
+
+        print('pdf data -> $pdfData');*/
+        await generateA2APdf(data);
+
+      } else {
+        _showError("Failed to load A2A form details (${response.statusCode})");
+      }
+    } catch (e) {
+      _showError("Error generating PDF: $e");
+    }
+  }
+
+
+  pw.Widget _partyBox({
+    required String title,
+    required String establishment,
+    required String address,
+    required String phone,
+    required String fax,
+    required String email,
+    required String orn,
+    required String ded,
+    required String pobox,
+    required String agentName,
+    required String brn,
+    required String dateIssued,
+    required String mobile,
+    required String formStr,
+    required String declaration,
+  }) {
+    pw.TextStyle labelStyle =
+     pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold);
+    pw.TextStyle valueStyle = const pw.TextStyle(fontSize: 8.5);
+
+    pw.Widget borderedRow(String label, String value) => pw.Table(
+      border: pw.TableBorder( // ✅ Empty border (no lines)
+        top: pw.BorderSide.none,
+        bottom: pw.BorderSide.none,
+        left: pw.BorderSide.none,
+        right: pw.BorderSide.none,
+        horizontalInside: pw.BorderSide.none,
+        verticalInside: pw.BorderSide.none,
+      ),
+         columnWidths: const {
+        0: pw.FlexColumnWidth(3),
+        1: pw.FlexColumnWidth(5),
+      },
+      children: [
+        pw.TableRow(
+          children: [
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(left:8),
+              child: pw.Text(label, style: labelStyle),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(2),
+              child: pw.Text(value, style: valueStyle),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    String formattedDateIssued = '';
+
+    if (dateIssued != null && dateIssued.toString().isNotEmpty) {
+      try {
+        final parsedDate = DateTime.parse(dateIssued.toString());
+        formattedDateIssued = DateFormat('dd-MMM-yyyy').format(parsedDate);
+      } catch (e) {
+        formattedDateIssued = dateIssued.toString(); // fallback if already formatted
+      }
+    }
+    return pw.Expanded(
+      child: pw.Container(
+        padding: const pw.EdgeInsets.all(0),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Container(
+              width: double.infinity,
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(width: 0.5, color: PdfColors.black),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  // === Header title (centered with bottom border)
+                  pw.Container(
+                    width: double.infinity,
+                    padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                    alignment: pw.Alignment.center,
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(
+                        bottom: pw.BorderSide(width: 0.5, color: PdfColors.black),
+                      ),
+                    ),
+                    child: pw.Text(
+                      title,
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 9,
+                      ),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+
+                  // === Inner content (everything inside main border)
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(3),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+
+                        pw.Row(
+                          children: [
+                            pw.Padding(
+                              padding: const pw.EdgeInsets.all(2),
+                              child: pw.Text('NAME OF THE ESTABLISHMENT', style: labelStyle),
+                            ),
+                            pw.Padding(
+                              padding: const pw.EdgeInsets.all(2),
+                              child: pw.Text(establishment, style: valueStyle),
+                            ),
+                          ],
+                        ),
+
+                        pw.Row(
+                          children: [
+                            pw.Padding(
+                              padding: const pw.EdgeInsets.all(2),
+                              child: pw.Text('ADDRESS', style: labelStyle),
+                            ),
+                            pw.Padding(
+                              padding: const pw.EdgeInsets.all(2),
+                              child: pw.Text(address, style: valueStyle),
+                            ),
+                          ],
+                        ),
+
+
+                        pw.SizedBox(height: 3),
+
+                        // === Contact Details ===
+                        pw.Table(
+                          columnWidths: const {
+                            0: pw.FlexColumnWidth(5),
+                            1: pw.FlexColumnWidth(6),
+                          },
+                          children: [
+                            pw.TableRow(children: [
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text(
+                                  'OFFICE CONTACT DETAILS:',
+                                  style: labelStyle.copyWith(fontSize: 8.5),
+                                ),
+                              ),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text('', style: valueStyle),
+                              ),
+                            ]),
+                            pw.TableRow(children: [
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text('PH:', style: labelStyle),
+                              ),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text(phone, style: valueStyle),
+                              ),
+                            ]),
+                            pw.TableRow(children: [
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text('FAX:', style: labelStyle),
+                              ),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text(fax, style: valueStyle),
+                              ),
+                            ]),
+                            pw.TableRow(children: [
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text('EMAIL:', style: labelStyle),
+                              ),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text(email, style: valueStyle),
+                              ),
+                            ]),
+                            pw.TableRow(children: [
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text('ORN:', style: labelStyle),
+                              ),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text(orn, style: valueStyle),
+                              ),
+                            ]),
+                            pw.TableRow(children: [
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text('DED LISC:', style: labelStyle),
+                              ),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text(ded, style: valueStyle),
+                              ),
+                            ]),
+                            pw.TableRow(children: [
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text('PO BOX:', style: labelStyle),
+                              ),
+                              pw.Padding(
+                                padding: const pw.EdgeInsets.all(2),
+                                child: pw.Text(pobox, style: valueStyle),
+                              ),
+                            ]),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+
+            // === REGISTERED AGENT (Bordered Box like Screenshot) ===
+            pw.Container(
+              width: double.infinity,
+              padding: const pw.EdgeInsets.symmetric(horizontal: 0, vertical: 3),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(width: 0.5, color: PdfColors.black), // ✅ Outline only
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  // === Section Title ===
+                  pw.Container(
+                    width: double.infinity,
+                    alignment: pw.Alignment.center, // ✅ centers text horizontally
+                    padding: const pw.EdgeInsets.only(bottom: 3),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(
+                        bottom: pw.BorderSide(width: 0.3, color: PdfColors.black),
+                      ),
+                    ),
+                    child: pw.Text(
+                      'NAME OF THE REGISTERED AGENT',
+                      style: labelStyle.copyWith(
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+
+
+                  pw.SizedBox(height: 3),
+
+                  // === 1) Name (full width)
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(top: 3,left:10,right:10),
+                    child:  pw.Text('Name: $agentName', style: valueStyle),
+                  ),
+
+
+                  // === 2) BRN and Date side by side
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(top: 3,left:10,right:10),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('BRN: $brn', style: valueStyle),
+                        pw.Text('Date Issued: $formattedDateIssued', style: valueStyle),
+                      ],
+                    ),
+                  ),
+
+                  // === 3) Mobile
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(top: 3,left:10,right:10),
+                    child: pw.Text('Mobile: $mobile', style: valueStyle),
+                  ),
+
+                  // === 4) Email
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(top: 3,left:10,right:10,bottom: 3),
+                    child: pw.Text('Email: $email', style: valueStyle),
+                  ),
+
+
+
+                  pw.Divider(thickness: 1),
+// === AGENT FORM STR Section (Dynamic Label)
+                  pw.Container(
+                    width: double.infinity,
+
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 6),
+                    child: pw.Text(
+                      // ✅ Automatically switches between Seller’s or Buyer’s
+                      title.toLowerCase().contains('seller')
+                          ? "Seller's Agent Form STR #: $formStr"
+                          : "Buyer's Agent Form STR #: $formStr",
+                      style: valueStyle,
+                    ),
+                  ),
+                  pw.SizedBox(height: 8),
+
+                  pw.Container(
+                    width: double.infinity,
+                    color: PdfColors.grey300, // light grey background
+                    margin: const pw.EdgeInsets.symmetric(horizontal: 1),
+                    padding: const pw.EdgeInsets.symmetric(vertical: 3),
+                    alignment: pw.Alignment.center,
+                    child: pw.Text(
+                      'DECLARATION BY AGENT',
+                      style: labelStyle.copyWith(
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textAlign: pw.TextAlign.center,
+
+                    ),
+                  ),
+                  pw.Padding(
+
+                    padding: const pw.EdgeInsets.only(top: 3,left:5,right:5),
+
+
+                    child: pw.Text(declaration, style: valueStyle),)
+
+                ],
+              ),
+            ),
+
+
+
+
+          ],
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _boldLabelValue(String label, String value) => pw.Padding(
+    padding: const pw.EdgeInsets.only(bottom: 4),
+    child: pw.RichText(
+      text: pw.TextSpan(
+        children: [
+          pw.TextSpan(
+            text: '$label ',
+            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.TextSpan(
+            text: value,
+            style: const pw.TextStyle(fontSize: 10),
+          ),
+        ],
+      ),
+    ),
+  );
+
+
+  Future<void> generateA2APdf(Map<String, dynamic> data) async {
+    final pdf = pw.Document();
+
+    final seller = data;
+    final broker = data['broker'] ?? {};
+    final date = data['agreementDate'] != null
+        ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(data['agreementDate']))
+        : '';
+
+    String _yesNo(v) => (v == true) ? 'Yes' : 'No';
+    String _safe(v) => v?.toString() ?? '';
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(12),
+        build: (context) => [
+          pw.Container(
+            padding: const pw.EdgeInsets.all(4),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // ===== Header =====
+
+                // ===== PART 1 – THE PARTIES =====
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    // ===== HEADER SECTION =====
+                    pw.Container(
+                      decoration: pw.BoxDecoration(border: pw.Border.all(width: 1)),
+                      padding: const pw.EdgeInsets.all(4),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          // === Top Title and FORM Box ===
+                          pw.Row(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              // Left Title
+                              pw.Expanded(
+                                flex: 3,
+                                child: pw.Column(
+                                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                  children: [
+                                    pw.Text(
+                                      'REAL ESTATE REGULATORY AGENCY',
+                                      style: pw.TextStyle(
+                                          fontSize: 11, fontWeight: pw.FontWeight.bold),
+                                    ),
+                                    pw.Text(
+                                      'AGENT TO AGENT AGREEMENT',
+                                      style: pw.TextStyle(
+                                          fontSize: 10, fontWeight: pw.FontWeight.bold),
+                                    ),
+                                    pw.Text(
+                                      'As per the Real Estate Brokers By-Law No.(85) of 2006',
+                                      style: const pw.TextStyle(fontSize: 8.5),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Right FORM Box
+                              pw.Container(
+                                width: 100,
+                                padding: const pw.EdgeInsets.all(3),
+                                decoration: pw.BoxDecoration(border: pw.Border.all(width: 1)),
+                                child: pw.Column(
+                                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                                  children: [
+                                    pw.Row(
+                                      mainAxisAlignment: pw.MainAxisAlignment.end,
+                                      children: [
+                                        pw.Text('FORM', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                                        pw.SizedBox(width: 4),
+                                        pw.Text('I', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                                      ],
+                                    ),
+                                    pw.SizedBox(height: 2),
+                                    pw.Text('BRN: ${_safe(data['buyerAgentBrn'] ?? '')}',
+                                        style: const pw.TextStyle(fontSize: 8)),
+                                    pw.Text('STR: ${_safe(data['sellerFormAStr'] ?? '')}',
+                                        style: const pw.TextStyle(fontSize: 8)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                        ],
+                      ),
+                    ),
+
+
+
+                    // === Two equal columns ===
+                    pw.Container(
+                      decoration: pw.BoxDecoration(border: pw.Border.all(width: 1, color: PdfColors.black)),
+                      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          // === Header Row (Part 1 Title + Date) ===
+                          pw.Container(
+                            width: double.infinity,
+                            padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.grey300, // ✅ grey background
+                              border: pw.Border.all(width: 0.5, color: PdfColors.black), // ✅ outer border
+                            ),
+
+                            child: pw.Row(
+                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: pw.CrossAxisAlignment.center,
+                              children: [
+                                // === Left: PART 1 ===
+                                pw.Text(
+                                  'PART 1',
+                                  style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold,
+                                    fontSize: 9,
+                                  ),
+                                ),
+
+                                // === Center: THE PARTIES ===
+                                pw.Expanded(
+                                  child: pw.Center(
+                                    child: pw.Text(
+                                      'THE PARTIES',
+                                      style: pw.TextStyle(
+                                        fontWeight: pw.FontWeight.bold,
+                                        fontSize: 9,
+                                      ),
+                                      textAlign: pw.TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+
+                                // === Right: DATE ===
+                                pw.Text(
+                                  'DATE: $date',
+                                  style: pw.TextStyle(
+                                    fontSize: 8.5,
+                                    fontWeight: pw.FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+
+
+
+                          // === Two-column section (Seller & Buyer Agents) ===
+                          // === Two-column section (Seller & Buyer Agents) with equal height dynamically ===
+                          pw.Container(
+                            decoration: pw.BoxDecoration(
+                              border: const pw.Border(
+                                left: pw.BorderSide(width: 0.5, color: PdfColors.black),
+                                right: pw.BorderSide(width: 0.5, color: PdfColors.black),
+                                bottom: pw.BorderSide(width: 0.5, color: PdfColors.black),
+                              ),
+                            ),
+                            child: pw.Row(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                // --- Seller’s side ---
+                                pw.Expanded(
+                                  child: pw.Container(
+                                    padding: const pw.EdgeInsets.all(2),
+                                    child: pw.LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final sellerBox = _partyBox(
+                                          title: 'A) THE AGENT / BROKER (SELLER\'S AGENT)',
+                                          establishment: _safe(data['a2aCompanyName']),
+                                          address: _safe(data['sellerAgentAddress']),
+                                          phone: _safe(data['sellerAgentPhone']),
+                                          fax: _safe(data['sellerAgentFax']),
+                                          email: _safe(data['sellerAgentEmail']),
+                                          orn: _safe(data['sellerAgentOrn']),
+                                          ded: _safe(data['sellerAgentDedLicense']),
+                                          pobox: _safe(data['sellerAgentPoBox']),
+                                          agentName: _safe(data['sellerAgentName']),
+                                          brn: _safe(data['sellerAgentBrn']),
+                                          dateIssued: data['sellerAgentBrnDate'] ?? '',
+                                          mobile: _safe(data['sellerAgentMobile']),
+                                          formStr: _safe(data['sellerFormAStr']),
+                                          declaration:
+                                          'I hereby declare, I have read and understood the Real Estate Brokers Code of Ethics, '
+                                              'I have a current signed Seller\'s Agreement FORM A, I shall respond to a reasonable offer to purchase the listed property from Agent B, '
+                                              'and shall not contact Agent B\'s Buyer nor confer with their client under any circumstances unless the nominated Buyer herein has already '
+                                              'discussed the stated listed property with our Office.',
+                                        );
+                                        return pw.Container(child: sellerBox);
+                                      },
+                                    ),
+                                  ),
+                                ),
+
+                                // --- Divider ---
+                                pw.Container(width: 1, color: PdfColors.black),
+
+                                // --- Buyer’s side ---
+                                pw.Expanded(
+                                  child: pw.Container(
+                                    padding: const pw.EdgeInsets.all(2),
+                                    child: pw.LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final buyerBox = _partyBox(
+                                          title: 'B) THE AGENT / BROKER (BUYER\'S AGENT)',
+                                          establishment: _safe(data['buyerAgentEstablishment']),
+                                          address: _safe(data['buyerAgentAddress']),
+                                          phone: _safe(data['buyerAgentPhone']),
+                                          fax: _safe(data['buyerAgentFax']),
+                                          email: _safe(data['buyerAgentEmail']),
+                                          orn: _safe(data['buyerAgentOrn']),
+                                          ded: _safe(data['buyerAgentDedLicense']),
+                                          pobox: _safe(data['buyerAgentPoBox']),
+                                          agentName: _safe(data['buyerAgentName']),
+                                          brn: _safe(data['buyerAgentBrn']),
+                                          dateIssued: data['buyerAgentBrnDate'] ?? '',
+                                          mobile: _safe(data['buyerAgentMobile']),
+                                          formStr: _safe(data['buyerFormBStr']),
+                                          declaration:
+                                          'I hereby declare, I have read and understood the Real Estate Brokers Code of Ethics, '
+                                              'I have a current signed Buyer\'s Agreement FORM B, I shall encourage my Buyers as named herein to submit a reasonable offer for the stated property '
+                                              'and not contact Agent A\'s Seller nor confer with their client under any circumstances unless Agent A has delayed our proposal on the prescribed FORM '
+                                              'with a reasonable reply within 24 hours.',
+                                        );
+                                        return pw.Container(child: buyerBox);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+
+                        ],
+                      ),
+                    ),
+
+                  ],
+                ),
+
+
+                // ===== PART 2 & PART 3 IN A ROW =====
+                pw.Table(
+                  border: pw.TableBorder.all(width: 0.8, color: PdfColors.black),
+                  columnWidths: const {
+                    0: pw.FlexColumnWidth(1),
+                    1: pw.FlexColumnWidth(1),
+                  },
+                  children: [
+                    pw.TableRow(
+                      verticalAlignment: pw.TableCellVerticalAlignment.top,
+                      children: [
+                        // ===== LEFT COLUMN: PART 2 – THE PROPERTY =====
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              // --- Section Header ---
+                              pw.Container(
+                                width: double.infinity,
+                                color: PdfColors.grey300,
+                                padding: const pw.EdgeInsets.symmetric(vertical: 3),
+                                alignment: pw.Alignment.center,
+                                child: pw.Text(
+                                  'PART 2. THE PROPERTY',
+                                  style: pw.TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: pw.FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              pw.SizedBox(height: 6),
+
+                              // --- Property details (labels bold, values normal) ---
+                              _boldLabelValue('Property Address:', _safe(data['propertyAddress'])),
+                              _boldLabelValue('Listed Price (AED):', _safe(data['listedPrice'])),
+                              _boldLabelValue('Maintenance Fee:', _safe(data['maintenanceFee'])),
+                              _boldLabelValue('Master Developer:', _safe(data['masterDeveloper'])),
+                              _boldLabelValue('Project Name:', _safe(data['masterProjectName'])),
+                              _boldLabelValue('Building:', _safe(data['buildingName'])),
+                              _boldLabelValue('Property Description:', _safe(data['propertyDescription'])),
+                            ],
+                          ),
+                        ),
+
+                        // ===== RIGHT COLUMN: PART 3 – THE COMMISSION / BUYER’S DETAILS =====
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(6),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              // --- Section Header ---
+                              pw.Container(
+                                width: double.infinity,
+                                color: PdfColors.grey300,
+                                padding: const pw.EdgeInsets.symmetric(vertical: 3),
+                                alignment: pw.Alignment.center,
+                                child: pw.Text(
+                                  'PART 3. THE COMMISSION / BUYER\'S DETAILS',
+                                  style: pw.TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: pw.FontWeight.bold,
+                                  ),
+                                  textAlign: pw.TextAlign.center,
+                                ),
+                              ),
+                              pw.SizedBox(height: 6),
+
+                              // --- Buyer & commission details ---
+                              _boldLabelValue('1) Seller\'s Agent Commission:',
+                                  '${_safe(data['sellerCommissionPercentage'])}%'),
+                              _boldLabelValue('2) Buyer\'s Agent Commission:',
+                                  '${_safe(data['buyerCommissionPercentage'])}%'),
+                              _boldLabelValue('Buyer Name:', _safe(data['buyerName'])),
+                              _boldLabelValue('Budget (AED):', _safe(data['budget'])),
+                              _boldLabelValue('Transfer Fee Paid By:', _safe(data['transferFeePaidBy'])),
+                              _boldLabelValue('Pre-Finance Approval:',
+                                  _yesNo(data['hasPreFinanceApproval'])),
+                              _boldLabelValue('MOU Exists:', _yesNo(data['mouExists'])),
+                              _boldLabelValue('Buyer Contacted Listing Agent:',
+                                  _yesNo(data['buyerContactedListingAgent'])),
+                              _boldLabelValue('Property Tenanted:',
+                                  _yesNo(data['isPropertyTenanted'])),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+
+
+                // ===== PART 4 – SIGNATURES =====
+                // ===== PART 4 – SIGNATURES =====
+                pw.Container(
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(width: 0.8, color: PdfColors.black),
+                  ),
+                  margin: const pw.EdgeInsets.only(top: 6),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                    children: [
+                      // === Grey Header ===
+                      pw.Container(
+                        width: double.infinity,
+                        color: PdfColors.grey300,
+                        padding: const pw.EdgeInsets.symmetric(vertical: 5),
+                        alignment: pw.Alignment.center,
+                        child: pw.Text(
+                          'PART 4. SIGNATURES',
+                          style: pw.TextStyle(
+                            fontSize: 9,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+
+                      // === Main Row (Left Paragraph | Right Agent Columns) ===
+                      pw.Container(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Row(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            // ==== LEFT COLUMN (RERA paragraph) ====
+                            pw.Expanded(
+                              flex: 4,
+                              child: pw.Padding(
+                                padding: const pw.EdgeInsets.only(right: 6, top: 6),
+                                child: pw.Text(
+                                  'Both Agents are required to co-operate fully, complete this FORM and BOTH retain a fully signed & stamped copy on file. '
+                                      'RERA DRS is available to both Parties.',
+                                  textAlign: pw.TextAlign.justify,
+                                  style: const pw.TextStyle(fontSize: 8),
+                                ),
+                              ),
+                            ),
+
+                            // ==== RIGHT COLUMN (Agent A & Agent B stacked vertically) ====
+                            pw.Expanded(
+                              flex: 5,
+                              child: pw.Container(
+                                decoration: pw.BoxDecoration(
+                                  border: pw.Border(left: pw.BorderSide(width: 0.5, color: PdfColors.black)),
+                                ),
+                                child: pw.Column(
+                                  crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                                  children: [
+                                    // === AGENT A Box ===
+                                    pw.Container(
+                                      decoration: pw.BoxDecoration(
+
+                                      ),
+                                      padding: const pw.EdgeInsets.only(left: 8,right:8,top: 5,bottom: 10),
+                                      child: pw.Column(
+                                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                        children: [
+                                          pw.Text(
+                                            'AGENT A ',
+                                            style: pw.TextStyle(
+                                              fontWeight: pw.FontWeight.bold,
+                                              fontSize: 9,
+                                            ),
+                                          ),
+                                          pw.SizedBox(height: 10),
+                                          pw.Text(
+                                            '_______________________________________',
+                                            style: const pw.TextStyle(fontSize: 8.5),
+                                          ),
+
+                                        ],
+                                      ),
+                                    ),
+
+                                    // === AGENT B Box ===
+                                    pw.Container(
+                                      padding: const pw.EdgeInsets.only(left: 8,right:8,top: 10,bottom: 0),
+                                      child: pw.Column(
+                                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                        children: [
+                                          pw.Text(
+                                            'AGENT B',
+                                            style: pw.TextStyle(
+                                              fontWeight: pw.FontWeight.bold,
+                                              fontSize: 9,
+                                            ),
+                                          ),
+                                          pw.SizedBox(height: 8),
+                                          pw.Text(
+                                            '_______________________________________',
+                                            style: const pw.TextStyle(fontSize: 8.5),
+                                          ),
+
+                                        ],
+                                      ),
+                                    ),
+
+                                    pw.Container(
+                                      padding: const pw.EdgeInsets.only(left: 8, right:8,top: 4),
+                                      child:  pw.Text(
+                                        '(Office Stamps "x" above)',
+                                        style: const pw.TextStyle(fontSize: 7),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // === Black Footer Bar ===
+                      pw.Container(
+                        width: double.infinity,
+                        color: PdfColors.black,
+                        padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                        alignment: pw.Alignment.center,
+                        child: pw.Text(
+                          'IN THE EVENT AGENT A DOES NOT RESPOND WITHIN 24 HOURS, AGENT B MUST CONTACT RERA.',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(
+                            fontSize: 8,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+
+
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+
+    await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save());
+  }
+
+// --- helpers -------------------------------------------------------
+
+
+  pw.Widget _sectionTitle(String t) => pw.Padding(
+    padding: const pw.EdgeInsets.only(top: 0, bottom: 2),
+    child: pw.Text(t,
+        style:
+        pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+  );
+
+
+
+
 
   Widget _buildDeleteConfirmationDialog() {
     return Dialog(
@@ -589,11 +1542,16 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                 // 👁 View button (always visible)
-                                _buildActionButton(
-                                Icons.visibility_rounded,
-                                  "View",
-                                color: const Color(0xFF1976D2),
-                                ),
+                                  _buildActionButton(
+                                    Icons.visibility_rounded,
+                                    "View",
+                                    color: const Color(0xFF1976D2),
+                                    onTap: () async {
+                                      await _viewA2AFormPdf(f["id"]);
+                                    },
+
+                                  ),
+
                                   if (isOwnForm) const SizedBox(width: 8),
 
                                 // ✏️ Edit button (only visible for owned forms)
@@ -1133,7 +2091,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
             : formTitleC.text.trim(),
         "agreement_date": DateTime.now().toIso8601String(),
         "status": "draft",
-        "a2a_company_id": companyId,
+        "a2aCompanyName": "",
 
         // 🟣 SELLER’S AGENT (Part 1A)
         "seller_agent_establishment": sellerEstablishmentC.text.trim(),
