@@ -264,8 +264,8 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                         // === Contact Details ===
                         pw.Table(
                           columnWidths: const {
-                            0: pw.FlexColumnWidth(5),
-                            1: pw.FlexColumnWidth(6),
+                            0: pw.FlexColumnWidth(6),
+                            1: pw.FlexColumnWidth(7),
                           },
                           children: [
                             pw.TableRow(children: [
@@ -553,7 +553,6 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                               pw.Container(
                                 width: 100,
                                 padding: const pw.EdgeInsets.all(3),
-                                decoration: pw.BoxDecoration(border: pw.Border.all(width: 1)),
                                 child: pw.Column(
                                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                                   children: [
@@ -568,8 +567,13 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                                     pw.SizedBox(height: 2),
                                     pw.Text('BRN: ${_safe(data['buyerAgentBrn'] ?? '')}',
                                         style: const pw.TextStyle(fontSize: 8)),
-                                    pw.Text('STR: ${_safe(data['sellerFormAStr'] ?? '')}',
-                                        style: const pw.TextStyle(fontSize: 8)),
+                                    pw.SizedBox(height: 4),
+
+                                    pw.Text(
+                                      'STR: ${_safe(data['sellerFormAStr']).isEmpty ? '_____________' : _safe(data['sellerFormAStr'])}',
+                                      style: const pw.TextStyle(fontSize: 8),
+                                    ),
+
                                   ],
                                 ),
                               ),
@@ -828,20 +832,23 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 
 
                 // ===== PART 4 – SIGNATURES =====
-                // ===== PART 4 – SIGNATURES =====
                 pw.Container(
                   decoration: pw.BoxDecoration(
                     border: pw.Border.all(width: 0.8, color: PdfColors.black),
                   ),
-                  margin: const pw.EdgeInsets.only(top: 6),
+                  margin: const pw.EdgeInsets.only(top: 0),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                     children: [
                       // === Grey Header ===
                       pw.Container(
                         width: double.infinity,
-                        color: PdfColors.grey300,
                         padding: const pw.EdgeInsets.symmetric(vertical: 5),
+                        margin: const pw.EdgeInsets.symmetric(horizontal: 1),
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(width: 0.5, color: PdfColors.black),
+                          color: PdfColors.grey300,
+                        ),
                         alignment: pw.Alignment.center,
                         child: pw.Text(
                           'PART 4. SIGNATURES',
@@ -975,19 +982,18 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
       ),
     );
 
+    final formattedDate = DateFormat('dd-MMM-yyyy').format(DateTime.now());
+    final fileName = 'Agent_to_Agent_Agreement_$formattedDate.pdf';
+
     await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdf.save());
+      name: fileName, // ✅ this sets the file name shown in print/save dialog
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+
+
   }
 
-// --- helpers -------------------------------------------------------
 
-
-  pw.Widget _sectionTitle(String t) => pw.Padding(
-    padding: const pw.EdgeInsets.only(top: 0, bottom: 2),
-    child: pw.Text(t,
-        style:
-        pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-  );
 
 
 
