@@ -15,6 +15,8 @@ import 'dart:io';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
+import 'dart:html' as html; // for web
+import 'dart:typed_data';
 
 class A2AFormsScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -497,6 +499,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 
     String _yesNo(v) => (v == true) ? 'Yes' : 'No';
     String _safe(v) => v?.toString() ?? '';
+
 
     pdf.addPage(
       pw.MultiPage(
@@ -982,14 +985,16 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
       ),
     );
 
-    final formattedDate = DateFormat('dd-MMM-yyyy').format(DateTime.now());
-    final fileName = 'Agent_to_Agent_Agreement_$formattedDate.pdf';
+    final Uint8List bytes = await pdf.save();
+    final blob = html.Blob([bytes]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
 
-    await Printing.layoutPdf(
-      name: fileName, // ✅ this sets the file name shown in print/save dialog
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
+    final anchor = html.AnchorElement(href: url)
+      ..target = 'blank'
+      ..download = 'Agent_to_Agent_Agreement.pdf'
+      ..click();
 
+    html.Url.revokeObjectUrl(url);
 
   }
 
