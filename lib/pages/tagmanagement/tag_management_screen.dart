@@ -819,7 +819,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                   children: [
                     Switch(
                       value: isActive,
-                      activeColor: kPrimaryColor,
+                      activeColor: Colors.green,
                       onChanged: (val) => _updateTagStatus(tag, val),
                     ),
                     Text(

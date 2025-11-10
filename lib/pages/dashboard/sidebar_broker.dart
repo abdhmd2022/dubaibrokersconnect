@@ -33,6 +33,10 @@ class BrokerSidebar extends StatelessWidget {
         'icon': Icons.cloud_download_outlined,
         'label': 'Import from Bayut',
       },
+      {
+        'icon': Icons.cloud_download_outlined,
+        'label': 'Import from Property Finder',
+      },
     ];
 
     return Container(

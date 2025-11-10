@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../constants.dart';
 import '../brokermanagement/broker_profile_screen.dart';
 import '../import/import_from_bayut_screen.dart';
+import '../import/import_from_propertyfinder_screen.dart';
 import 'admindashboard.dart';
 import '../listings/listings_screen.dart';
 import '../requirements/requirements_screen.dart';
@@ -48,6 +49,7 @@ class _AdminShellState extends State<AdminShell> {
       MyTransactionsScreen(userData: userData,),
       A2AFormsScreen(userData: userData,),
       ImportFromBayutScreen(userData: userData,),
+      ImportFromPropertyFinderScreen(userData: userData),
       BrokerManagementScreen(),
       TagManagementScreen(),
       PropertyTypesScreen(),

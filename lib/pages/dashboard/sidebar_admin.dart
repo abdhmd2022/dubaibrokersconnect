@@ -32,6 +32,10 @@ class AdminSidebar extends StatelessWidget {
         'icon': Icons.cloud_download_outlined,
         'label': 'Import from Bayut',
       },
+      {
+        'icon': Icons.cloud_download_outlined,
+        'label': 'Import from Property Finder',
+      },
 
       {
         'icon': Icons.account_tree_outlined,
@@ -394,7 +398,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
           decoration: BoxDecoration(
             gradient: active
                 ? LinearGradient(
-              colors: [color, kAccentColor],
+              colors: [color, kPrimaryColor],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             )
