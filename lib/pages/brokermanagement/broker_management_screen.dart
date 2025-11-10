@@ -1094,7 +1094,9 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                                     const SizedBox(height: 12),
                                     Text(
                                       "No Company/BRN details available for this broker.",
+                                      textAlign: TextAlign.center,
                                       style: GoogleFonts.poppins(
+
                                         fontSize: 14,
                                         color: Colors.grey.shade800,
                                       ),
@@ -1479,6 +1481,8 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
         setState(() {
           broker['approvalStatus'] = 'REJECTED';
         });
+
+        _fetchBrokers(refresh: true);
 
         /*ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
