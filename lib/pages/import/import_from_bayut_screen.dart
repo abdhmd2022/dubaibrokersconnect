@@ -215,9 +215,8 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
       return;
     }
 
-
     setState(() => _isImporting = true);
-    final token = await AuthService.getToken(); // if your APIs use auth
+    final token = await AuthService.getToken();
     final url = Uri.parse('$baseURL/api/properties/analyze-url');
 
     try {
@@ -231,68 +230,94 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
       );
 
       final body = jsonDecode(response.body);
+
       if (response.statusCode == 200 && body['success'] == true) {
         final data = body['data'];
 
-        // 🧩 Populate controllers
+        // 🧩 Basic Info
         titleC.text = data['title']?.toString() ?? '';
         descriptionC.text = data['description']?.toString() ?? '';
         refNoC.text = data['reference_number']?.toString() ?? '';
-        locationC.text = data['address']?.toString() ?? '';
+
+        // 🏙 Address and Location
+        locationC.text = data['address']?.toString() ??
+            (data['location_full_path'] != null
+                ? (data['location_full_path'] as List).join(', ')
+                : '');
+
+        // 💰 Price and Size
         rentC.text = data['price'] != null
             ? NumberFormat('#,###').format(data['price'])
             : '';
-        sizeC.text = data['size_sqft'] != null ? data['size_sqft'].toString() : '';
-        importedRooms = data['rooms'].toString();
-        importedBathrooms = data['bathrooms'].toString();
+        sizeC.text = data['size_sqft'] != null
+            ? data['size_sqft'].toString()
+            : '';
 
-        rooms = (data['rooms'] != null && data['rooms'] > 5)
+        // 🏡 Rooms and Bathrooms
+        importedRooms = data['rooms']?.toString() ?? '';
+        importedBathrooms = data['bathrooms']?.toString() ?? '';
+
+        rooms = (data['rooms'] != null &&
+            double.tryParse(data['rooms'].toString()) != null &&
+            double.parse(data['rooms'].toString()) > 5)
             ? "5+"
             : data['rooms']?.toString();
 
-        bathrooms = (data['bathrooms'] != null && data['bathrooms'] > 5)
+        bathrooms = (data['bathrooms'] != null &&
+            double.tryParse(data['bathrooms'].toString()) != null &&
+            double.parse(data['bathrooms'].toString()) > 5)
             ? "5+"
             : data['bathrooms']?.toString();
+
         parkingC.text = (data['parking_spaces'] ?? '0').toString();
 
-        furnishing = data['furnished_status'] ?? '';
-        // status = data['status'] ?? '';
-         propertyType = data['property_type_name'];
+        // 🛋 Furnishing and Property Type
+        furnishing = data['furnished_status']?.toString() ?? '';
+        propertyType = data['property_type_name']?.toString();
 
-        // ✅ Try to auto-select the imported property type from master list
-        if (propertyType != null && propertyType!.isNotEmpty && allPropertyTypes.isNotEmpty) {
+        // ✅ Try to auto-select property type from master list
+        if (propertyType != null &&
+            propertyType!.isNotEmpty &&
+            allPropertyTypes.isNotEmpty) {
           final match = allPropertyTypes.firstWhere(
-                (e) => e['name'].toLowerCase() == propertyType!.toLowerCase(),
+                (e) =>
+            e['name'].toString().toLowerCase() ==
+                propertyType!.toLowerCase(),
             orElse: () => {},
           );
           if (match.isNotEmpty) {
             setState(() {
               propertyType = match['name'];
-              selectedPropertyTypeId = match['id']; // ✅ store id
+              selectedPropertyTypeId = match['id'];
             });
           }
         }
 
-        // category = data['category'] ?? category;
-        // lookingFor = (data['transaction_type'] == 'SALE') ? 'Sale' : 'Rent';
 
-        // ✅ Preselect Amenities from API
-        final List<String> apiAmenities = List<String>.from(data['amenities'] ?? []);
+        // 🧱 Category & Transaction Type
+        category = data['category'] ?? '';
+        lookingFor = (data['transaction_type']?.toString().toUpperCase() ==
+            'SALE')
+            ? 'Sale'
+            : 'Rent';
 
-        // 🧩 Convert to same structure as tags API (with id, name, color, etc.)
+        // ✅ Amenities Mapping
+        final List<String> apiAmenities =
+        List<String>.from(data['amenities'] ?? []);
+
         allAmenities = apiAmenities.map((name) {
           return {
             "id": name.toLowerCase().replaceAll(' ', '_'),
             "name": name,
             "description": null,
             "type": "AMENITY",
-            "color": "#4CAF50", // default green for imported amenities
+            "color": "#4CAF50",
           };
         }).toList();
 
-        // Optionally also set them as selected initially:
         selectedAmenities = List<Map<String, dynamic>>.from(allAmenities);
-        // 🏁 Go to Step 3 after filling
+
+        // 🏁 Move to next step
         _goToStep(3);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

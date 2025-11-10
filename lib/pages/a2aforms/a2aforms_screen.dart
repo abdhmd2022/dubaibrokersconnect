@@ -45,6 +45,30 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 
     fetchA2AForms(page: 1);
   }
+  Future<Map<String, dynamic>?> fetchSingleA2AForm(String id) async {
+    try {
+      final token = await AuthService.getToken();
+
+      final response = await http.get(
+        Uri.parse("$baseURL/api/a2a/$id"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data']; // 👈 your full form object
+      } else {
+        debugPrint("⚠️ Failed to fetch form: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching single form: $e");
+      return null;
+    }
+  }
 
 
   Future<void> _viewA2AFormPdf(String formId) async {
@@ -63,65 +87,6 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 
         print('data -> $data');
 
-        // 🧩 Build mapped data structure for PDF generator
-        /*final pdfData = {
-          "seller": {
-            "establishment": data["sellerAgentEstablishment"] ?? "",
-            "address": data["sellerAgentAddress"] ?? "",
-            "phone": data["sellerAgentPhone"] ?? "",
-            "fax": data["sellerAgentFax"] ?? "",
-            "email": data["sellerAgentEmail"] ?? "",
-            "orn": data["sellerAgentOrn"] ?? "",
-            "ded": data["sellerAgentDedLicense"] ?? "",
-            "poBox": data["sellerAgentPoBox"] ?? "",
-            "agentName": data["sellerAgentName"] ?? "",
-            "brn": data["sellerAgentBrn"] ?? "",
-            "dateIssued": data["sellerAgentBrnDate"] != null
-                ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(data["seller_agent_brn_date"]))
-                : "",
-            "mobile": data["sellerAgentMobile"] ?? "",
-            "agentEmail": data["sellerAgentEmail"] ?? "",
-            "declaration":
-            "I hereby declare, I have read and understood the Real Estate Brokers Code of Ethics, I have a current signed Seller's Agreement FORM A, I shall respond to a reasonable offer to purchase the listed property from Agent B, and shall not contact Agent B's Buyer nor confer with their client under no circumstances unless the nominated Buyer herein has already discussed the stated listed property with our Office."
-          },
-          "buyer": {
-            "establishment": data["buyerAgentEstablishment"] ?? "",
-            "address": data["buyerAgentAddress"] ?? "",
-            "phone": data["buyerAgentPhone"] ?? "",
-            "fax": data["buyerAgentFax"] ?? "",
-            "email": data["buyerAgentEmail"] ?? "",
-            "orn": data["buyerAgentOrn"] ?? "",
-            "ded": data["buyerAgentDedLicense"] ?? "",
-            "poBox": data["buyerAgentPoBox"] ?? "",
-            "agentName": data["buyerAgentName"] ?? "",
-            "brn": data["buyerAgentBrn"] ?? "",
-            "dateIssued": data["buyerAgentBrnDate"] != null
-                ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(data["buyer_agent_brn_date"]))
-                : "",
-            "mobile": data["buyerAgentMobile"] ?? "",
-            "agentEmail": data["buyerAgentEmail"] ?? "",
-            "declaration":
-            "I hereby declare, I have read and understood the Real Estate Brokers Code of Ethics, I have a current signed Buyer's Agreement FORM B, I shall encourage my Buyers as named herein, to submit a reasonable offer for the stated property and not contact Agent A’s Seller nor confer with their client under no circumstances unless the Agent A has delayed our proposal on the prescribed FORM with a reasonable reply within 24 hours."
-          },
-          "propertyAddress": data["propertyAddress"] ?? "",
-          "listedPrice": "AED ${data["listedPrice"] ?? "-"}",
-          "maintenanceFee": data["maintenanceFee"] ?? "",
-          "masterDeveloper": data["masterDeveloper"] ?? "",
-          "projectName": data["masterProjectName"] ?? "",
-          "building": data["buildingName"] ?? "",
-          "description": data["propertyDescription"] ?? "",
-          "sellerCommission": data["sellerCommissionPercentage"] ?? "",
-          "buyerCommission": data["buyerCommissionPercentage"] ?? "",
-          "buyerName": data["buyerName"] ?? "",
-          "budget": "AED ${data["budget"] ?? ""}",
-          "transferFeePaidBy": data["transferFeePaidBy"] ?? "",
-          "preFinance": data["hasPreFinanceApproval"] == true ? "Yes" : "No",
-          "mouExists": data["mouExists"] == true ? "Yes" : "No",
-          "buyerContacted": data["buyerContactedListingAgent"] == true ? "Yes" : "No",
-          "tenanted": data["isPropertyTenanted"] == true ? "Yes" : "No",
-        };
-
-        print('pdf data -> $pdfData');*/
         await generateA2APdf(data);
 
       } else {
@@ -238,7 +203,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                           children: [
                             pw.Padding(
                               padding: const pw.EdgeInsets.all(2),
-                              child: pw.Text('NAME OF THE ESTABLISHMENT', style: labelStyle),
+                              child: pw.Text('NAME OF THE ESTABLISHMENT: ', style: labelStyle),
                             ),
                             pw.Padding(
                               padding: const pw.EdgeInsets.all(2),
@@ -251,7 +216,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                           children: [
                             pw.Padding(
                               padding: const pw.EdgeInsets.all(2),
-                              child: pw.Text('ADDRESS', style: labelStyle),
+                              child: pw.Text('ADDRESS: ', style: labelStyle),
                             ),
                             pw.Padding(
                               padding: const pw.EdgeInsets.all(2),
@@ -259,7 +224,6 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                             ),
                           ],
                         ),
-
 
                         pw.SizedBox(height: 3),
 
@@ -499,7 +463,6 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 
     String _yesNo(v) => (v == true) ? 'Yes' : 'No';
     String _safe(v) => v?.toString() ?? '';
-
 
     pdf.addPage(
       pw.MultiPage(
@@ -777,7 +740,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                               // --- Property details (labels bold, values normal) ---
                               _boldLabelValue('Property Address:', _safe(data['propertyAddress'])),
                               _boldLabelValue('Listed Price (AED):', _safe(data['listedPrice'])),
-                              _boldLabelValue('Maintenance Fee:', _safe(data['maintenanceFee'])),
+                              _boldLabelValue('Maintenance Fee:', 'AED ${_safe(data['maintenanceFee'])}/sqft'),
                               _boldLabelValue('Master Developer:', _safe(data['masterDeveloper'])),
                               _boldLabelValue('Project Name:', _safe(data['masterProjectName'])),
                               _boldLabelValue('Building:', _safe(data['buildingName'])),
@@ -985,16 +948,19 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
       ),
     );
 
+
     final Uint8List bytes = await pdf.save();
-    final blob = html.Blob([bytes]);
+    final blob = html.Blob([bytes], 'application/pdf');
     final url = html.Url.createObjectUrlFromBlob(blob);
 
-    final anchor = html.AnchorElement(href: url)
-      ..target = 'blank'
-      ..download = 'Agent_to_Agent_Agreement.pdf'
-      ..click();
+// 👇 Open in a new tab for preview instead of direct download
+    html.window.open(url, '_blank');
 
-    html.Url.revokeObjectUrl(url);
+// ⚠️ Don't revoke immediately, or it will close before loading
+    Future.delayed(const Duration(seconds: 5), () {
+      html.Url.revokeObjectUrl(url);
+    });
+
 
   }
 
@@ -1468,6 +1434,8 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                                   Text("Form Title")),
                                   size: ColumnSize.M,
                                   numeric: false,
+
+
                                   tooltip: "Form Title",
 
 
@@ -1571,6 +1539,28 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                                 Icons.edit_rounded,
                                 "Edit",
                                 color: Colors.orangeAccent,
+                                  onTap: ()
+                                  async {
+                                    final formId = f['id'];
+                                    print('fetching');
+                                    final fullForm = await fetchSingleA2AForm(formId); // fetch full details
+
+                                    if (fullForm != null) {
+                                      showDialog(
+                                        context: context,
+                                        barrierColor: Colors.black.withOpacity(0.4),
+                                        builder: (_) => CreateA2AFormDialog(
+                                          userData: widget.userData,
+                                          existingForm: fullForm, // ✅ pass full JSON
+                                          onFormCreated: () => fetchA2AForms(page: 1),
+                                        ),
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Failed to load form details")),
+                                      );
+                                    }
+                                  },
                                 ),
                                 if (isOwnForm) const SizedBox(width: 8),
 
@@ -1578,6 +1568,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                                 if (isOwnForm)
                                 _buildActionButton(
                                 Icons.delete_rounded,
+
                                 "Delete",
                                 color: Colors.redAccent,
                                 onTap: () => _deleteA2AForm(f["id"]),
@@ -1723,11 +1714,15 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 class CreateA2AFormDialog extends StatefulWidget {
   final Map<String, dynamic> userData;
   final VoidCallback? onFormCreated; // 👈 new
+  final Map<String, dynamic>? existingForm; // 👈 new (optional)
+
 
   const CreateA2AFormDialog({
     super.key,
     required this.userData,
     this.onFormCreated,
+    this.existingForm,
+
   });
   @override
   State<CreateA2AFormDialog> createState() => _CreateA2AFormDialogState();
@@ -1799,6 +1794,8 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
   bool buyerContactedListing = false;
   bool propertyIsTenanted = false;
 
+  bool isManualSeller = false;
+
 
 
 
@@ -1807,9 +1804,259 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
   @override
   void initState() {
     super.initState();
-    _prefillBuyerAgentDetails();
-    _fetchVerifiedBrokers();
+    if (widget.existingForm == null) {
+      _prefillBuyerAgentDetails();
+
+    }
+
+    // Fetch brokers, then prefill if editing
+    _fetchVerifiedBrokers().then((_) {
+      if (widget.existingForm != null) {
+        _prefillForm(widget.existingForm!);
+      }
+    });
   }
+
+  void _prefillForm(Map<String, dynamic> data) {
+
+    print('data -> $data');
+    formTitleC.text = data['formTitle'] ?? '';
+    propertyAddressC.text = data['propertyAddress'] ?? '';
+    masterDeveloperC.text = data['masterDeveloper'] ?? '';
+    masterProjectNameC.text = data['masterProjectName'] ?? '';
+    buildingNameC.text = data['buildingName'] ?? '';
+    listedPriceC.text = data['listedPrice']?.toString() ?? '';
+    maintenanceFeeC.text = data['maintenanceFee']?.toString() ?? '';
+    propertyDescriptionC.text = data['propertyDescription'] ?? '';
+    // 🟩 Seller Agent Prefill Logic
+    final sellerName = data['sellerAgentName']?.toString().trim();
+    final sellerEmail = data['sellerAgentEmail']?.toString().trim();
+
+    if (sellerName != null && sellerName.isNotEmpty) {
+      // Wait until brokers are fetched
+      if (_brokers.isNotEmpty) {
+        // Try to find a matching broker by name or email
+        final match = _brokers.firstWhere(
+              (b) =>
+          (b["displayName"]?.toString().trim().toLowerCase() == sellerName.toLowerCase()) ||
+              (b["email"]?.toString().trim().toLowerCase() == sellerEmail?.toLowerCase()),
+          orElse: () => {},
+        );
+
+        if (match.isNotEmpty) {
+          // ✅ Found broker → directory mode
+          setState(() {
+            _sellerMode = 'directory';
+            _selectedBroker = match;
+          });
+        } else {
+          // ❌ Not found → switch to manual mode
+          setState(() {
+            _sellerMode = 'manual';
+            _selectedBroker = null;
+          });
+        }
+      } else {
+        // ⏳ Brokers not yet loaded → default to manual temporarily
+        setState(() => _sellerMode = 'manual');
+      }
+    } else {
+      // No seller info provided → manual
+      setState(() => _sellerMode = 'manual');
+    }
+
+
+
+    print('company -> ${data['sellerAgentEstablishment']}');
+    sellerAgentC.text = data['sellerAgentName'] ?? '';
+    sellerEstablishmentC.text =
+    (data['sellerAgentEstablishment'] != null &&
+        data['sellerAgentEstablishment'].toString().trim().isNotEmpty)
+        ? data['sellerAgentEstablishment']
+        : 'Freelancer';
+    sellerEmailC.text = data['sellerAgentEmail'] ?? '';
+    sellerMobileC.text = data['sellerAgentMobile'] ?? '';
+    sellerOfficeAddressC.text = data['sellerAgentAddress'] ?? '';
+    sellerBrnC.text = data['sellerAgentBrn'] ?? '';
+    sellerBrnIssueDateC.text = data['sellerAgentBrnDate'] != null
+        ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(data['sellerAgentBrnDate']))
+        : '';
+    sellerOrnC.text = data['sellerAgentOrn'] ?? '';
+    sellerDedLicenseC.text = data['sellerAgentDedLicense'] ?? '';
+    sellerPoBoxC.text = data['sellerAgentPoBox'] ?? '';
+    sellerFormAStrC.text = data['sellerFormAStr'] ?? '';
+    sellerStrC.text = data['sellerAgentStr'] ?? '';
+    sellerFaxC.text = data['sellerAgentFax'] ?? '';
+    sellerOfficePhoneC.text = data['sellerAgentPhone'] ?? '';
+
+
+
+    // 🟦 Buyer Agent
+    buyerAgentNameC.text = data['buyerAgentName'] ?? '';
+    buyerEstablishmentNameC.text = data['buyerAgentEstablishment'] ?? '';
+    buyerOfficeAddressC.text = data['buyerAgentAddress'] ?? '';
+    buyerPhoneC.text = data['buyerAgentPhone'] ?? '';
+    buyerFaxC.text = data['buyerAgentFax'] ?? '';
+    buyerEmailC.text = data['buyerAgentEmail'] ?? '';
+    buyerDedLicenseC.text = data['buyerAgentDedLicense'] ?? '';
+    buyerPoBoxC.text = data['buyerAgentPoBox'] ?? '';
+    buyerOrnC.text = data['buyerAgentOrn'] ?? '';
+    buyerBrnC.text = data['buyerAgentBrn'] ?? '';
+    buyerBrnIssueDateC.text = data['buyerAgentBrnDate'] != null
+        ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(data['buyerAgentBrnDate']))
+        : '';
+    buyerMobileC.text = data['buyerAgentMobile'] ?? '';
+    buyerFormBStrC.text = data['buyerFormBStr'] ?? '';
+
+    // 🟧 Commissions & Buyer Details
+    sellerCommissionC.text = data['sellerCommissionPercentage']?.toString() ?? '';
+    buyerCommissionC.text = data['buyerCommissionPercentage']?.toString() ?? '';
+    buyerNameC.text = data['buyerName'] ?? '';
+    buyerBudgetC.text = data['budget']?.toString() ?? '';
+
+    listedPriceC.text = data['listedPrice'].toString()?? '';
+
+    // 🟨 Dropdown + Checkboxes
+    final fee = data['transferFeePaidBy']?.toString();
+    transferFeeBy = (fee != null && fee.isNotEmpty)
+        ? fee[0].toUpperCase() + fee.substring(1).toLowerCase()
+        : null;
+
+    buyerHasFinanceApproval = data['hasPreFinanceApproval'] ?? false;
+    buyerHasMOU = data['mouExists'] ?? false;
+    buyerContactedListing = data['buyerContactedListingAgent'] ?? false;
+    propertyIsTenanted = data['isPropertyTenanted'] ?? false;
+
+    setState(() {});
+  }
+
+  Future<void> updateA2AForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final double sellerCommission =
+        double.tryParse(sellerCommissionC.text.trim()) ?? 0.0;
+    final double buyerCommission =
+        double.tryParse(buyerCommissionC.text.trim()) ?? 0.0;
+    final double totalCommission = sellerCommission + buyerCommission;
+
+    // ✅ Validate commission logic
+    if (sellerCommission < 0 || buyerCommission < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Commission percentages cannot be negative.")),
+      );
+      return;
+    }
+
+    if (totalCommission != 100.0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              "Invalid commission split: Seller (${sellerCommission.toStringAsFixed(1)}%) + Buyer (${buyerCommission.toStringAsFixed(1)}%) = ${totalCommission.toStringAsFixed(1)}%. Total must equal 100%."),
+        ),
+      );
+      return;
+    }
+    try {
+      setState(() => _loadingBrokers = true);
+      final token = await AuthService.getToken();
+      final id = widget.existingForm?['id'];
+
+      final body = {
+        // 🧾 Meta
+        "form_title": formTitleC.text.trim(),
+
+        // 🟩 SELLER’S AGENT (Part 1A)
+        "seller_agent_name": sellerAgentC.text.trim(),
+        "seller_agent_establishment": sellerEstablishmentC.text.trim(),
+        "seller_agent_address": sellerOfficeAddressC.text.trim(),
+        "seller_agent_phone": sellerOfficePhoneC.text.trim(),
+        "seller_agent_fax": sellerFaxC.text.trim(),
+        "seller_agent_email": sellerEmailC.text.trim(),
+        "seller_agent_orn": sellerOrnC.text.trim(),
+        "seller_agent_ded_license": sellerDedLicenseC.text.trim(),
+        "seller_agent_po_box": sellerPoBoxC.text.trim(),
+        "seller_agent_brn": sellerBrnC.text.trim(),
+        "seller_agent_brn_date": sellerBrnIssueDateC.text.isNotEmpty
+            ? DateFormat('dd-MMM-yyyy')
+            .parse(sellerBrnIssueDateC.text)
+            .toIso8601String()
+            : null,
+        "seller_agent_mobile": sellerMobileC.text.trim(),
+        "seller_form_a_str": sellerFormAStrC.text.trim(),
+
+        // 🟦 BUYER’S AGENT (Part 1B)
+        "buyer_agent_name": buyerAgentNameC.text.trim(),
+        "buyer_agent_establishment": buyerEstablishmentNameC.text.trim(),
+        "buyer_agent_address": buyerOfficeAddressC.text.trim(),
+        "buyer_agent_phone": buyerPhoneC.text.trim(),
+        "buyer_agent_fax": buyerFaxC.text.trim(),
+        "buyer_agent_email": buyerEmailC.text.trim(),
+        "buyer_agent_orn": buyerOrnC.text.trim(),
+        "buyer_agent_ded_license": buyerDedLicenseC.text.trim(),
+        "buyer_agent_po_box": buyerPoBoxC.text.trim(),
+        "buyer_agent_brn": buyerBrnC.text.trim(),
+        "buyer_agent_brn_date": buyerBrnIssueDateC.text.isNotEmpty
+            ? DateFormat('dd-MMM-yyyy')
+            .parse(buyerBrnIssueDateC.text)
+            .toIso8601String()
+            : null,
+        "buyer_agent_mobile": buyerMobileC.text.trim(),
+        "buyer_form_b_str": buyerFormBStrC.text.trim(),
+
+        // 🏡 PROPERTY (Part 2)
+        "property_address": propertyAddressC.text.trim(),
+        "master_developer": masterDeveloperC.text.trim(),
+        "master_project_name": masterProjectNameC.text.trim(),
+        "building_name": buildingNameC.text.trim(),
+        "listed_price": listedPriceC.text.trim(),
+        "property_description": propertyDescriptionC.text.trim(),
+        "maintenance_fee": maintenanceFeeC.text.trim(),
+
+        // 💰 COMMISSION & BUYER (Part 3)
+        "seller_commission_percentage": sellerCommissionC.text.trim(),
+        "buyer_commission_percentage": buyerCommissionC.text.trim(),
+        "buyer_name": buyerNameC.text.trim(),
+        "budget": buyerBudgetC.text.trim(),
+        "transfer_fee_paid_by": transferFeeBy?.toLowerCase(),
+        "has_pre_finance_approval": buyerHasFinanceApproval,
+        "mou_exists": buyerHasMOU,
+        "buyer_contacted_listing_agent": buyerContactedListing,
+        "is_property_tenanted": propertyIsTenanted,
+      };
+
+
+      print('body update -> $body');
+      print('url update -> ${"$baseURL/api/a2a/$id"
+      }');
+
+      final res = await http.put(
+        Uri.parse("$baseURL/api/a2a/$id"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(body),
+      );
+
+
+      print('res -> ${res.body}');
+
+          if (res.statusCode == 200) {
+        widget.onFormCreated?.call();
+        Navigator.pop(context);
+      } else {
+        final err = jsonDecode(res.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed: ${err['message'] ?? 'Error updating form'}")),
+        );
+      }
+    } catch (e) {
+      debugPrint("❌ Error updating A2A Form: $e");
+    } finally {
+      setState(() => _loadingBrokers = false);
+    }
+  }
+
 
   void _prefillBuyerAgentDetails() {
     final user = widget.userData;
@@ -1837,6 +2084,10 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
         : '';
     buyerMobileC.text = broker?['mobile'] ?? user['phone'] ?? '';
     buyerFormBStrC.text = '';
+
+    sellerCommissionC.text = "50";
+    buyerCommissionC.text = "50";
+
     setState(() {});
   }
 
@@ -1950,6 +2201,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                         "Master Developer",
                         controller: masterDeveloperC,
                         hint: "Enter developer name",
+
                       ),
                     ),
                   ],
@@ -1983,10 +2235,11 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                   children: [
                     Expanded(
                       child: _buildTextField(
-                        "Listed Price *",
+                        "Listed Price ",
                         controller: listedPriceC,
                         hint: "AED",
                         inputType: TextInputType.number,
+                        required: true
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -2081,6 +2334,122 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
 
   Future<void> createA2AForm() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final double sellerCommission =
+        double.tryParse(sellerCommissionC.text.trim()) ?? 0.0;
+    final double buyerCommission =
+        double.tryParse(buyerCommissionC.text.trim()) ?? 0.0;
+    final double totalCommission = sellerCommission + buyerCommission;
+
+    // ✅ Validate commission logic
+    if (sellerCommission < 0 || buyerCommission < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Commission percentages cannot be negative.")),
+      );
+      return;
+    }
+
+    if (totalCommission != 100.0) {
+      showDialog(
+        context: context,
+        builder: (_) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400), // 👈 limits width
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Invalid Commission Split",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF0D2851),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () => Navigator.pop(context),
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4.0),
+                          child: Icon(Icons.close_rounded,
+                              size: 20, color: Colors.grey),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Message
+                  Text(
+                    "Seller Commission(${sellerCommission.toStringAsFixed(2)}%) + Buyer Commission (${buyerCommission.toStringAsFixed(2)}%) = ${totalCommission.toStringAsFixed(2)}%.\n\nThe total must equal 100%.",
+                    style: GoogleFonts.poppins(
+                      fontSize: 13.5,
+                      height: 1.5,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Divider + Button
+                  Container(height: 1, color: Colors.grey.shade200),
+                  const SizedBox(height: 14),
+
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0D2851),
+                        padding:
+                        const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        "Got it",
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+
+      return;
+    }
+
 
     try {
       setState(() => _loadingBrokers = true);
@@ -2233,12 +2602,10 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Create New A2A Form",
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      widget.existingForm != null ? "Edit A2A Form" : "Create New A2A Form",
+                      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w600),
                     ),
+
                     IconButton(
                       icon: const Icon(Icons.close_rounded),
                       onPressed: () => Navigator.pop(context),
@@ -2261,7 +2628,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Form Title / Reference *",
+                              "Form Title / Reference",
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -2300,7 +2667,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                                 focusedBorder: const OutlineInputBorder(
                                   borderRadius: BorderRadius.all(Radius.circular(12)),
                                   borderSide:
-                                  BorderSide(color: Color(0xFF1976D2), width: 1.2),
+                                  BorderSide(color: kPrimaryColor, width: 1.2),
                                 ),
                                 errorBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -2412,23 +2779,25 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                     const SizedBox(width: 12),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1976D2),
-                        padding:
-                        const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: kPrimaryColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () async {
                         if (_formKey.currentState!.validate()) {
-                          await createA2AForm();
-                      }
+                          if (widget.existingForm != null) {
+                            await updateA2AForm(); // 👈 edit mode
+                          } else {
+                            await createA2AForm(); // 👈 create mode
+                          }
+                        }
                       },
                       child: Text(
-                        "Create Form",
-                        style: GoogleFonts.poppins(
-                            color: Colors.white, fontWeight: FontWeight.w600),
+                        widget.existingForm != null ? "Update Form" : "Create Form",
+                        style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600),
                       ),
                     ),
+
                   ],
                 ),
               ],
@@ -2602,10 +2971,12 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
           Row(
             children: [
               Expanded(
+
                 child: _buildTextField(
-                  "Buyer Name (Family Name + Last 4 Digits of mobile) *",
+                  "Buyer Name (Family Name + Last 4 Digits of mobile)",
                   controller: buyerNameC,
                   hint: "Mr Khan (+971 XX XXX 7558)",
+                    required: true
                 ),
               ),
               const SizedBox(width: 12),
@@ -2958,37 +3329,72 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                             .contains(searchValue.toLowerCase()));
               },
             ),
-            items: _brokers
-                .map((b) => DropdownMenuItem<String>(
-              value: b["id"],
-              child: Text(
-                b["displayName"] ?? 'Unnamed Broker',
-                style: GoogleFonts.poppins(fontSize: 13),
-              ),
-            ))
-                .toList(),
+
+            // ✅ Include verified brokers only + Manual option
+            items: [
+              ..._brokers
+                  .where((b) =>
+              b['isVerified'] == true &&
+                  b['id'] != widget.userData['broker']['id']) // exclude current broker
+                  .map((b) => DropdownMenuItem<String>(
+                value: b["id"],
+                child: Text(
+                  "${b["displayName"] ?? 'Unnamed Broker'} - ${b["user"]?["companyName"] ?? 'Freelancer'}",
+                  style: GoogleFonts.poppins(fontSize: 13),
+                ),
+              )),
+
+            ],
+
+            // ✅ On change logic
             onChanged: (id) {
-              final broker = _brokers.firstWhere((b) => b["id"] == id);
               setState(() {
-                _selectedBroker = broker;
-                sellerAgentC.text = broker["displayName"] ?? '';
-                sellerEstablishmentC.text = broker["user"]?["companyName"] ?? '';
-                sellerOrnC.text = broker["reraNumber"] ?? '';
-                sellerBrnC.text = broker["brnNumber"] ?? '';
-                sellerMobileC.text = broker["mobile"] ?? '';
-                sellerEmailC.text = broker["email"] ?? '';
-                sellerOfficeAddressC.text = broker["address"] ?? '';
-                sellerOfficePhoneC.text = broker['user']["phone"] ?? broker["mobile"];
-                sellerDedLicenseC.text = broker["licenseNumber"] ?? '';
-                sellerBrnIssueDateC.text = broker?['brnIssuesDate'] != null
-                    ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(broker!['brnIssuesDate']))
-                    : '';
-                sellerPoBoxC.text = broker["postalCode"] ?? '';
+                if (id == 'manual') {
+                  // Manual mode: clear fields, make them editable & not required
+                  isManualSeller = true;
+
+                  _selectedBroker = null;
+                  sellerAgentC.clear();
+                  sellerEstablishmentC.clear();
+                  sellerOrnC.clear();
+                  sellerBrnC.clear();
+                  sellerMobileC.clear();
+                  sellerEmailC.clear();
+                  sellerOfficeAddressC.clear();
+                  sellerOfficePhoneC.clear();
+                  sellerDedLicenseC.clear();
+                  sellerBrnIssueDateC.clear();
+                  sellerPoBoxC.clear();
+                } else {
+                  isManualSeller = false;
+
+                  // Prefill from broker data
+                  final broker = _brokers.firstWhere((b) => b["id"] == id);
+                  _selectedBroker = broker;
+
+
+                  sellerAgentC.text = broker["displayName"] ?? '';
+                  sellerEstablishmentC.text = broker["user"]?["companyName"] ?? 'Freelancer';
+                  sellerOrnC.text = broker["reraNumber"] ?? '';
+                  sellerBrnC.text = broker["brnNumber"] ?? '';
+                  sellerMobileC.text = broker["mobile"] ?? '';
+                  sellerEmailC.text = broker["email"] ?? '';
+                  sellerOfficeAddressC.text = broker["address"] ?? '';
+                  sellerOfficePhoneC.text =
+                      broker['user']?["phone"] ?? broker["mobile"] ?? '';
+                  sellerDedLicenseC.text = broker["licenseNumber"] ?? '';
+                  sellerBrnIssueDateC.text = broker['brnIssuesDate'] != null
+                      ? DateFormat('dd-MMM-yyyy')
+                      .format(DateTime.parse(broker['brnIssuesDate']))
+                      : '';
+                  sellerPoBoxC.text = broker["postalCode"] ?? '';
+                }
                 _searchController.clear();
               });
             },
             value: _selectedBroker?["id"],
           ),
+
 
 
         if(_sellerMode == 'directory')...[
@@ -3031,18 +3437,20 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
             Row(
               children: [
                 Expanded(
-                  child: _buildTextField(
-                    "Agent Name *",
+                  child: _buildTextField("Agent Name",
                     controller: sellerAgentC,
                     enabled: !isDirectoryMode,
-                  ),
+
+                    required: isManualSeller || isDirectoryMode,),
+
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildTextField(
-                    "Establishment Name *",
+                    "Establishment Name",
                     controller: sellerEstablishmentC,
                     enabled: !isDirectoryMode,
+    required: isManualSeller || isDirectoryMode,
                   ),
                 ),
               ],
@@ -3053,17 +3461,19 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
               children: [
                 Expanded(
                   child: _buildTextField(
-                    "ORN *",
+                    "ORN",
                     controller: sellerOrnC,
                     enabled: !isDirectoryMode,
+                    required: isManualSeller || isDirectoryMode,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildTextField(
-                    "BRN Number *",
+                    "BRN Number",
                     controller: sellerBrnC,
                     enabled: !isDirectoryMode,
+                    required: isManualSeller || isDirectoryMode,
                   ),
                 ),
               ],
@@ -3074,17 +3484,19 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
               children: [
                 Expanded(
                   child: _buildTextField(
-                    "Mobile *",
+                    "Mobile",
                     controller: sellerMobileC,
                     enabled: !isDirectoryMode,
+                    required: isManualSeller || isDirectoryMode,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildTextField(
-                    "Email *",
+                    "Email",
                     controller: sellerEmailC,
                     enabled: !isDirectoryMode,
+                    required: isManualSeller || isDirectoryMode,
                   ),
                 ),
               ],
@@ -3126,10 +3538,10 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildTextField(
-                    "DED Licence *",
+                    "DED Licence",
                     controller: sellerDedLicenseC,
                     enabled: !isDirectoryMode,
-                  ),
+                    required: isManualSeller || isDirectoryMode,                  ),
                 ),
               ],
             ),
@@ -3401,9 +3813,10 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
       String label, {
         TextEditingController? controller,
         int maxLines = 1,
-        bool enabled = true,  String? hint,
+        bool enabled = true,
+        String? hint,
         TextInputType inputType = TextInputType.text,
-
+        bool required = false, // ✅ NEW flag
       }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -3412,25 +3825,73 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
         maxLines: maxLines,
         enabled: enabled,
         keyboardType: inputType,
+        inputFormatters: inputType == TextInputType.number
+            ? [
+          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}$')),
+        ]
+            : [],
         style: GoogleFonts.poppins(fontSize: 13),
+        validator: required
+            ? (value) {
+          if (value == null || value.trim().isEmpty) {
+            return "This field is required";
+          }
+          return null;
+        }
+            : null,
         decoration: InputDecoration(
-          labelText: label,
-            hintText: hint,
-          hintStyle: GoogleFonts.poppins(fontSize: 12,
-          color: Colors.grey),
-
-          labelStyle: GoogleFonts.poppins(fontSize: 12),
+          label: RichText(
+            text: TextSpan(
+              text: label,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Colors.grey.shade800,
+                fontWeight: FontWeight.w500,
+              ),
+              children: required
+                  ? [
+                TextSpan(
+                  text: ' *',
+                  style: const TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ]
+                  : [],
+            ),
+          ),
+          hintText: hint,
+          hintStyle: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
           filled: true,
           fillColor: enabled ? Colors.white : Colors.grey.shade50,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+            borderSide: BorderSide(color: Colors.black87, width: 1.1),
+          ),
+          errorBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+            borderSide: BorderSide(color: Colors.redAccent, width: 1.2),
+          ),
+          focusedErrorBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+            borderSide: BorderSide(color: Colors.redAccent, width: 1.2),
           ),
         ),
       ),
     );
   }
+
 
   Widget _buildDatePickerField(String label,
       {required TextEditingController controller,
@@ -3492,5 +3953,12 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
         ),
       ),
     );
+  }
+}
+
+extension StringCasingExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
   }
 }

@@ -18,6 +18,15 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        // 👇 Remove grey hover/press highlight globally
+        hoverColor: Colors.transparent,
+        focusColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        splashColor: Colors.transparent,
+
+        // 👇 Disable material ink ripple glow entirely (optional)
+        splashFactory: NoSplash.splashFactory,
+
 
         // 👇 Global loader color
         progressIndicatorTheme: const ProgressIndicatorThemeData(
@@ -58,9 +67,8 @@ class MyApp extends StatelessWidget {
           selectionHandleColor: kPrimaryColor,
         ),
 
-        // 👇 Ripple and glow controls
-        splashColor: kPrimaryColor.withOpacity(0.12),
-        highlightColor: Colors.transparent,
+
+
       ),
 
         home: LoginPage(),
