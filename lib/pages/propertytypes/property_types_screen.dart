@@ -961,12 +961,12 @@ class _PropertyTypesScreenState extends State<PropertyTypesScreen>
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(
-          color: isActive
-              ? Colors.green.withOpacity(0.25)
-              : Colors.grey.withOpacity(0.2),
-          width: 1.2,
-        ),
+          border: Border.all(
+            color: isActive
+                ? Colors.green.withOpacity(0.25)
+                : Colors.grey.withOpacity(0.2),
+            width: 1.2,
+          ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

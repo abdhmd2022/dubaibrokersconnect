@@ -58,145 +58,193 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
     }
   }
 
-  Future<void> _deleteTag(String id) async {
-    final token = await AuthService.getToken();
-    final url = Uri.parse('$baseURL/api/tags/$id');
-    try {
-      await http.delete(url, headers: {'Authorization': 'Bearer $token'});
-      //_fetchTags();
-    } catch (e) {
-      debugPrint('Delete error: $e');
+  Future<void> _deleteTag(BuildContext context, String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            const SizedBox(width: 8),
+            Text(
+              'Delete Tag',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete this tag?',
+          style: GoogleFonts.poppins(fontSize: 15, color: Colors.black87),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey.shade700,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            ),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+              shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+
+    if (confirm == true) {
+      final token = await AuthService.getToken();
+      final url = Uri.parse('$baseURL/api/tags/$id');
+      try {
+        await http.delete(url, headers: {'Authorization': 'Bearer $token'});
+        //_fetchTags(); // uncomment if needed to refresh list
+        /*ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tag deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );*/
+      } catch (e) {
+        debugPrint('Delete error: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to delete tag'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _bulkDelete() async {
     if (_selectedTagIds.isEmpty) return;
 
-    // 🧩 Show Confirmation Dialog
+    // Show confirmation once
     final confirm = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.white.withOpacity(0.95),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 380),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 🗑 Icon
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: const Icon(
-                      Icons.delete_forever_rounded,
-                      color: Colors.redAccent,
-                      size: 40,
-                    ),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white.withOpacity(0.95),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withOpacity(0.12),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 18),
-
-                  // 🏷 Title
-                  Text(
-                    "Confirm Deletion",
-                    style: GoogleFonts.poppins(
+                  padding: const EdgeInsets.all(16),
+                  child: const Icon(Icons.delete_forever_rounded,
+                      color: Colors.redAccent, size: 40),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  "Confirm Deletion",
+                  style: GoogleFonts.poppins(
                       fontSize: 19,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 💬 Message
-                  Text(
-                    "Are you sure you want to delete the selected tags?\n\n"
-                        "This action cannot be undone.",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
+                      color: Colors.black87),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Are you sure you want to delete the selected tags?\nThis action cannot be undone.",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
                       color: Colors.grey.shade700,
                       fontSize: 14.5,
-                      height: 1.5,
+                      height: 1.5),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context, false),
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      label: const Text("Cancel"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade200,
+                        foregroundColor: Colors.black87,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // Buttons Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // ❌ Cancel
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(context, false),
-                        icon: const Icon(Icons.close_rounded, size: 18),
-                        label: const Text("Cancel"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade200,
-                          foregroundColor: Colors.black87,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                    const SizedBox(width: 14),
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context, true),
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: const Text("Yes, Delete"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        elevation: 5,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        shadowColor: Colors.redAccent.withOpacity(0.3),
                       ),
-                      const SizedBox(width: 14),
-
-                      // 🔴 Confirm Delete
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(context, true),
-                        icon: const Icon(Icons.delete_outline, size: 18),
-                        label: const Text("Yes, Delete"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
-                          foregroundColor: Colors.white,
-                          elevation: 5,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          shadowColor: Colors.redAccent.withOpacity(0.3),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
 
-    if (confirm != true) return; // 🛑 User cancelled delete
+    if (confirm != true) return;
 
-    // ✅ Proceed if confirmed
+    // Proceed with deletion silently
     setState(() => _bulkDeleting = true);
+    final token = await AuthService.getToken();
 
     try {
       for (final id in _selectedTagIds) {
-        await _deleteTag(id);
+        final url = Uri.parse('$baseURL/api/tags/$id');
+        await http.delete(url, headers: {'Authorization': 'Bearer $token'});
       }
 
       await _fetchTags();
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      /*ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Selected tags deleted successfully"),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
-      );
+      );*/
     } catch (e) {
       debugPrint('Bulk delete error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Failed to delete tags"),
+          content: Text("Failed to delete some tags"),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -208,6 +256,66 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
 
 
   Future<void> _updateTagStatus(Map<String, dynamic> tag, bool newStatus) async {
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          backgroundColor: Colors.white,
+          elevation: 10,
+          title: Row(
+            children: [
+              Icon(
+                newStatus ? Icons.toggle_on_rounded : Icons.toggle_off_outlined,
+                color: newStatus ? Colors.green.shade600 : Colors.red.shade600,
+                size: 30,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                newStatus ? 'Activate Tag' : 'Deactivate Tag',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} "${tag['name']}"?',
+            style: GoogleFonts.poppins(color: Colors.black87, fontSize: 15),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey.shade700,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              ),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                newStatus ? Colors.green.shade600 : Colors.red.shade600,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text(newStatus ? 'Activate' : 'Deactivate'),
+            ),
+          ],
+        );
+      },
+    );
+
+    // 🚫 User cancelled
+    if (confirm != true) return;
+
     final token = await AuthService.getToken();
     final url = Uri.parse('$baseURL/api/tags/${tag['id']}');
     try {
@@ -543,10 +651,15 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                     children: [
                       // All Tags + Search + Select all rows here
                       _buildHeaderRow(),
-                      const SizedBox(height: 24),
-                      _buildSelectAllRow(),
 
-                      const SizedBox(height: 16),
+                      if(_tags.isNotEmpty)...[
+                        const SizedBox(height: 24),
+                        _buildSelectAllRow(),
+                        const SizedBox(height: 16),
+
+
+                      ],
+
 
                       // 🧩 Expanded inside container gives GridView a height
                       Expanded(
@@ -688,14 +801,22 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                 onChanged: (_) => _toggleSelect(tag['id']),
               ),
               Expanded(
-                child: Text(
-                  tag['name'] ?? '',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15.5,
-                    color: Colors.black87,
-                  ),
-                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+
+                    Text(
+                      tag['name'] ?? '',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15.5,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    _buildModernStatusSwitch(tag),
+
+                  ],
+                )
               ),
             ],
           ),
@@ -736,7 +857,6 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
 
           const SizedBox(height: 6),
 
-          // 📝 Description
           // 📝 Description with show more / show less
           LayoutBuilder(
             builder: (context, constraints) {
@@ -809,35 +929,19 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Row(
-                  children: [
-                    Switch(
-                      value: isActive,
-                      activeColor: Colors.green,
-                      onChanged: (val) => _updateTagStatus(tag, val),
-                    ),
-                    Text(
-                      isActive ? "Active" : "Inactive",
-                      style: GoogleFonts.poppins(
-                        color: isActive ? kPrimaryColor : Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
+
                 IconButton(
                   icon: const Icon(Icons.delete_outline,
                       color: Colors.redAccent, size: 20),
                   tooltip: "Delete",
                   onPressed: () async {
-                    await _deleteTag(tag['id']);
+                    await _deleteTag(context,tag['id']);
                     _fetchTags();
                   },
                 ),
@@ -848,6 +952,87 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
       ),
     );
   }
+
+  Widget _buildModernStatusSwitch(Map<String, dynamic> tag) {
+    final isActive = tag['isActive'] == true;
+    bool hovering = false;
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return MouseRegion(
+          onEnter: (_) => setState(() => hovering = true),
+          onExit: (_) => setState(() => hovering = false),
+          cursor: SystemMouseCursors.click,
+          child: Tooltip(
+            message: isActive ? 'Deactivate' : 'Activate',
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+            waitDuration: const Duration(milliseconds: 300),
+            child: GestureDetector(
+              onTap: () => _updateTagStatus(tag, !isActive),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: 56,
+                height: 28,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  color: isActive
+                      ? (hovering
+                      ? Colors.green.shade600
+                      : Colors.green.shade500)
+                      : (hovering
+                      ? Colors.grey.shade400
+                      : Colors.grey.shade300),
+                  boxShadow: hovering
+                      ? [
+                    BoxShadow(
+                      color: Colors.black12.withOpacity(0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                      : [],
+                ),
+                child: Stack(
+                  alignment: Alignment.centerLeft,
+                  children: [
+                    AnimatedAlign(
+                      duration: const Duration(milliseconds: 250),
+                      alignment: isActive
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 2,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Color _getTypeColor(String? type) {
     switch (type?.toUpperCase()) {
       case 'FEATURE':
@@ -1069,123 +1254,112 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.white.withOpacity(0.95),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 380, // ❗ Limit width — keeps it compact on wide screens
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 🧩 Icon Header
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: const Icon(
-                      Icons.warning_amber_rounded,
-                      color: Colors.orange,
-                      size: 40,
-                    ),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white.withOpacity(0.95),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.15),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 18),
-
-                  // 🏷 Title
-                  Text(
-                    "Confirm Status Update",
-                    style: GoogleFonts.poppins(
+                  padding: const EdgeInsets.all(16),
+                  child: const Icon(Icons.warning_amber_rounded,
+                      color: Colors.orange, size: 40),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  "Confirm Status Update",
+                  style: GoogleFonts.poppins(
                       fontSize: 19,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 💬 Description
-                  Text(
-                    "Do you want to update the status of all selected tags?",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
+                      color: Colors.black87),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Do you want to update the status of all selected tags?",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
                       color: Colors.grey.shade700,
                       fontSize: 14.5,
-                      height: 1.5,
+                      height: 1.5),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context, false),
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      label: const Text("Cancel"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade200,
+                        foregroundColor: Colors.black87,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // Buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // ❌ Cancel
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(context, false),
-                        icon: const Icon(Icons.close_rounded, size: 18),
-                        label: const Text("Cancel"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade200,
-                          foregroundColor: Colors.black87,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                    const SizedBox(width: 14),
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context, true),
+                      icon: const Icon(Icons.check_circle_outline, size: 18),
+                      label: const Text("Yes, Update"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryColor,
+                        foregroundColor: Colors.white,
+                        elevation: 5,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        shadowColor: kPrimaryColor.withOpacity(0.3),
                       ),
-                      const SizedBox(width: 14),
-
-                      // ✅ Confirm
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(context, true),
-                        icon: const Icon(Icons.check_circle_outline, size: 18),
-                        label: const Text("Yes, Update"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kPrimaryColor,
-                          foregroundColor: Colors.white,
-                          elevation: 5,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          shadowColor: kPrimaryColor.withOpacity(0.3),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
 
+    if (confirm != true) return;
 
-
-    if (confirm != true) return; // 🛑 User cancelled
-
-    // ✅ Proceed only if user confirmed
     setState(() => _bulkUpdating = true);
+    final token = await AuthService.getToken();
 
     try {
       for (final id in _selectedTagIds) {
         final tag = _tags.firstWhere((t) => t['id'] == id);
-        final bool currentStatus = tag['isActive'] == true;
-        await _updateTagStatus(tag, !currentStatus);
+        final newStatus = !(tag['isActive'] == true);
+
+        await http.put(
+          Uri.parse('$baseURL/api/tags/$id'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({"is_active": newStatus}),
+        );
       }
 
-      /*await _fetchTags();
+      await _fetchTags();
 
-      ScaffoldMessenger.of(context).showSnackBar(
+     /* ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Toggled status of selected tags successfully'),
+          content: Text('Selected tags status updated successfully'),
           backgroundColor: Colors.teal,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1195,7 +1369,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
       debugPrint('Bulk toggle error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to toggle statuses'),
+          content: Text('Failed to update tag statuses'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1204,6 +1378,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
       setState(() => _bulkUpdating = false);
     }
   }
+
 
   String _formatDate(String? isoString) {
     if (isoString == null) return '-';
