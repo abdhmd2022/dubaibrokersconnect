@@ -26,51 +26,54 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
   late TabController _tabController;
   bool _loading = true;
   List<Map<String, dynamic>> pendingOthersList = [];
+  late ScrollController _scrollController;
 
-  List<dynamic> _transactions = [];
+  int _currentPage = 1;
+  int _totalPages = 1;
+  final int _limit = 10; // or whatever your API default is
+  bool _loadingMore = false;
 
+   List<Map<String, dynamic>> pendingMyConfirmations = [];
 
-  final List<Map<String, dynamic>> pendingMyConfirmations = [
-    {
-      "title": "studio sale",
-      "broker": "saadan",
-      "value": "3,500,000 AED",
-      "date": "12 Sep 2025",
-      "aiScore": 60,
-    },
-    {
-      "title": "studio",
-      "broker": "saadan",
-      "value": "2,000,000 AED",
-      "date": "12 Sep 2025",
-      "aiScore": 20,
-    },
-  ];
+   List<Map<String, dynamic>> completedTransactions = [
 
-  final List<Map<String, dynamic>> completedTransactions = [
-    {
-      "title": "abc",
-      "broker": "saadan",
-      "value": "2,000,000 AED",
-      "date": "08 Sep 2025",
-      "aiScore": 50,
-      "partnerScore": 60,
-    },
   ];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
     _fetchTransactions();
   }
 
-  Future<void> _fetchTransactions() async {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200 &&
+        !_loadingMore &&
+        _currentPage < _totalPages) {
+      _fetchTransactions(page: _currentPage + 1);
+    }
+  }
+
+  Future<void> _fetchTransactions({int page = 1}) async {
     try {
+      if (page == 1) setState(() => _loading = true);
+      else setState(() => _loadingMore = true);
+
       final token = await AuthService.getToken();
-      final currentBrokerId = widget.userData["broker"]["id"]; // 👈 your broker ID
+      final currentBrokerId = widget.userData["broker"]["id"];
+      final currentUserId = widget.userData["id"];
+
       final response = await http.get(
-        Uri.parse("$baseURL/api/transactions"),
+        Uri.parse("$baseURL/api/transactions?page=$page&limit=$_limit"),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
@@ -78,110 +81,72 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
       );
 
       if (response.statusCode == 200) {
-        final jsonBody = jsonDecode(response.body);
-        final List<dynamic> all = jsonBody["data"] ?? [];
+        final decoded = jsonDecode(response.body);
+        final List<dynamic> data = decoded["data"] ?? [];
+        final pagination = decoded["pagination"] ?? {};
 
-        // Separate by status
-        final pendingAll = all
-            .where((tx) =>
-        (tx["status"]?.toString().toUpperCase() ?? "") == "PENDING")
-            .toList();
+        // Update total pages
+        _totalPages = pagination["totalPages"] ?? 1;
+        _currentPage = pagination["page"] ?? page;
 
-        final completed = all
-            .where((tx) =>
-        (tx["status"]?.toString().toUpperCase() ?? "") == "COMPLETED")
-            .toList();
+        final List<Map<String, dynamic>> txList =
+        data.map((e) => Map<String, dynamic>.from(e)).toList();
 
-        // Split pending between "mine" and "others"
-        final pendingMy = pendingAll
-            .where((tx) => tx["brokerId"]?.toString() == currentBrokerId)
-            .toList();
+        // 🟢 Pending My Confirmation → transactions I created
+        final myPending = txList.where((tx) {
+          final status = tx["status"]?.toString().toUpperCase();
+          final createdBy = tx["createdByBrokerId"];
+          return status == "PENDING" && createdBy == currentBrokerId;
+        }).toList();
 
-        final pendingOthers = pendingAll
-            .where((tx) => tx["brokerId"]?.toString() != currentBrokerId)
-            .toList();
+        // 🟣 Pending Others → transactions others created for me
+        final othersPending = txList.where((tx) {
+          final status = tx["status"]?.toString().toUpperCase();
+          final brokerId =
+              tx["brokerId"] ?? (tx["broker"] is Map ? tx["broker"]["id"] : null);
+          final createdBy = tx["createdByBrokerId"];
+          return status == "PENDING" &&
+              brokerId == currentBrokerId &&
+              createdBy != currentBrokerId;
+        }).toList();
+
+        // 🟢 Completed Transactions — mine or assigned to me
+        final completed = txList.where((tx) {
+          final status = tx["status"]?.toString().toUpperCase();
+          final brokerId = tx["brokerId"] ?? (tx["broker"] is Map ? tx["broker"]["id"] : null);
+          final createdBy = tx["createdByBrokerId"];
+
+          final isCompleted = status == "COMPLETED";
+          final isMine = createdBy == currentBrokerId;
+          final isAssignedToMe = brokerId == currentBrokerId;
+
+          return isCompleted && (isMine || isAssignedToMe);
+        }).toList();
+
+
 
         setState(() {
-          _transactions = all;
-          _loading = false;
-
-          pendingMyConfirmations.clear();
-          completedTransactions.clear();
-
-          // ✅ Pending My Confirmation
-          pendingMyConfirmations.addAll(
-            pendingMy.map<Map<String, dynamic>>((t) {
-              final valueNum =
-                  double.tryParse(t["value"]?.toString() ?? "0") ?? 0;
-              final formattedValue =
-                  "AED ${NumberFormat('#,###').format(valueNum)}";
-              final date = t["transactionDate"] != null
-                  ? DateFormat('dd MMM yyyy')
-                  .format(DateTime.parse(t["transactionDate"]).toLocal())
-                  : "N/A";
-
-              return {
-                "title": t["title"] ?? "-",
-                "broker": t["broker"]?["displayName"] ?? "-",
-                "value": formattedValue,
-                "date": date,
-                "status": t["status"] ?? "PENDING",
-                "type": t["transactionType"] ?? "-",
-              };
-            }).toList(),
-          );
-
-          // ✅ Pending Others (store separately)
-          pendingOthersList = pendingOthers.map<Map<String, dynamic>>((t) {
-            final valueNum =
-                double.tryParse(t["value"]?.toString() ?? "0") ?? 0;
-            final formattedValue =
-                "AED ${NumberFormat('#,###').format(valueNum)}";
-            final date = t["transactionDate"] != null
-                ? DateFormat('dd MMM yyyy')
-                .format(DateTime.parse(t["transactionDate"]).toLocal())
-                : "N/A";
-
-            return {
-              "title": t["title"] ?? "-",
-              "broker": t["broker"]?["displayName"] ?? "-",
-              "value": formattedValue,
-              "date": date,
-              "status": t["status"] ?? "PENDING",
-              "type": t["transactionType"] ?? "-",
-            };
-          }).toList();
-
-          // ✅ Completed Transactions
-          completedTransactions.addAll(
-            completed.map<Map<String, dynamic>>((t) {
-              final valueNum =
-                  double.tryParse(t["value"]?.toString() ?? "0") ?? 0;
-              final formattedValue =
-                  "AED ${NumberFormat('#,###').format(valueNum)}";
-              final date = t["transactionDate"] != null
-                  ? DateFormat('dd MMM yyyy')
-                  .format(DateTime.parse(t["transactionDate"]).toLocal())
-                  : "N/A";
-
-              return {
-                "title": t["title"] ?? "-",
-                "broker": t["broker"]?["displayName"] ?? "-",
-                "value": formattedValue,
-                "date": date,
-                "status": t["status"] ?? "COMPLETED",
-                "type": t["transactionType"] ?? "-",
-              };
-            }).toList(),
-          );
+          if (page == 1) {
+            pendingMyConfirmations = myPending;
+            pendingOthersList = othersPending;
+            completedTransactions = completed;
+          } else {
+            // Append more pages
+            pendingMyConfirmations.addAll(myPending);
+            pendingOthersList.addAll(othersPending);
+            completedTransactions.addAll(completed);
+          }
         });
       } else {
-        setState(() => _loading = false);
         debugPrint("⚠️ Failed to fetch transactions: ${response.statusCode}");
       }
     } catch (e) {
       debugPrint("❌ Error fetching transactions: $e");
-      setState(() => _loading = false);
+    } finally {
+      setState(() {
+        _loading = false;
+        _loadingMore = false;
+      });
     }
   }
 
@@ -217,7 +182,8 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
                   color: Colors.black87,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+
 
               // Top bar button
               Align(
@@ -244,7 +210,7 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
                   onPressed: _openNewTransactionDialog,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               // Tabs
               Container(
@@ -276,9 +242,12 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
                     _buildTransactionList(pendingMyConfirmations, true),
                     _buildTransactionList(pendingOthersList, false),
                     _buildTransactionList(completedTransactions, false, completed: true),
+
                   ],
                 ),
               ),
+
+
             ],
           ),
         )),
@@ -286,13 +255,13 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
     );
   }
 
-  Widget _buildTransactionList(List<Map<String, dynamic>> items,
-      bool showConfirmButton,
-      {bool completed = false}) {
-
-
+  Widget _buildTransactionList(
+      List<Map<String, dynamic>> items,
+      bool showConfirmButton, {
+        bool completed = false,
+      }) {
     if (_loading) {
-      return   Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -305,196 +274,284 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
 
     if (items.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 0),
-          child: Card(
-            elevation: 20,
-            color: Colors.white,
-            shadowColor: Colors.black12.withOpacity(0.08),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Container(
-              width: double.infinity,
-              constraints: const BoxConstraints(minHeight: 260),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // 📦 Icon
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.blueGrey.shade50,
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(18),
-                    child: Icon(
-                      FontAwesomeIcons.userTie,
-                      color: kPrimaryColor.withOpacity(0.7),
-                      size: 38,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // 📝 Title
-                  Text(
-                    "No transaction found",
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-
-                ],
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12.withOpacity(0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
               ),
-            ),
-          ).animate().fadeIn(duration: 500.ms, curve: Curves.easeOutCubic),
-        ),
+            ],
+          ),
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.receipt_long_rounded, size: 48, color: kPrimaryColor.withOpacity(0.8)),
+              const SizedBox(height: 20),
+              Text(
+                "No Transactions Found",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "Once transactions are added, they’ll appear here.",
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+              ),
+            ],
+          ),
+        ).animate().fadeIn(duration: 400.ms),
       );
     }
 
     return RefreshIndicator(
       onRefresh: _fetchTransactions,
-      child: ListView.separated(
-        itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final tx = items[index];
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12.withOpacity(0.05),
-                  blurRadius: 6,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title + status
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        tx["title"] ?? "-",
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Container(
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: completed
-                            ? Colors.green.shade50
-                            : Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        tx["status"] ?? "",
-                        style: GoogleFonts.poppins(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: completed
-                              ? Colors.green.shade700
-                              : Colors.orange.shade700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
+      child: SingleChildScrollView(
+        controller: _scrollController, // 👈 ADD THIS
 
-                // Value & Type
-                Text(
-                  "${tx["value"]}  •  ${tx["type"] ?? '-'}",
-                  style: GoogleFonts.poppins(
-                    color: Colors.black87,
-                    fontSize: 13,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 60),
+        child: Column(
+          children: [
+            ...items.map((tx) {
+              final isCompleted =
+              (tx["status"]?.toString().toUpperCase() == "COMPLETED");
+              final color = isCompleted
+                  ? Colors.green
+                  : (tx["status"]?.toString().toUpperCase() == "PENDING"
+                  ? Colors.orange
+                  : Colors.blue);
+
+              return MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 4),
-
-                // Broker & Date
-                Row(
-                  children: [
-                    const Icon(Icons.person_outline_rounded,
-                        size: 14, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      tx["broker"] ?? "-",
-                      style: GoogleFonts.poppins(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87),
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.calendar_today_rounded,
-                        size: 13, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      tx["date"] ?? "N/A",
-                      style: GoogleFonts.poppins(
-                          fontSize: 12.5, color: Colors.grey.shade700),
-                    ),
-                  ],
-                ),
-
-                if (showConfirmButton) ...[
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kPrimaryColor,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () => _openConfirmDialog(tx),
-                    child: Text(
-                      "Confirm",
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                        fontSize: 13,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 🔹 Title & status badge
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Icon(
+                                  tx["transactionType"] == "SALE"
+                                      ? Icons.home_work_rounded
+                                      : tx["transactionType"] == "RENT"
+                                      ? Icons.apartment_rounded
+                                      : Icons.handshake_rounded,
+                                  color: kPrimaryColor.withOpacity(0.9),
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    tx["title"] ?? "-",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 5),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              gradient: LinearGradient(
+                                colors: [
+                                  color.withOpacity(0.9),
+                                  color.withOpacity(0.7)
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: Text(
+                              tx["status"]?.toString().toUpperCase() ?? "-",
+                              style: GoogleFonts.poppins(
+                                fontSize: 11.5,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+
+                      const SizedBox(height: 10),
+
+                      // 💰 Value & Type
+                      Row(
+                        children: [
+                          Icon(Icons.payments_rounded,
+                              size: 16, color: Colors.grey.shade600),
+                          const SizedBox(width: 6),
+                          Text(
+                            "AED ${NumberFormat('#,###').format(num.tryParse(tx['value']?.toString() ?? '0') ?? 0)}",
+                            style: GoogleFonts.poppins(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Icon(Icons.category_rounded,
+                              size: 15, color: Colors.grey.shade600),
+                          const SizedBox(width: 4),
+                          Text(
+                            tx["transactionType"]?.toString().toUpperCase() ?? "-",
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // 🧑‍💼 Broker + 📅 Date
+                      Row(
+                        children: [
+                          Icon(Icons.person_outline_rounded,
+                              size: 15, color: Colors.grey.shade600),
+                          const SizedBox(width: 4),
+                          Text(
+                            tx["broker"] is Map
+                                ? (tx["broker"]["displayName"] ?? "-")
+                                : (tx["broker"]?.toString() ?? "-"),
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Icon(Icons.calendar_month_rounded,
+                              size: 15, color: Colors.grey.shade600),
+                          const SizedBox(width: 4),
+                          Text(
+                            tx["transactionDate"] != null
+                                ? DateFormat('dd MMM yyyy').format(
+                              DateTime.parse(tx["transactionDate"]),
+                            )
+                                : "N/A",
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // 🔘 Confirm button (if applicable)
+                      if (showConfirmButton) ...[
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.bottomRight,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimaryColor,
+                              elevation: 3,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.check_circle_outline_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            label: Text(
+                              "Confirm",
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                fontSize: 13,
+                              ),
+                            ),
+                            onPressed: () => _openConfirmDialog(tx),
+                          ),
+                        ),
+
+                      ],
+                    ],
                   ),
-                ],
-              ],
-            ),
-          );
-        },
+                ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0),
+              );
+            }),
+
+          ],
+        ),
       ),
     );
   }
 
 
 
-  void _openNewTransactionDialog() {
-    showDialog(
+
+
+  void _openNewTransactionDialog() async {
+    final result = await showDialog(
       context: context,
-      builder: (_) =>  RecordTransactionDialog(userData: widget.userData,),
+      builder: (_) => RecordTransactionDialog(userData: widget.userData),
     );
+
+    // ✅ When dialog closes with success, refresh list
+    if (result == true) {
+      debugPrint("🔄 Refreshing after new transaction...");
+
+      _fetchTransactions();
+    }
   }
 
-  void _openConfirmDialog(Map<String, dynamic> tx) {
-    showDialog(
+  void _openConfirmDialog(Map<String, dynamic> tx) async {
+    final result = await showDialog<bool>(
       context: context,
-      builder: (_) => ConfirmTransactionDialog(brokerName: tx["broker"]),
+      builder: (_) => ConfirmTransactionDialog(
+        brokerName: tx["broker"] is Map
+            ? (tx["broker"]["displayName"] ?? "-")
+            : (tx["broker"]?.toString() ?? "-"),
+        transactionId: tx["id"], // 👈 pass the transaction id
+      ),
     );
+
+    // ✅ If confirmed successfully, refresh list
+    if (result == true) {
+      _fetchTransactions(page: _currentPage);
+    }
   }
+
 }
 
 class RecordTransactionDialog extends StatefulWidget {
@@ -768,8 +825,8 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
     try {
       setState(() => _loading = true);
       final token = await AuthService.getToken();
-      final reviewerId = widget.userData["broker"]["id"];
 
+      print('token -> $token');
       // Step 1: Create Transaction
       final transactionBody = {
         "broker_id": _selectedBrokerId,
@@ -782,6 +839,8 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
         _selectedDate?.toUtc().toIso8601String() ??
             DateTime.now().toUtc().toIso8601String(),
       };
+
+      print('submit body -> $transactionBody');
 
       final transactionRes = await http.post(
         Uri.parse("$baseURL/api/transactions"),
@@ -817,11 +876,13 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
           );
         }
 
-        Navigator.pop(context);
+        Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Transaction recorded successfully!"),
           backgroundColor: Colors.green,
         ));
+
+
       } else {
         final msg = jsonDecode(transactionRes.body)['message'] ?? 'Error';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -889,9 +950,13 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
 
 class ConfirmTransactionDialog extends StatefulWidget {
   final String brokerName;
+  final String transactionId;
 
-  const ConfirmTransactionDialog({Key? key, required this.brokerName})
-      : super(key: key);
+  const ConfirmTransactionDialog({
+    Key? key,
+    required this.brokerName,
+    required this.transactionId,
+  }) : super(key: key);
 
   @override
   State<ConfirmTransactionDialog> createState() =>
@@ -901,6 +966,71 @@ class ConfirmTransactionDialog extends StatefulWidget {
 class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
   double _rating = 0;
   final TextEditingController _reviewC = TextEditingController();
+  bool _loading = false;
+
+  Future<void> _confirmTransaction() async {
+    try {
+      setState(() => _loading = true);
+      final token = await AuthService.getToken();
+
+      // 🔹 1. Complete the transaction
+      final res = await http.post(
+        Uri.parse("$baseURL/api/transactions/${widget.transactionId}/complete"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        // 🔹 2. Optionally submit review if rating given
+        if (_rating > 0) {
+          final reviewBody = {
+            "transaction_id": widget.transactionId,
+            "rating": _rating.toInt(),
+            "comment": _reviewC.text.trim(),
+            "status": "APPROVED",
+          };
+
+          await http.post(
+            Uri.parse("$baseURL/api/reviews"),
+            headers: {
+              "Authorization": "Bearer $token",
+              "Content-Type": "application/json",
+            },
+            body: jsonEncode(reviewBody),
+          );
+        }
+
+        // ✅ Close dialog and refresh parent
+        Navigator.of(context).pop(true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Transaction confirmed successfully!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final msg = jsonDecode(res.body)['message'] ?? 'Failed to confirm';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $msg"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("❌ Confirm transaction error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -914,6 +1044,7 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -926,7 +1057,6 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
                         fontWeight: FontWeight.w600,
                       ),
                       softWrap: true,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   IconButton(
@@ -950,9 +1080,7 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
               Row(
                 children: List.generate(5, (index) {
                   return IconButton(
-                    onPressed: () {
-                      setState(() => _rating = index + 1);
-                    },
+                    onPressed: () => setState(() => _rating = index + 1),
                     icon: Icon(
                       Icons.star_rounded,
                       color: index < _rating
@@ -971,7 +1099,7 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
                 decoration: InputDecoration(
                   labelText: "Your Review",
                   hintText:
-                  "Describe your experience working with this broker. Be detailed and professional.",
+                  "Describe your experience working with this broker.",
                   border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
@@ -983,11 +1111,10 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFEAF3FF),
                   borderRadius: BorderRadius.circular(8),
-                  border:
-                  Border.all(color: const Color(0xFF1976D2).withOpacity(0.3)),
+                  border: Border.all(color: const Color(0xFF1976D2).withOpacity(0.3)),
                 ),
                 child: Text(
-                  "Note: Your review quality affects both brokers' reputation scores. Our AI analyzes reviews for professionalism, detail, and helpfulness. Write thoughtfully!",
+                  "Note: Your review impacts both brokers' reputation. Write professionally.",
                   style: GoogleFonts.poppins(
                       fontSize: 12, color: const Color(0xFF1976D2)),
                 ),
@@ -1001,11 +1128,16 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
-
-                onPressed: () => Navigator.pop(context),
-                child: Text("Confirm & Complete Transaction",
-                    style: GoogleFonts.poppins(
-                        color: Colors.white, fontWeight: FontWeight.w600)),
+                onPressed: _loading ? null : _confirmTransaction,
+                child: _loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                  "Confirm & Complete Transaction",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
