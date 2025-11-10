@@ -441,37 +441,62 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
                       const SizedBox(height: 8),
 
                       // 🧑‍💼 Broker + 📅 Date
-                      Row(
+                      // 🧑‍💼 Broker + 👤 Created By + 📅 Date
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.person_outline_rounded,
-                              size: 15, color: Colors.grey.shade600),
-                          const SizedBox(width: 4),
-                          Text(
-                            tx["broker"] is Map
-                                ? (tx["broker"]["displayName"] ?? "-")
-                                : (tx["broker"]?.toString() ?? "-"),
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: Colors.black87,
-                            ),
+                          Row(
+                            children: [
+                              Icon(Icons.person_outline_rounded,
+                                  size: 15, color: Colors.grey.shade600),
+                              const SizedBox(width: 4),
+                              Text(
+                                tx["broker"] is Map
+                                    ? (tx["broker"]["displayName"] ?? "-")
+                                    : (tx["broker"]?.toString() ?? "-"),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Icon(Icons.calendar_month_rounded,
+                                  size: 15, color: Colors.grey.shade600),
+                              const SizedBox(width: 4),
+                              Text(
+                                tx["transactionDate"] != null
+                                    ? DateFormat('dd MMM yyyy').format(
+                                  DateTime.parse(tx["transactionDate"]),
+                                )
+                                    : "N/A",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 16),
-                          Icon(Icons.calendar_month_rounded,
-                              size: 15, color: Colors.grey.shade600),
-                          const SizedBox(width: 4),
-                          Text(
-                            tx["transactionDate"] != null
-                                ? DateFormat('dd MMM yyyy').format(
-                              DateTime.parse(tx["transactionDate"]),
-                            )
-                                : "N/A",
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: Colors.grey.shade700,
+                          if (!completed && !showConfirmButton) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(Icons.account_circle_outlined,
+                                    size: 15, color: Colors.grey.shade600),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "Initiated by: ${tx["created_by"]?["display_name"] ?? "Unknown"}",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.5,
+                                    color: Colors.grey.shade700,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
+                          ],
                         ],
                       ),
+
 
                       // 🔘 Confirm button (if applicable)
                       if (showConfirmButton) ...[

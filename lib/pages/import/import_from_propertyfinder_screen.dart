@@ -157,7 +157,6 @@ class _ImportFromPropertyFinderScreenState extends State<ImportFromPropertyFinde
       "listing_status": "ACTIVE",
       "is_featured": true,
       "amenities_tag_ids": selectedAmenities.map((a) => a['id']).toList(),
-
     };
 
 
