@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -953,7 +954,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 600;
-    final double dialogWidth = isMobile ? screenWidth * 0.9 : 420;
+    final double dialogWidth = isMobile ? screenWidth * 0.9 : 440;
 
     showDialog(
       context: context,
@@ -966,96 +967,146 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
               minWidth: isMobile ? screenWidth * 0.85 : 360,
             ),
             child: Dialog(
-              backgroundColor: Colors.white.withOpacity(0.95),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
+              elevation: 0,
+              backgroundColor: Colors.white,
               insetPadding: EdgeInsets.symmetric(
                 horizontal: isMobile ? 16 : 24,
                 vertical: isMobile ? 24 : 40,
               ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // --- Header Row ---
-                    Row(
-                      children: [
-                        const Icon(Icons.info_outline_rounded,
-                            color: Colors.blueAccent, size: 24),
-                        const SizedBox(width: 10),
-                        Text(
-                          "Broker Details",
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded,
-                              color: Colors.grey, size: 22),
-                          onPressed: () => Navigator.pop(context),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withOpacity(0.25),
+                          Colors.white.withOpacity(0.25),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 25,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-
-                    // --- Details ---
-                    if (hasDetails)
-                      Column(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildDetailRow(
-                            "🏢 Company Name",
-                            company?.toString().isNotEmpty == true
-                                ? company
-                                : "N/A",
+                          // --- Header Row ---
+                          Row(
+                            children: [
+                              Container(
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [Color(0xFF4FC3F7), Color(0xFF1976D2)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
+                                padding: const EdgeInsets.all(8),
+                                child: const Icon(Icons.info_outline_rounded,
+                                    color: Colors.white, size: 20),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                "Broker Details",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded,
+                                    color: Colors.black54, size: 22),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 10),
-                          _buildDetailRow(
-                            "🆔 BRN Number",
-                            brnNumber?.toString().isNotEmpty == true
-                                ? brnNumber
-                                : "N/A",
-                          ),
-                          const SizedBox(height: 10),
-                          _buildDetailRow(
-                            "📅 BRN Issue Date",
-                            brnIssueDate != null
-                                ? DateFormat('dd-MMM-yyyy').format(
-                                DateTime.tryParse(brnIssueDate) ??
-                                    DateTime.now())
-                                : "N/A",
-                          ),
-                          const SizedBox(height: 10),
-                          _buildDetailRow(
-                            "⏳ BRN Expiry Date",
-                            brnExpiryDate != null
-                                ? DateFormat('dd-MMM-yyyy').format(
-                                DateTime.tryParse(brnExpiryDate) ??
-                                    DateTime.now())
-                                : "N/A",
-                          ),
-                        ],
-                      )
-                    else
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 32),
-                        child: Center(
-                          child: Text(
-                            "No details available for this broker.",
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              color: Colors.grey.shade700,
+                          const SizedBox(height: 16),
+
+                          // --- Details Section ---
+                          if (hasDetails)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildDetailRow(
+                                  "🏢 Company Name",
+                                  company?.toString().isNotEmpty == true
+                                      ? company
+                                      : "N/A",
+                                ),
+                                const SizedBox(height: 10),
+                                _buildDetailRow(
+                                  "🆔 BRN Number",
+                                  brnNumber?.toString().isNotEmpty == true
+                                      ? brnNumber
+                                      : "N/A",
+                                ),
+                                const SizedBox(height: 10),
+                                _buildDetailRow(
+                                  "📅 BRN Issue Date",
+                                  brnIssueDate != null
+                                      ? DateFormat('dd-MMM-yyyy').format(
+                                      DateTime.tryParse(brnIssueDate) ??
+                                          DateTime.now())
+                                      : "N/A",
+                                ),
+                                const SizedBox(height: 10),
+                                _buildDetailRow(
+                                  "⏳ BRN Expiry Date",
+                                  brnExpiryDate != null
+                                      ? DateFormat('dd-MMM-yyyy').format(
+                                      DateTime.tryParse(brnExpiryDate) ??
+                                          DateTime.now())
+                                      : "N/A",
+                                ),
+                              ],
+                            )
+                          else
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 40),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.info_outline_rounded,
+                                        size: 38,
+                                        color: Colors.blueAccent.withOpacity(0.7)),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      "No Company/BRN details available for this broker.",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                        ],
                       ),
-                  ],
+                    ),
+                  ),
                 ),
               ),
             ).animate().fade(duration: 300.ms).scale(
