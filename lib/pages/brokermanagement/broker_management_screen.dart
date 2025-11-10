@@ -562,7 +562,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     else
     Row(
     children: [
-    _buildStatCard("All", total, kPrimaryColor, Icons.people),
+    _buildStatCard("All", total, Colors.blueAccent, Icons.people),
     _buildStatCard("Pending", pending, Colors.amber,
     Icons.access_time_rounded),
     _buildStatCard("Approved", approved, Colors.green,
@@ -758,17 +758,24 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                     children: [
                       // Name + Status Chip
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            "${b['displayName'] ?? 'N/A'}",
-                            style: GoogleFonts.poppins(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                          Row(children: [
+                            Text(
+                              "${b['displayName'] ?? 'N/A'}",
+                              style: GoogleFonts.poppins(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 8,),
-                          _statusChip(b['approvalStatus'] ?? '', isVerified: b['isVerified'] == true,isActive: isActive),
+                            SizedBox(width: 8,),
+                            _statusChip(b['approvalStatus'] ?? '', isVerified: b['isVerified'] == true,isActive: isActive),
+
+
+                          ],),
+
+
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -902,6 +909,17 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                           color: Colors.grey.shade600,
                         ),
                       ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        child: IconButton(
+                          icon: const Icon(Icons.info_outline_rounded,
+                              color: Colors.blueAccent, size: 22),
+                          tooltip: "View Company & BRN Details",
+                          onPressed: () => _showBrokerDetailsDialog(context, b),
+                        ),
+                      ),
+
                     ],
                   ),
                 ),
@@ -909,6 +927,9 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
 
                 // ✅ Approve / Reject Buttons (hide if disabled)
                 if (!isDisabled) _buildActionButtons(b, status),
+
+
+
               ],
             ),
           ),
@@ -916,6 +937,174 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
       ).animate().fade(duration: 400.ms, curve: Curves.easeOut),
     );
   }
+
+
+
+  void _showBrokerDetailsDialog(BuildContext context, Map<String, dynamic> broker) {
+    final user = broker['user'] ?? {};
+    final company = user['companyName'];
+    final brnNumber = broker['brnNumber'];
+    final brnIssueDate = broker['brnIssuesDate'];
+    final brnExpiryDate = broker['brnExpiryDate'];
+
+    final hasDetails = (company != null && company.toString().trim().isNotEmpty) ||
+        (brnNumber != null && brnNumber.toString().trim().isNotEmpty) ||
+        (brnIssueDate != null && brnIssueDate.toString().trim().isNotEmpty);
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+    final double dialogWidth = isMobile ? screenWidth * 0.9 : 420;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) {
+        return Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: dialogWidth,
+              minWidth: isMobile ? screenWidth * 0.85 : 360,
+            ),
+            child: Dialog(
+              backgroundColor: Colors.white.withOpacity(0.95),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 16 : 24,
+                vertical: isMobile ? 24 : 40,
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- Header Row ---
+                    Row(
+                      children: [
+                        const Icon(Icons.info_outline_rounded,
+                            color: Colors.blueAccent, size: 24),
+                        const SizedBox(width: 10),
+                        Text(
+                          "Broker Details",
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded,
+                              color: Colors.grey, size: 22),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // --- Details ---
+                    if (hasDetails)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildDetailRow(
+                            "🏢 Company Name",
+                            company?.toString().isNotEmpty == true
+                                ? company
+                                : "N/A",
+                          ),
+                          const SizedBox(height: 10),
+                          _buildDetailRow(
+                            "🆔 BRN Number",
+                            brnNumber?.toString().isNotEmpty == true
+                                ? brnNumber
+                                : "N/A",
+                          ),
+                          const SizedBox(height: 10),
+                          _buildDetailRow(
+                            "📅 BRN Issue Date",
+                            brnIssueDate != null
+                                ? DateFormat('dd-MMM-yyyy').format(
+                                DateTime.tryParse(brnIssueDate) ??
+                                    DateTime.now())
+                                : "N/A",
+                          ),
+                          const SizedBox(height: 10),
+                          _buildDetailRow(
+                            "⏳ BRN Expiry Date",
+                            brnExpiryDate != null
+                                ? DateFormat('dd-MMM-yyyy').format(
+                                DateTime.tryParse(brnExpiryDate) ??
+                                    DateTime.now())
+                                : "N/A",
+                          ),
+                        ],
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Center(
+                          child: Text(
+                            "No details available for this broker.",
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ).animate().fade(duration: 300.ms).scale(
+              begin: const Offset(0.95, 0.95),
+              end: const Offset(1, 1),
+              duration: 250.ms,
+              curve: Curves.easeOutBack,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String title, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title,
+              style: GoogleFonts.poppins(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87)),
+          Flexible(
+              child: Text(value,
+                  textAlign: TextAlign.end,
+                  style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: Colors.blueGrey.shade700,
+                      fontWeight: FontWeight.w500))),
+        ],
+      ),
+    );
+  }
+
 
   Widget _statusChip(String status, {bool isVerified = false, bool isActive = true}) {
     status = status.toUpperCase();
@@ -997,6 +1186,16 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
   Widget _buildActionButtons(Map<String, dynamic> b, String status) {
     if (status != 'PENDING') return const SizedBox.shrink();
 
+    final user = b['user'] ?? {};
+    final company = user['companyName'];
+    final brnNumber = b['brnNumber'];
+
+    // both required to enable approve
+    final bool canApprove = company != null &&
+        company.toString().trim().isNotEmpty &&
+        brnNumber != null &&
+        brnNumber.toString().trim().isNotEmpty;
+
     return Align(
       alignment: Alignment.centerRight,
       child: Row(
@@ -1005,17 +1204,30 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
         children: [
           // ✅ Approve Button
           ElevatedButton.icon(
-            onPressed: () => _confirmApprove(b),
+            onPressed: canApprove
+                ? () => _confirmApprove(b)
+                : () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    "Company and BRN details are required before approval.",
+                  ),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            },
             icon: const FaIcon(FontAwesomeIcons.circleCheck, size: 14),
             label: const Text("Approve"),
             style: ElevatedButton.styleFrom(
-              elevation: 4, // 💎 subtle depth
+              elevation: 4,
               shadowColor: Colors.green.withOpacity(0.3),
-              backgroundColor: Colors.green.shade600,
+              backgroundColor:
+              canApprove ? Colors.green.shade600 : Colors.grey.shade400,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8), // slightly rounded modern look
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
           ).animate().fadeIn(duration: 300.ms, curve: Curves.easeOut).scale(
@@ -1037,7 +1249,8 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
               shadowColor: Colors.redAccent.withOpacity(0.3),
               backgroundColor: Colors.redAccent.shade400,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
