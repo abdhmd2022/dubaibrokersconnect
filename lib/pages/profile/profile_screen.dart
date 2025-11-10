@@ -25,6 +25,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? broker;
   bool loading = true;
+
   bool error = false;
   String activeSection = "Listings";
   String hoveredSocial = '';

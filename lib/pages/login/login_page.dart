@@ -440,7 +440,7 @@ class _LoginPageState extends State<LoginPage> {
         child: Ink(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [kPrimaryColor, kAccentColor],
+              colors: [kPrimaryColor, kPrimaryColor],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
