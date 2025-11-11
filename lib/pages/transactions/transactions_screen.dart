@@ -902,10 +902,10 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
         }
 
         Navigator.of(context).pop(true);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+       /* ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Transaction recorded successfully!"),
           backgroundColor: Colors.green,
-        ));
+        ));*/
 
 
       } else {

@@ -1353,6 +1353,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('data -> $data');
         if (data['success'] == true && data['data'] != null) {
           final List<dynamic> fetchedListings = data['data'];
           fetchedListings.sort((a, b) {
@@ -1363,10 +1364,28 @@ class _ListingsScreenState extends State<ListingsScreen> {
           setState(() {
 
             final parsed = fetchedListings.map<Map<String, dynamic>>((item) {
+              final rawLocation = item['location'];
+
+              // ✅ Always make sure location is a Map
+              Map<String, dynamic> safeLocation;
+              if (rawLocation is Map<String, dynamic>) {
+                safeLocation = rawLocation;
+              } else if (rawLocation is String) {
+                safeLocation = {
+                  'name': rawLocation,
+                  'completeAddress': rawLocation,
+                };
+              } else {
+                final fallback = item['address'] ?? 'Unknown';
+                safeLocation = {
+                  'name': fallback,
+                  'completeAddress': fallback,
+                };
+              }
               return {
                 'id': item['id'],
                 'title': item['title'] ?? 'N/A',
-                'ref': item['referenceNumber'] ?? '-',
+                'referenceNumber': item['referenceNumber'] ?? '-',
                 'price': item['price']?.toString() ?? '0',
                 'currency': item['currency'] ?? 'AED',
                 'amenitiesTagIds' : item['amenitiesTagIds'],
@@ -1376,13 +1395,14 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 'bathrooms': item['bathrooms'] ?? '0',
                 'parkingSpaces': item['parkingSpaces'] ?? '0',
                 'unit': item['transactionType'] == 'RENT' ? '/yr' : '',
-                'location': item['location']?['completeAddress'] ?? 'Unknown',
+                'location': safeLocation,
                 'category': item['category'] ?? 'Residential',
-                'size': '${item['sizeSqft'] ?? '0'} sqft',
-                'type': item['propertyType']?['name'] ?? 'Property',
+
+                'sizeSqft': '${item['sizeSqft'] ?? '0'} sqft',
+                'propertyType': item['propertyType'] ?? 'Property',
                 'listingStatus' : item['listingStatus'] ?? 'Inactive',
                 'status': item['status'] ?? 'Unknown',
-                'furnished': item['furnishedStatus'] ?? '',
+                'furnishedStatus': item['furnishedStatus'] ?? '',
                 'broker': item['broker'] ?? 'N/A',
                 'rating': item['broker']?['rating'] ?? 'N/A',
                 'image': (item['images'] != null && item['images'].isNotEmpty)
@@ -1699,11 +1719,11 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 selectedCategory.toLowerCase();
 
         final typeOk = selectedPropertyType == null ||
-            e['type']?.toString().toLowerCase() ==
+            e['propertyType']?['name'].toString().toLowerCase() ==
                 selectedPropertyType!.toLowerCase();
 
         final furnishingOk = selectedFurnishing == null ||
-            e['furnished']
+            e['furnishedStatus']
                 ?.toString()
                 .toLowerCase()
                 .contains(selectedFurnishing!.toLowerCase()) ==
@@ -1718,7 +1738,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
         // 🧩 Convert size string like "1200 sqft" into numeric value
         final sizeValue = double.tryParse(
-            e['size']?.toString().replaceAll(RegExp(r'[^0-9.]'), '') ?? '0') ??
+            e['sizeSqft']?.toString().replaceAll(RegExp(r'[^0-9.]'), '') ?? '0') ??
             0;
         final sizeOk = (minSize == null || sizeValue >= minSize!) &&
             (maxSize == null || sizeValue <= maxSize!);
@@ -1737,13 +1757,13 @@ class _ListingsScreenState extends State<ListingsScreen> {
         // 🔍 Text-based search
         final searchOk = titleQuery.isEmpty ||
             e['title']?.toString().toLowerCase().contains(titleQuery) == true ||
-            e['ref']?.toString().toLowerCase().contains(titleQuery) == true ||
-            e['location']?.toString().toLowerCase().contains(titleQuery) == true ||
+            e['referenceNumber']?.toString().toLowerCase().contains(titleQuery) == true ||
+            e['location']?['completeAddress'].toString().toLowerCase().contains(titleQuery) == true ||
             e['broker']?['displayName'].toString().toLowerCase().contains(titleQuery) == true;
 
         // 📍 Location search
         final locationOk = locationQuery.isEmpty ||
-            e['location']?.toString().toLowerCase().contains(locationQuery) ==
+            e['location']?['completeAddress'].toString().toLowerCase().contains(locationQuery) ==
                 true;
 
         // 💰 Price filtering
@@ -1772,6 +1792,10 @@ class _ListingsScreenState extends State<ListingsScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final bool isVerified = widget.userData['role'] == 'ADMIN' ? widget.userData['isVerified'] == true : widget.userData['broker']['isVerified'];
+    final String? currentBrokerId = widget.userData['role'] == 'ADMIN'
+        ? null
+        : widget.userData['broker']?['id'];
+
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -2298,14 +2322,25 @@ class _ListingsScreenState extends State<ListingsScreen> {
                             setState(() {
                               selectAll = checked ?? false;
                               if (selectAll) {
-                                selectedPropertyIds
-                                    .addAll(listings.map((e) => e['id'].toString()));
+                                selectedPropertyIds.clear();
+                                for (final e in listings) {
+                                  final brokerData = e['broker'];
+                                  final brokerId = (brokerData is Map && brokerData['id'] != null)
+                                      ? brokerData['id']
+                                      : e['brokerId'];
+                                  final bool isOwner =
+                                      currentBrokerId == null || brokerId == currentBrokerId;
+                                  if (isOwner) {
+                                    selectedPropertyIds.add(e['id'].toString());
+                                  }
+                                }
                               } else {
                                 selectedPropertyIds.clear();
                               }
                             });
                           },
                         ),
+
                         Text(
                           "Select All",
                           style: GoogleFonts.poppins(
@@ -2367,6 +2402,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                               child: CircularProgressIndicator(),
                             ),
                           ),
+
                         ElevatedButton.icon(
                           onPressed: isBulkDeleteProcessing || selectedPropertyIds.isEmpty
                               ? null
@@ -2384,6 +2420,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                           ),
                         ),
                       ],
+
                     ),
 
 
@@ -2427,8 +2464,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 Column(
                   children: [
                     isGridView
-                        ? _buildGridListings(width)
-                        : _buildListListings(),
+                        ? _buildGridListings(width, currentBrokerId)
+                        : _buildListListings(currentBrokerId),
+
                     if (isLoadingMore)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
@@ -2447,7 +2485,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   int hoveredIndex = -1; // put this at the top of your state
 
 
-  Widget _buildGridListings(double width) {
+  Widget _buildGridListings(double width, String? currentBrokerId) {
     // Sort descending (newest first)
     final sortedListings = List<Map<String, dynamic>>.from(listings)
       ..sort((a, b) {
@@ -2468,9 +2506,31 @@ class _ListingsScreenState extends State<ListingsScreen> {
       itemCount: sortedListings.length,
       itemBuilder: (context, index) {
         final e = sortedListings[index];
+        final brokerData = e['broker'];
+        final brokerId = (brokerData is Map && brokerData['id'] != null)
+            ? brokerData['id']
+            : e['brokerId'];
+        final bool isOwner = currentBrokerId == null || brokerId == currentBrokerId;
+
+
+        Widget selectionBox = isOwner
+            ? Checkbox(
+          value: selectedPropertyIds.contains(e['id']),
+          activeColor: kPrimaryColor,
+          onChanged: (checked) {
+            setState(() {
+              if (checked == true) {
+                selectedPropertyIds.add(e['id']);
+              } else {
+                selectedPropertyIds.remove(e['id']);
+              }
+            });
+          },
+        )
+            : const SizedBox.shrink(); // 🚫 no checkbox for non-owners
 
         final active = e['listingStatus'] == 'ACTIVE';
-        final furnished = (e['furnished'] ?? 'UNFURNISHED')
+        final furnished = (e['furnishedStatus'] ?? 'UNFURNISHED')
             .toString()
             .replaceAll('_', ' ')                // make "SEMI_FURNISHED" → "SEMI FURNISHED"
             .toLowerCase()                      // → "semi furnished"
@@ -2570,20 +2630,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 // 🏷 Select Checkbox + Title + Ref
                 Row(
                   children: [
-                    Checkbox(
-                      value: selectedPropertyIds.contains(e['id']),
-                      activeColor: kPrimaryColor,
-                      onChanged: (checked) {
-                        setState(() {
-                          if (checked == true) {
-                            selectedPropertyIds.add(e['id']);
-                          } else {
-                            selectedPropertyIds.remove(e['id']);
-                          }
-                          selectAll = selectedPropertyIds.length == listings.length;
-                        });
-                      },
-                    ),
+                    selectionBox,
+
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2598,7 +2646,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            "Ref: ${e['ref'] ?? '-'}",
+                            "Ref: ${e['referenceNumber'] ?? '-'}",
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               color: Colors.grey[600],
@@ -2655,10 +2703,16 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                     // 🏠 Type Badge
                     _badge(
-                      e['type'] ?? 'Type',
+                      (() {
+                        final pt = e['propertyType'];
+                        if (pt == null) return 'Type';
+                        if (pt is Map && pt['name'] != null) return pt['name'].toString();
+                        return pt.toString(); // fallback if it's already a string or number
+                      })(),
                       Colors.orange,
                       icon: Icons.home_work_outlined,
                     ),
+
 
                     // 🟢 Status Badge
                     _badge(
@@ -2679,7 +2733,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                   children: [
                     _iconInfo(Icons.king_bed_outlined, "${e['rooms'] ?? 0}"),
                     _iconInfo(Icons.bathtub_outlined, "${e['bathrooms'] ?? 0}"),
-                    _iconInfo(Icons.square_foot, e['size'] ?? ''),
+                    _iconInfo(Icons.square_foot, e['sizeSqft'] ?? ''),
                     _iconInfo(Icons.local_parking_rounded, "${e['parkingSpaces'] ?? 0}"),
                     _iconInfo(
                       Icons.chair_alt_outlined,
@@ -2709,11 +2763,12 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          e['location'] ?? 'Unknown',
+                          e['location']['completeAddress'] ?? 'Unknown',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: Colors.redAccent.shade700,
                             fontWeight: FontWeight.w500,
+
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2775,9 +2830,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
                           activeTrackColor: Colors.green,
                           inactiveThumbColor: Colors.white,
                           inactiveTrackColor: Colors.grey.shade400,
-                          onChanged: (bool value) async {
-                            await _togglePropertyStatus(e['id'], e['listingStatus']);
-                          },
+                          onChanged: isOwner
+                              ? (bool value) async => await _togglePropertyStatus(e['id'], e['listingStatus'])
+                              : null, // disabled for non-owner
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -2797,7 +2852,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // ✏️ Edit Chip
-                        InkWell(
+                        if (isOwner)
+                          InkWell(
                           onTap: () async {
                             await _showEditPropertyDialog(context, e);
                           },
@@ -2837,7 +2893,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                           ),
                         ),
 
-                        const SizedBox(width: 10),
+                        if (isOwner) const SizedBox(width: 10),
 
                         // 👁 View Chip
                         InkWell(
@@ -2882,8 +2938,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     ),
                   ],
                 ),
-
-
               ],
             ),
           ),
@@ -2893,7 +2947,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   }
 
   /// 🔹 Modern List View (with full details + icons)
-  Widget _buildListListings() {
+  Widget _buildListListings(String? currentBrokerId) {
     // Sort descending (newest first)
     final sortedListings = List<Map<String, dynamic>>.from(listings)
       ..sort((a, b) {
@@ -2901,10 +2955,37 @@ class _ListingsScreenState extends State<ListingsScreen> {
         final dateB = DateTime.tryParse(b['createdAt'] ?? b['created_at'] ?? '') ?? DateTime(1900);
         return dateB.compareTo(dateA); // newest first
       });
+
+
     return Column(
       children: sortedListings.map((e) {
+        final brokerData = e['broker'];
+        final brokerId = (brokerData is Map && brokerData['id'] != null)
+            ? brokerData['id']
+            : e['brokerId'];
+        final bool isOwner = currentBrokerId == null || brokerId == currentBrokerId;
+
+
+        Widget selectionBox = isOwner
+            ? Checkbox(
+          value: selectedPropertyIds.contains(e['id']),
+          activeColor: kPrimaryColor,
+          onChanged: (checked) {
+            setState(() {
+              if (checked == true) {
+                selectedPropertyIds.add(e['id']);
+              } else {
+                selectedPropertyIds.remove(e['id']);
+              }
+            });
+          },
+        )
+            : const SizedBox.shrink(); // 🚫 no checkbox for non-owners
+
+
+
         final active = e['listingStatus'] == 'ACTIVE';
-        final furnished = (e['furnished'] ?? 'UNFURNISHED')
+        final furnished = (e['furnishedStatus'] ?? 'UNFURNISHED')
             .toString()
             .replaceAll('_', ' ')                // make "SEMI_FURNISHED" → "SEMI FURNISHED"
             .toLowerCase()                      // → "semi furnished"
@@ -2958,20 +3039,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Checkbox(
-                              value: selectedPropertyIds.contains(e['id']),
-                              activeColor: kPrimaryColor,
-                              onChanged: (checked) {
-                                setState(() {
-                                  if (checked == true) {
-                                    selectedPropertyIds.add(e['id']);
-                                  } else {
-                                    selectedPropertyIds.remove(e['id']);
-                                  }
-                                  selectAll = selectedPropertyIds.length == listings.length;
-                                });
-                              },
-                            ),
+
+                            selectionBox,
+
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2985,7 +3055,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    "Ref: ${e['ref'] ?? '-'}",
+                                    "Ref: ${e['referenceNumber'] ?? '-'}",
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       color: Colors.grey[600],
@@ -3054,7 +3124,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                       size: 14, color: Colors.redAccent),
                                   const SizedBox(width: 4),
                                   Text(
-                                    e['location'] ?? 'Unknown',
+                                    e['location']['completeAddress'] ?? "Unknown",
                                     style: GoogleFonts.poppins(
                                       fontSize: 12,
                                       color: Colors.redAccent.shade700,
@@ -3062,6 +3132,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
+
                                 ],
                               ),
                             ),
@@ -3121,8 +3192,17 @@ class _ListingsScreenState extends State<ListingsScreen> {
                           children: [
                             _badge(e['category'] ?? 'Category', Colors.blue,
                                 icon: Icons.apartment_rounded),
-                            _badge(e['type'] ?? 'Type', Colors.orange,
-                                icon: Icons.home_work_outlined),
+                            _badge(
+                              (() {
+                                final pt = e['propertyType'];
+                                if (pt == null) return 'Type';
+                                if (pt is Map && pt['name'] != null) return pt['name'].toString();
+                                return pt.toString(); // fallback if it's already a string or number
+                              })(),
+                              Colors.orange,
+                              icon: Icons.home_work_outlined,
+                            ),
+
                             _badge(e['status'] ?? 'Unknown', Colors.teal,
                                 icon: Icons.home_rounded),
                           ],
@@ -3150,9 +3230,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                   activeTrackColor: Colors.green,
                                   inactiveThumbColor: Colors.white,
                                   inactiveTrackColor: Colors.grey.shade400,
-                                  onChanged: (bool value) async {
-                                    await _togglePropertyStatus(e['id'], e['listingStatus']);
-                                  },
+                                  onChanged: isOwner
+                                      ? (bool value) async => await _togglePropertyStatus(e['id'], e['listingStatus'])
+                                      : null, // disabled for non-owner
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
@@ -3172,7 +3252,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 // ✏️ Edit Chip
-                                InkWell(
+                                if (isOwner)
+                                  InkWell(
                                   onTap: () async {
                                     await _showEditPropertyDialog(context, e);
                                   },
@@ -3212,7 +3293,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                   ),
                                 ),
 
-                                const SizedBox(width: 10),
+
+                                if (isOwner) const SizedBox(width: 10),
+
 
                                 // 👁 View Chip
                                 InkWell(
@@ -3640,7 +3723,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
     final titleC = TextEditingController(text: propertyData['title'] ?? '');
     final priceC = TextEditingController(text: propertyData['price']?.toString() ?? '');
     final sizeC = TextEditingController(
-        text: propertyData['size']?.toString().replaceAll(' sqft', '') ?? '');
+        text: propertyData['sizeSqft']?.toString().replaceAll(' sqft', '') ?? '');
     final descC = TextEditingController(text: propertyData['description'] ?? '');
 
     String? category = propertyData['category'] ?? 'RESIDENTIAL';

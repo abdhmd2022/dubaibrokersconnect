@@ -34,6 +34,7 @@ class BrokerDashboardContent extends StatelessWidget {
   });
 
   void _viewPropertyDetails(BuildContext context, Map<String, dynamic> property) {
+    print('property -> $property');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -408,18 +409,70 @@ class BrokerDashboardContent extends StatelessWidget {
               if (constraints.maxWidth < 1000) cardWidth = (constraints.maxWidth - 40) / 2;
               if (constraints.maxWidth < 600) cardWidth = constraints.maxWidth - 40;
 
-              return Wrap(
-                spacing: 20,
-                runSpacing: 20,
-                children: [
-                  _statCard("Active Listings", "0",
-                      Icons.home_work_outlined, Colors.blue, Colors.blue.shade50, cardWidth),
-                  _statCard("Pending Deals", "0",
-                      Icons.pending_actions, Colors.orange, Colors.orange.shade50, cardWidth),
-                  _statCard("Closed Deals", "0",
-                      Icons.verified_user, Colors.green, Colors.green.shade50, cardWidth),
-                ],
+              return FutureBuilder(
+                future: () async {
+                  final token = await AuthService.getToken();
+                  final response = await http.get(
+                    Uri.parse('$baseURL/api/brokers/${userData['broker']['id']}/stats'),
+                    headers: {'Authorization': 'Bearer $token'},
+                  );
+                  return jsonDecode(response.body);
+                }(),
+                builder: (context, snapshot) {
+                /*  if (!snapshot.hasData) {
+                    return const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 80),
+                          AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
+                        ],
+                      ),
+                    );
+                  }*/
+
+                  final data = snapshot.data?['data'] ?? {};
+                  final properties = data['properties'] ?? {};
+                  final requirements = data['requirements'] ?? {};
+                  final brokers = data['brokers'] ?? {};
+
+                  final activeListings = properties['active']?.toString() ?? '0';
+                  final activeRequirements = requirements['active']?.toString() ?? '0';
+                  final approvedBrokers = brokers['approved']?.toString() ?? '0';
+
+                  return Wrap(
+                    spacing: 20,
+                    runSpacing: 20,
+                    children: [
+                      _statCard(
+                        "Active Listings",
+                        activeListings,
+                        Icons.home_work_outlined,
+                        Colors.blue,
+                        Colors.blue.shade50,
+                        cardWidth,
+                      ),
+                      _statCard(
+                        "Active Requirements",
+                        activeRequirements,
+                        Icons.pending_actions,
+                        Colors.orange,
+                        Colors.orange.shade50,
+                        cardWidth,
+                      ),
+                      _statCard(
+                        "Approved Brokers",
+                        approvedBrokers,
+                        Icons.verified_user,
+                        Colors.green,
+                        Colors.green.shade50,
+                        cardWidth,
+                      ),
+                    ],
+                  );
+                },
               );
+
             },
           ),
 
@@ -640,14 +693,17 @@ class BrokerDashboardContent extends StatelessWidget {
                         final isEven = index % 2 == 0;
                         final bgColor = isEven ? Colors.grey.shade50 : Colors.white;
 
-                        final location = (item['location'] is Map && item['location']?['name'] != null)
-                            ? item['location']['name']
-                            : (item['location']?.toString() ?? 'Unknown');
+                        final location = (item['location'] is Map && item['location'] != null)
+                            ? item['location']
+                            : (item['location'].toString() ?? 'Unknown');
+
+                        print('location -> $location');
                         final transaction = (item['transactionType'] ?? '').toString();
                         final numPrice = double.tryParse(item['price']?.toString() ?? '') ?? 0;
                         final formattedPrice = NumberFormat('#,##0').format(numPrice);
                         final price = "${item['currency'] ?? 'AED'} $formattedPrice";
                         final size = item['sizeSqft']?.toString() ?? '-';
+
 
                         final rentTag = Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -655,6 +711,7 @@ class BrokerDashboardContent extends StatelessWidget {
                             color: Colors.green.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
+
                           child: Text(
                             transaction,
                             style: GoogleFonts.poppins(
@@ -714,7 +771,7 @@ class BrokerDashboardContent extends StatelessWidget {
                                         const SizedBox(width: 4),
                                         Expanded(
                                           child: Text(
-                                            "$location • $size sqft",
+                                            "${location['completeAddress']} • $size sqft",
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: GoogleFonts.poppins(
@@ -857,6 +914,8 @@ class BrokerDashboardContent extends StatelessWidget {
                         final location = (r['locations'] != null && r['locations'].isNotEmpty)
                             ? r['locations'][0]['completeAddress'] ?? 'Unknown'
                             : 'Unknown';
+
+                        print('locations -> $location');
 
                         final numMinPrice = double.tryParse(r['minPrice']?.toString() ?? '') ?? 0;
                         final numMaxPrice = double.tryParse(r['maxPrice']?.toString() ?? '') ?? 0;

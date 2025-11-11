@@ -80,9 +80,9 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                     color: Colors.grey, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  (propertyData['location'] is Map && propertyData['location']?['name'] != null)
-                      ? propertyData['location']['name']
-                      : (propertyData['location']?.toString() ?? 'Unknown'),
+                  (propertyData['location'] is Map && propertyData['location'] != null)
+                      ? propertyData['location']['completeAddress']
+                      : (propertyData['location']?['name'].toString() ?? 'Unknown'),
                   style: GoogleFonts.poppins(
                     fontSize: 13.5,
                     color: Colors.grey.shade700,
@@ -189,6 +189,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                   value: "${propertyData['rooms'] ?? '0'} rooms"),
               _detailItem(
                   icon: Icons.bathtub_outlined,
+
                   label: "Bathrooms",
                   value: "${propertyData['bathrooms'] ?? '0'} baths"),
               _detailItem(
@@ -198,19 +199,19 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               _detailItem(
                   icon: Icons.apartment_rounded,
                   label: "Property Type",
-                  value: propertyData['type'] ?? 'Apartment'),
+                  value: propertyData['propertyType']['name'] ?? 'Apartment'),
               _detailItem(
                   icon: Icons.chair_alt_outlined,
                   label: "Furnishing Status",
-                  value: propertyData['furnished'] ?? 'Unfurnished'),
+                  value: propertyData['furnishedStatus'] ?? 'Unfurnished'),
               _detailItem(
                   icon: Icons.square_foot,
                   label: "Size",
-                  value: propertyData['size'] ?? '0 sqft'),
+                  value: propertyData['sizeSqft'] ?? '0 sqft'),
               _detailItem(
                   icon: Icons.task_alt_rounded,
                   label: "Status",
-                  value: propertyData['status'] ?? 'Ready to Move'),
+                  value: propertyData['listingStatus'] ?? 'Ready to Move'),
             ],
           ),
 
@@ -417,7 +418,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(propertyData['ref'] ?? '-',
+          Text(propertyData['referenceNumber'] ?? '-',
               style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
