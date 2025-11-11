@@ -121,6 +121,8 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       _showError('Error connecting to server → $e');
+      print('login response -> ${e}');
+
     } finally {
       setState(() => _isLoading = false);
     }
@@ -166,9 +168,12 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => _mode = AuthMode.login);
       } else {
         _showError(data['message'] ?? 'Registration failed');
+        print('registration response -> ${data}');
       }
     } catch (e) {
       _showError('Error connecting to server.');
+      print('registration response -> ${e}');
+
     } finally {
       setState(() => _isLoading = false);
     }

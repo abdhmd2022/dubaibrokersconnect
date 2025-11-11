@@ -38,7 +38,7 @@ class _AdminShellState extends State<AdminShell> {
           setState(() => _selectedIndex = 3); // 👈 opens Broker Directory
         },
         onNavigateToBrokerManagement: () {
-          setState(() => _selectedIndex = 8); // 👈 opens Broker Directory
+          setState(() => _selectedIndex = 9); // 👈 opens Broker Directory
         },
 
       ),

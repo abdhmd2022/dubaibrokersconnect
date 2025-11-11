@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:a2abrokerapp/services/auth_service.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -12,6 +15,9 @@ import '../dashboard/broker_shell.dart';
 import '../dashboard/brokerdashboard.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/phone_number.dart';
+import 'package:flutter/foundation.dart'; // for kIsWeb
+import 'package:http_parser/http_parser.dart';
+
 
 class BrokerSetupPage extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -28,6 +34,9 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
 
   String? fullMobileNumber;
   String? fullWhatsappNumber;
+  PlatformFile? _brnAttachmentFile;
+  String? _brnAttachmentUrl;
+  bool _uploadingAttachment = false;
   /// Controllers
   final displayNameC = TextEditingController();
   final profileTitleC = TextEditingController();
@@ -106,7 +115,6 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token') ?? '';
     final userId = widget.userData['id'];
-    print('user id -> $userId');
 
     final body = {
       "display_name": displayNameC.text.trim(),
@@ -120,25 +128,27 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       "state": stateC.text.trim(),
       "country": countryC.text.trim(),
       "postal_code": postalCodeC.text.trim(),
-      "phone":fullMobileNumber ?? '',
+      "phone": fullMobileNumber ?? '',
       "mobile": fullMobileNumber ?? '',
       "whatsapp": fullWhatsappNumber ?? '',
-
       "email": emailC.text.trim(),
       "categories": selectedCategories,
       "website": websiteC.text.trim(),
       "social_links": {
         "linkedin": linkedinC.text.trim(),
-
         "twitter": twitterC.text.trim(),
         "facebook": facebookC.text.trim(),
       },
+      /*"brn_number": brnNumberC.text.trim().isNotEmpty ? brnNumberC.text.trim() : null,
+      "brn_issues_date": brnIssueDate != null
+          ? DateFormat('yyyy-MM-dd').format(brnIssueDate!)
+          : null,
+      "brn_expiry_date": brnExpiryDate != null
+          ? DateFormat('yyyy-MM-dd').format(brnExpiryDate!)
+          : null,*/
       "specializations": selectedSpecs,
       "languages": selectedLangs,
     };
-
-
-    print('body -> $body');
 
     final url = Uri.parse('$baseURL/api/brokers');
 
@@ -153,36 +163,33 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       );
 
       final data = jsonDecode(res.body);
-      print('done -> $data');
-
+      print('broker creation response -> $data');
 
       if (res.statusCode == 201 && data['success'] == true) {
+        final brokerId = data['data']['id'];
 
-        final url = Uri.parse('$baseURL/api/auth/me');
-
-        print('url -> $url');
-        try {
-          final res = await http.get(
-            url,
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json'},
-          );
-
-
-          final data_user = jsonDecode(res.body);
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => BrokerShell(userData: data_user['data']['user'])),
-          );
-        }
-        catch (e)
-        {
-
+        // ✅ STEP 2: Upload BRN attachment if available
+        if (_brnAttachmentFile != null) {
+          await _uploadBrnAttachmentAfterCreate(brokerId, _brnAttachmentFile!);
         }
 
+        // ✅ STEP 3: Fetch updated user data and navigate
+        final meUrl = Uri.parse('$baseURL/api/auth/me');
+        final meRes = await http.get(
+          meUrl,
+          headers: {'Authorization': 'Bearer $token'},
+        );
 
+        final dataUser = jsonDecode(meRes.body);
 
+        print('data -> $dataUser');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                BrokerShell(userData: dataUser['data']['user']),
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -202,6 +209,73 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       setState(() => isLoading = false);
     }
   }
+  Future<void> _uploadBrnAttachmentAfterCreate(
+      String brokerId, PlatformFile file) async {
+    try {
+      setState(() => _uploadingAttachment = true);
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      final uri = Uri.parse('$baseURL/api/upload/brn-attachment');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+      request.fields['broker_id'] = brokerId;
+
+      // ✅ Platform-safe file handling
+      if (kIsWeb) {
+        // use bytes for web
+        request.files.add(http.MultipartFile.fromBytes(
+          'brn_attachment',
+          file.bytes!,
+          filename: file.name,
+          contentType: MediaType(
+            'application',
+            file.extension == 'pdf' ? 'pdf' : 'octet-stream',
+          ),
+        ));
+      } else {
+        // use file path for mobile/desktop
+        request.files.add(await http.MultipartFile.fromPath(
+          'brn_attachment',
+          file.path!,
+          filename: file.name,
+        ));
+      }
+
+      final streamedRes = await request.send();
+      final res = await http.Response.fromStream(streamedRes);
+      print('BRN upload response -> ${res.body}');
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final response = jsonDecode(res.body);
+        if (response['success'] == true) {
+          setState(() {
+            _brnAttachmentUrl = response['url'] ?? '';
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text("BRN attachment uploaded successfully"),
+              backgroundColor: Colors.green.shade600,
+            ),
+          );
+        } else {
+          throw Exception(response['message'] ?? 'Upload failed');
+        }
+      } else {
+        throw Exception('Failed with ${res.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error uploading BRN attachment → $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      setState(() => _uploadingAttachment = false);
+    }
+  }
+
 
   /// ------------------------------
   /// DATE PICKER HANDLER
@@ -582,7 +656,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                                       const SizedBox(height: 14),
                                       _buildDateField("Expiry Date", brnExpiryDate, false),
                                       const SizedBox(height: 14),
-                                      _buildUploadPlaceholder("Upload BRN Card Copy"),
+                                      _buildBrnAttachmentUploader(),
 
                                     ],
                                   )
@@ -1029,26 +1103,100 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
   }
 
 
-  Widget _buildUploadPlaceholder(String label) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: kFieldBackgroundColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.upload_file_outlined, color: Colors.grey),
-          const SizedBox(width: 10),
-          Text(label,
-              style:
-              GoogleFonts.poppins(color: Colors.black54, fontSize: 14.5)),
-        ],
-      ),
+
+
+
+  Widget _buildBrnAttachmentUploader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: _uploadingAttachment
+              ? null
+              : () async {
+            final result = await FilePicker.platform.pickFiles(
+              type: FileType.custom,
+              allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+            );
+            if (result != null && result.files.isNotEmpty) {
+              setState(() {
+                _brnAttachmentFile = result.files.first;
+              });
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: kFieldBackgroundColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.upload_file_outlined, color: Colors.grey),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _brnAttachmentFile != null
+                        ? _brnAttachmentFile!.name
+                        : "Upload BRN Card Copy",
+                    style: GoogleFonts.poppins(
+                      color: Colors.black87,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (_brnAttachmentFile != null)
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
+                    tooltip: "Remove",
+                    onPressed: () => setState(() {
+                      _brnAttachmentFile = null;
+                      _brnAttachmentUrl = null;
+                    }),
+                  ),
+              ],
+            ),
+          ),
+        ),
+
+        if (_brnAttachmentFile != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: _brnAttachmentFile!.extension!.toLowerCase() == 'pdf'
+                ? Row(
+              children: const [
+                Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                SizedBox(width: 8),
+                Text("PDF selected"),
+              ],
+            )
+                : ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: kIsWeb
+                  ? Image.memory(
+                _brnAttachmentFile!.bytes!,
+                height: 130,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              )
+                  : Image.file(
+                File(_brnAttachmentFile!.path!),
+                height: 130,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+
+
+      ],
     );
   }
+
 
   Widget _buildCreateButton(double width) {
     return SizedBox(

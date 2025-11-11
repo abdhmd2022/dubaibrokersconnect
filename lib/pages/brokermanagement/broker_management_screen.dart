@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 
@@ -947,6 +948,16 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     final brnNumber = broker['brnNumber'];
     final brnIssueDate = broker['brnIssuesDate'];
     final brnExpiryDate = broker['brnExpiryDate'];
+    final rawAttachment = broker['brnAttachment'] ?? broker['brn_attachment'];
+    final brnAttachment = (rawAttachment != null && rawAttachment.toString().isNotEmpty)
+        ? (rawAttachment.toString().startsWith('http')
+        ? rawAttachment
+        : '$baseURL/$rawAttachment')
+        : null;
+
+    print('✅ brnAttachment URL: $brnAttachment');
+
+
 
     final hasDetails = (company != null && company.toString().trim().isNotEmpty) ||
         (brnNumber != null && brnNumber.toString().trim().isNotEmpty) ||
@@ -1076,10 +1087,74 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                                   "⏳ BRN Expiry Date",
                                   brnExpiryDate != null
                                       ? DateFormat('dd-MMM-yyyy').format(
-                                      DateTime.tryParse(brnExpiryDate) ??
-                                          DateTime.now())
+                                      DateTime.tryParse(brnExpiryDate) ?? DateTime.now())
                                       : "N/A",
                                 ),
+
+
+                                // --- BRN Attachment ---
+                                if (brnAttachment != null && brnAttachment.toString().isNotEmpty) ...[
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    "📎 BRN Attachment",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  if (brnAttachment.toString().toLowerCase().endsWith(".pdf"))
+                                    GestureDetector(
+                                      onTap: () async {
+                                        // open in browser
+                                        if (await canLaunchUrl(Uri.parse(brnAttachment))) {
+                                          await launchUrl(Uri.parse(brnAttachment),
+                                              mode: LaunchMode.externalApplication);
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.blueAccent.withOpacity(0.4)),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                "Open PDF",
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.blueAccent,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                            const Icon(Icons.open_in_new, color: Colors.blueAccent, size: 18),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+
+                                      child: Image.network(
+                                        brnAttachment,
+                                        fit: BoxFit.cover,
+                                        height: 160,
+                                        width: double.infinity,
+                                        errorBuilder: (context, error, stack) {
+                                          print('❌ Image load error: $error');
+                                          return Text("Failed to load image", style: TextStyle(color: Colors.red));
+                                        },
+                                      ),
+                                    ),
+                                ],
+
                               ],
                             )
                           else
