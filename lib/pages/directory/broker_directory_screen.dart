@@ -104,6 +104,8 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
   Widget _buildBrokerCard(Map<String, dynamic> b) {
     final avatar = b['user']?['avatar'];
     final name = b['displayName'] ?? 'N/A';
+    final role = b['brokerTitle'] ?? 'Broker';
+
     final company = b['user']['companyName'] ?? '';
     final verified = b['isVerified'] == true;
     final rating = b['rating']?.toString() ?? 'N/A';
@@ -267,6 +269,22 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                           ),
                       ],
                     ),
+
+                    const SizedBox(height: 6),
+
+                    // Role and Category Badges
+                    Row(
+                      children: [
+                        Text(role,
+                            style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade600)),
+
+                      ],
+                    ),
+
+
 
                     if(company.isNotEmpty)...[
                       const SizedBox(height: 6),

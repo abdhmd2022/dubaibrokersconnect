@@ -118,6 +118,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
 
     final body = {
       "display_name": displayNameC.text.trim(),
+      "broker_title": profileTitleC.text.trim(),
       "userId": userId,
       "company_name": isFreelancer ? null : companyC.text.trim(),
       "bio": bioC.text.trim(),

@@ -668,7 +668,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
   // --- Broker Card ---
   Widget _buildBrokerCard(Map<String, dynamic> b) {
     final user = b['user'] ?? {};
-    final role = b['brokerRole']?['name'] ?? 'Broker';
+    final role = b['brokerTitle'] ?? 'Broker';
     final categories = (b['categories'] as List?)?.cast<String>() ?? [];
     final status = (b['approvalStatus'] ?? '').toString().toUpperCase();
     final created = DateTime.tryParse(b['createdAt'] ?? '');
@@ -995,8 +995,8 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.white.withOpacity(0.25),
-                          Colors.white.withOpacity(0.25),
+                          Colors.white,
+                          Colors.white
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,

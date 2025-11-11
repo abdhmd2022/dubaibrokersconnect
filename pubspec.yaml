@@ -39,6 +39,7 @@ dependencies:
   data_table_2:
   dropdown_button2:
   intl:
+  cached_network_image:
   file_picker:
   flutter_typeahead:
   flutter_animate:
