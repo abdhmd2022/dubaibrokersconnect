@@ -80,7 +80,9 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                     color: Colors.grey, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  propertyData['location'] ?? 'Unknown',
+                  (propertyData['location'] is Map && propertyData['location']?['name'] != null)
+                      ? propertyData['location']['name']
+                      : (propertyData['location']?.toString() ?? 'Unknown'),
                   style: GoogleFonts.poppins(
                     fontSize: 13.5,
                     color: Colors.grey.shade700,

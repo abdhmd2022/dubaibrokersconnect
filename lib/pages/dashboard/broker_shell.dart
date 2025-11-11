@@ -36,7 +36,7 @@ class _BrokerShellState extends State<BrokerShell> {
           ? BrokerDashboardContent(userData: userData,
         onNavigateToListings: () => setState(() => _selectedIndex = 1),
         onNavigateToRequirements: () => setState(() => _selectedIndex = 2),
-        onNavigateToTransactions: () => setState(() => _selectedIndex = 5),
+        onNavigateToMyTransactions: () => setState(() => _selectedIndex = 5),
         onNavigateToBrokers: () => setState(() => _selectedIndex = 3),
         onNavigateToProfile: () => setState(() => _selectedIndex = 4),
         onNavigateToA2aForms: () => setState(() => _selectedIndex = 6),)
