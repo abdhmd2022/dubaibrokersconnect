@@ -280,11 +280,8 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.grey.shade600)),
-
                       ],
                     ),
-
-
 
                     if(company.isNotEmpty)...[
                       const SizedBox(height: 6),
