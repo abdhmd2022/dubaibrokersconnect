@@ -159,8 +159,8 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
 
           LayoutBuilder(
             builder: (context, constraints) {
-              int crossAxisCount = constraints.maxWidth < 800 ? 1 : 2;
-              double aspectRatio = constraints.maxWidth < 800 ? 2.5 : 2.0;
+              int crossAxisCount = constraints.maxWidth < 1000 ? 1 : 2;
+              double aspectRatio = constraints.maxWidth < 800 ? 2.5 : 3.0;
 
               return GridView.count(
                 crossAxisCount: crossAxisCount,
@@ -170,24 +170,112 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
                 mainAxisSpacing: 20,
                 childAspectRatio: aspectRatio,
                 children: [
+
+
                   _actionCard(
+                    context,
                     "Manage Brokers",
-                    "Review and approve broker profiles, manage user access and platform permissions.",
+                    "Review and approve broker profiles",
                     "Open Admin Panel",
-                    kPrimaryColor,
-                    onPressed: widget.onNavigateToBrokerManagement!, // 👈 triggers shell navigation
-
-                  ),
-                  _actionCard(
-                    "Broker Directory",
-                    "View all approved brokers in the network directory.",
-                    "View Directory",
-                    null,
-                    outline: true,
-                    onPressed: widget.onNavigateToBrokers!, // 👈 triggers shell navigation
+                    Icons.settings,
+                    onTap:  widget.onNavigateToBrokerManagement!,
                   ),
 
-                  _actionCard(
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                      children: [
+                        // ---- Title with Icon ----
+
+
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.person, color: Colors.black87, size: 22),
+                                const SizedBox(width: 8),
+                                Text(
+                                 'Broker Directory',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            // ---- Description ----
+                            Text(
+                              'Explore and connect with other verified brokers',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey.shade700,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+
+
+                        const SizedBox(height: 20),
+
+                        // ---- Themed Blue Button ----
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: widget.onNavigateToBrokers,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white , // 👈 dynamic color
+                              side: BorderSide(
+                                color: kPrimaryColor.withOpacity(0.3), // 👈 soft border tone
+                                width: 1.0,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
+                            ),
+                            icon: const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: kPrimaryColor,
+                              size: 18,
+                            ),
+                            label: Text(
+                              "View Directory",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: kPrimaryColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+
+
+
+                 /* _actionCard(
                     "System Settings",
                     "Update roles, permissions, and system-wide configurations.",
                     "Manage Settings",
@@ -207,7 +295,7 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
                     onPressed: () {
                       // 🔹 Navigate to Activities
                     },
-                  ),
+                  ),*/
                 ],
               );
             },
@@ -291,84 +379,97 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
 
   /// ---------- ACTION CARD ----------
   static Widget _actionCard(
+      BuildContext context,
       String title,
       String desc,
       String btnText,
-      Color? color, {
-        bool outline = false,
-        String? status,
-        Color? statusColor,
-        required VoidCallback onPressed,
+      IconData icon,
+
+      {
+        Color? color, // 👈 optional custom color
+        Color? borderColor,
+        VoidCallback? onTap,
       }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5)),
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title,
-              style: GoogleFonts.poppins(
-                  fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(desc,
-              style: GoogleFonts.poppins(
-                  fontSize: 13, color: Colors.grey[600])),
-          const Spacer(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // ---- Title with Icon ----
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+
             children: [
-              if (status != null)
-                Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor?.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
+              Row(
+                children: [
+                  Icon(icon, color: Colors.black87, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
                   ),
-                  child: Text(status,
-                      style: GoogleFonts.poppins(
-                          color: statusColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12)),
-                ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                  outline ? Colors.white : color ?? kPrimaryColor,
-                  side: outline
-                      ? BorderSide(color: Colors.grey.shade300)
-                      : BorderSide.none,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  elevation: 0,
-                ),
-                onPressed: onPressed,
-                child: Row(
-                  children: [
-                    Text(btnText,
-                        style: GoogleFonts.poppins(
-                            color:
-                            outline ? Colors.black87 : Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
-                    const SizedBox(width: 4),
-                    Icon(Icons.arrow_forward,
-                        size: 16,
-                        color:
-                        outline ? Colors.black87 : Colors.white),
-                  ],
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // ---- Description ----
+              Text(
+                desc,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                  height: 1.5,
                 ),
               ),
             ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // ---- Themed Blue Button ----
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color ?? kPrimaryColor, // 👈 dynamic color
+
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+              icon: const Icon(
+                Icons.arrow_forward_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              label: Text(
+                btnText,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ),
         ],
       ),
