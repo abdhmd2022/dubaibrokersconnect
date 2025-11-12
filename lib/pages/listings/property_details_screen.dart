@@ -44,12 +44,12 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                   child: Row(
                     children: [
                       const Icon(Icons.arrow_back_ios_new_rounded,
-                          size: 16, color: Colors.blueAccent),
+                          size: 16, color: kPrimaryColor),
                       const SizedBox(width: 6),
                       Text("Back to Listings",
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.w500,
-                            color: Colors.blueAccent,
+                            color: kPrimaryColor,
                             fontSize: 13,
                           )),
                     ],

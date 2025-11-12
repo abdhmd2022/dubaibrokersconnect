@@ -353,73 +353,76 @@ class BrokerDashboardContent extends StatelessWidget {
     final String fullName =
     '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
     final bool isVerified = userData['broker']['isVerified'] == true;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          /// ---------- HEADER ----------
-          Row(
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      body: Align(
+        alignment: Alignment.topCenter, // 👈 ensures top placement
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Broker Dashboard",
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(width: 10),
-              _roleChip("Broker", kPrimaryColor, Icons.badge_outlined),
-              if (isVerified)
-                Padding(
-                  padding: const EdgeInsets.only(left: 6),
-                  child:
-                  _roleChip("Verified", Colors.green, Icons.verified_rounded),
-                ),
-            ],
-          ),
-
-          if (!isVerified)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Row(
+              /// ---------- HEADER ----------
+              Row(
                 children: [
-                  const Icon(Icons.error_outline,
-                      color: Colors.redAccent, size: 16),
-                  const SizedBox(width: 4),
                   Text(
-                    "Your account is not verified yet",
+                    "Broker Dashboard",
                     style: GoogleFonts.poppins(
-                        color: Colors.redAccent,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500),
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
                   ),
+                  const SizedBox(width: 10),
+                  _roleChip("Broker", kPrimaryColor, Icons.badge_outlined),
+                  if (isVerified)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child:
+                      _roleChip("Verified", Colors.green, Icons.verified_rounded),
+                    ),
                 ],
               ),
-            ),
 
-          const SizedBox(height: 40),
+              if (!isVerified)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: Colors.redAccent, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Your account is not verified yet",
+                        style: GoogleFonts.poppins(
+                            color: Colors.redAccent,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
 
-          /// ---------- SAMPLE CARDS / STATS ----------
-          LayoutBuilder(
-            builder: (context, constraints) {
-              double cardWidth = (constraints.maxWidth - 60) / 3;
-              if (constraints.maxWidth < 1000) cardWidth = (constraints.maxWidth - 40) / 2;
-              if (constraints.maxWidth < 600) cardWidth = constraints.maxWidth - 40;
+              const SizedBox(height: 40),
 
-              return FutureBuilder(
-                future: () async {
-                  final token = await AuthService.getToken();
-                  final response = await http.get(
-                    Uri.parse('$baseURL/api/brokers/${userData['broker']['id']}/stats'),
-                    headers: {'Authorization': 'Bearer $token'},
-                  );
-                  return jsonDecode(response.body);
-                }(),
-                builder: (context, snapshot) {
-                /*  if (!snapshot.hasData) {
+              /// ---------- SAMPLE CARDS / STATS ----------
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  double cardWidth = (constraints.maxWidth - 60) / 3;
+                  if (constraints.maxWidth < 1000) cardWidth = (constraints.maxWidth - 40) / 2;
+                  if (constraints.maxWidth < 600) cardWidth = constraints.maxWidth - 40;
+
+                  return FutureBuilder(
+                    future: () async {
+                      final token = await AuthService.getToken();
+                      final response = await http.get(
+                        Uri.parse('$baseURL/api/brokers/${userData['broker']['id']}/stats'),
+                        headers: {'Authorization': 'Bearer $token'},
+                      );
+                      return jsonDecode(response.body);
+                    }(),
+                    builder: (context, snapshot) {
+                      /*  if (!snapshot.hasData) {
                     return const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -431,65 +434,65 @@ class BrokerDashboardContent extends StatelessWidget {
                     );
                   }*/
 
-                  final data = snapshot.data?['data'] ?? {};
-                  final properties = data['properties'] ?? {};
-                  final requirements = data['requirements'] ?? {};
-                  final brokers = data['brokers'] ?? {};
+                      final data = snapshot.data?['data'] ?? {};
+                      final properties = data['properties'] ?? {};
+                      final requirements = data['requirements'] ?? {};
+                      final brokers = data['brokers'] ?? {};
 
-                  final activeListings = properties['active']?.toString() ?? '0';
-                  final activeRequirements = requirements['active']?.toString() ?? '0';
-                  final approvedBrokers = brokers['approved']?.toString() ?? '0';
+                      final activeListings = properties['active']?.toString() ?? '0';
+                      final activeRequirements = requirements['active']?.toString() ?? '0';
+                      final approvedBrokers = brokers['approved']?.toString() ?? '0';
 
-                  return Wrap(
-                    spacing: 20,
-                    runSpacing: 20,
-                    children: [
-                      _statCard(
-                        "Active Listings",
-                        activeListings,
-                        Icons.home_work_outlined,
-                        Colors.blue,
-                        Colors.blue.shade50,
-                        cardWidth,
-                      ),
-                      _statCard(
-                        "Active Requirements",
-                        activeRequirements,
-                        Icons.pending_actions,
-                        Colors.orange,
-                        Colors.orange.shade50,
-                        cardWidth,
-                      ),
-                      _statCard(
-                        "Approved Brokers",
-                        approvedBrokers,
-                        Icons.verified_user,
-                        Colors.green,
-                        Colors.green.shade50,
-                        cardWidth,
-                      ),
-                    ],
+                      return Wrap(
+                        spacing: 20,
+                        runSpacing: 20,
+                        children: [
+                          _statCard(
+                            "Active Listings",
+                            activeListings,
+                            Icons.home_work_outlined,
+                            Colors.blue,
+                            Colors.blue.shade50,
+                            cardWidth,
+                          ),
+                          _statCard(
+                            "Active Requirements",
+                            activeRequirements,
+                            Icons.pending_actions,
+                            Colors.orange,
+                            Colors.orange.shade50,
+                            cardWidth,
+                          ),
+                          _statCard(
+                            "Approved Brokers",
+                            approvedBrokers,
+                            Icons.verified_user,
+                            Colors.green,
+                            Colors.green.shade50,
+                            cardWidth,
+                          ),
+                        ],
+                      );
+                    },
                   );
+
                 },
-              );
+              ),
 
-            },
-          ),
+              const SizedBox(height: 30),
 
-          const SizedBox(height: 30),
-
-          /// ---------- MANAGEMENT TOOLS ----------
+              /// ---------- MANAGEMENT TOOLS ----------
 
 
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 20,
-            mainAxisSpacing: 20,
-            childAspectRatio: 3.5,
-            children: [
-              /*_actionCard(
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: 3.5,
+                children: [
+                  /*_actionCard(
                     context,
 
                     "My Listings",
@@ -499,7 +502,7 @@ class BrokerDashboardContent extends StatelessWidget {
                     onTap: onNavigateToListings,
                   ),*/
 
-              /*  _actionCard(
+                  /*  _actionCard(
                     context,
 
                     "Client Requirements",
@@ -510,582 +513,587 @@ class BrokerDashboardContent extends StatelessWidget {
                     onTap: onNavigateToRequirements,
                   ),*/
 
-              _actionCard(
-                context,
-                "Broker Directory",
-                "Explore and connect with other verified brokers",
-                "View Directory",
-                Icons.apartment_rounded,
-                onTap: onNavigateToBrokers,
+                  _actionCard(
+                    context,
+                    "Broker Directory",
+                    "Explore and connect with other verified brokers",
+                    "View Directory",
+                    Icons.apartment_rounded,
+                    onTap: onNavigateToBrokers,
+                  ),
+
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ---- Title with Icon ----
+                        Row(
+                          children: [
+                            Icon(Icons.person, color: Colors.black87, size: 22),
+                            const SizedBox(width: 8),
+                            Text(
+                              "My Profile",
+                              style: GoogleFonts.poppins(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // ---- Description ----
+                        Text(
+                          'Manage your profile and credentials',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.grey.shade700,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // ---- Themed Blue Button ----
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: onNavigateToProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white , // 👈 dynamic color
+                              side: BorderSide(
+                                color: kPrimaryColor.withOpacity(0.3), // 👈 soft border tone
+                                width: 1.0,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
+                            ),
+                            icon: const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: kPrimaryColor,
+                              size: 18,
+                            ),
+                            label: Text(
+                              "My Profile",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: kPrimaryColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+
+                ],
               ),
+              const SizedBox(height: 30),
+
+// ---------- LATEST ACTIVE LISTINGS ----------
 
               Container(
-                padding: const EdgeInsets.all(24),
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+                      color: Colors.grey.withOpacity(0.05),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ---- Title with Icon ----
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.person, color: Colors.black87, size: 22),
-                        const SizedBox(width: 8),
                         Text(
-                          "My Profile",
-                          style: GoogleFonts.poppins(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87,
-                          ),
+                          "Latest Listings",
+                          style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700),
+
+                        ),
+                        TextButton(
+                          onPressed: onNavigateToListings,
+                          child: const Text("View All →"),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-
-                    // ---- Description ----
-                    Text(
-                      'Manage your profile and credentials',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // ---- Themed Blue Button ----
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: onNavigateToProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white , // 👈 dynamic color
-                          side: BorderSide(
-                            color: kPrimaryColor.withOpacity(0.3), // 👈 soft border tone
-                            width: 1.0,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 0,
-                        ),
-                        icon: const Icon(
-                          Icons.arrow_forward_rounded,
-                          color: kPrimaryColor,
-                          size: 18,
-                        ),
-                        label: Text(
-                          "My Profile",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: kPrimaryColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-
-            ],
-          ),
-          const SizedBox(height: 30),
-
-// ---------- LATEST ACTIVE LISTINGS ----------
-
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Latest Listings",
-                      style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700),
-
-                    ),
-                    TextButton(
-                      onPressed: onNavigateToListings,
-                      child: const Text("View All →"),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                FutureBuilder(
-                  future: () async {
-                    final token = await AuthService.getToken();
-                    return await http.get(
-                      Uri.parse('$baseURL/api/properties?page=1&limit=100'),
-                      headers: {'Authorization': 'Bearer $token'},
-                    );
-                  }(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 80),
-                            AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
-                          ],
-                        ),
-                      );
-                    }
-
-                    final response = jsonDecode(snapshot.data!.body);
-                    final all = (response['data'] ?? []) as List;
-
-                    // ✅ Filter only active listings
-                    final active = all.where((item) {
-                      final status =
-                      (item['listingStatus'] ?? '').toString().trim().toLowerCase();
-                      return status == 'active';
-                    }).toList();
-
-                    // ✅ Sort by newest first
-                    active.sort((a, b) {
-                      final aDate = DateTime.tryParse(a['createdAt'] ?? '') ?? DateTime(2000);
-                      final bDate = DateTime.tryParse(b['createdAt'] ?? '') ?? DateTime(2000);
-                      return bDate.compareTo(aDate);
-                    });
-
-                    final latest = active.take(5).toList();
-
-                    if (latest.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Text("No active listings available."),
-                      );
-                    }
-
-                    return Column(
-                      children: latest.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final item = entry.value;
-
-                        final isEven = index % 2 == 0;
-                        final bgColor = isEven ? Colors.grey.shade50 : Colors.white;
-
-                        final location = (item['location'] is Map && item['location'] != null)
-                            ? item['location']
-                            : (item['location'].toString() ?? 'Unknown');
-
-                        print('location -> $location');
-                        final transaction = (item['transactionType'] ?? '').toString();
-                        final numPrice = double.tryParse(item['price']?.toString() ?? '') ?? 0;
-                        final formattedPrice = NumberFormat('#,##0').format(numPrice);
-                        final price = "${item['currency'] ?? 'AED'} $formattedPrice";
-                        final size = item['sizeSqft']?.toString() ?? '-';
-
-
-                        final rentTag = Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-
-                          child: Text(
-                            transaction,
-                            style: GoogleFonts.poppins(
-                              color: Colors.green.shade700,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                    FutureBuilder(
+                      future: () async {
+                        final token = await AuthService.getToken();
+                        return await http.get(
+                          Uri.parse('$baseURL/api/properties?page=1&limit=100'),
+                          headers: {'Authorization': 'Bearer $token'},
+                        );
+                      }(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 80),
+                                AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
+                              ],
                             ),
-                          ),
-                        );
+                          );
+                        }
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: bgColor,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        rentTag,
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: Text(
-                                            item['title'] ?? 'Untitled Property',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.poppins(
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black87,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      price,
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.blueAccent.shade400,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.location_on_outlined,
-                                            size: 13, color: Colors.grey),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                          child: Text(
-                                            "${location['completeAddress']} • $size sqft",
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.poppins(
-                                              color: Colors.grey.shade600,
-                                              fontSize: 11.5,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                        final response = jsonDecode(snapshot.data!.body);
+                        final all = (response['data'] ?? []) as List;
+
+                        // ✅ Filter only active listings
+                        final active = all.where((item) {
+                          final status =
+                          (item['listingStatus'] ?? '').toString().trim().toLowerCase();
+                          return status == 'active';
+                        }).toList();
+
+                        // ✅ Sort by newest first
+                        active.sort((a, b) {
+                          final aDate = DateTime.tryParse(a['createdAt'] ?? '') ?? DateTime(2000);
+                          final bDate = DateTime.tryParse(b['createdAt'] ?? '') ?? DateTime(2000);
+                          return bDate.compareTo(aDate);
+                        });
+
+                        final latest = active.take(5).toList();
+
+                        if (latest.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Text("No active listings available."),
+                          );
+                        }
+
+                        return Column(
+                          children: latest.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final item = entry.value;
+
+                            final isEven = index % 2 == 0;
+                            final bgColor = isEven ? Colors.grey.shade50 : Colors.white;
+
+                            final location = (item['location'] is Map && item['location'] != null)
+                                ? item['location']
+                                : (item['location'].toString() ?? 'Unknown');
+
+                            print('location -> $location');
+                            final transaction = (item['transactionType'] ?? '').toString();
+                            final numPrice = double.tryParse(item['price']?.toString() ?? '') ?? 0;
+                            final formattedPrice = NumberFormat('#,##0').format(numPrice);
+                            final price = "${item['currency'] ?? 'AED'} $formattedPrice";
+                            final size = item['sizeSqft']?.toString() ?? '-';
+
+
+                            final rentTag = Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
                               ),
-                              const SizedBox(width: 10),
-                              OutlinedButton.icon(
-                                onPressed: () => _viewPropertyDetails(context, item),
-                                icon: const Icon(Icons.arrow_forward_ios_rounded,
-                                    size: 13, color: kPrimaryColor),
-                                label: const Text(
-                                  "View",
-                                  style: TextStyle(
-                                    color: kPrimaryColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: kPrimaryColor, width: 1),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    );
 
-                  },
-                ),
-              ],
-            ),
-          ),
-
-// ---------- LATEST REQUIREMENTS ----------
-
-          const SizedBox(height: 30),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Latest Requirements",
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: onNavigateToRequirements,
-                      child: const Text("View All →"),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                FutureBuilder(
-                  future: () async {
-                    final token = await AuthService.getToken();
-                    return await http.get(
-                      Uri.parse('$baseURL/api/requirements?page=1&limit=100'),
-                      headers: {'Authorization': 'Bearer $token'},
-                    );
-                  }(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 80),
-                            AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
-                          ],
-                        ),
-                      );
-                    }
-
-                    final response = jsonDecode(snapshot.data!.body);
-                    final all = (response['data'] ?? []) as List;
-
-                    // ✅ Filter only active
-                    final active = all.where((r) {
-                      final status = (r['listingStatus'] ?? '').toString().toLowerCase();
-                      return status == 'active';
-                    }).toList();
-
-                    // ✅ Sort newest first
-                    active.sort((a, b) {
-                      final aDate = DateTime.tryParse(a['createdAt'] ?? '') ?? DateTime(2000);
-                      final bDate = DateTime.tryParse(b['createdAt'] ?? '') ?? DateTime(2000);
-                      return bDate.compareTo(aDate);
-                    });
-
-                    final latest = active.take(5).toList();
-
-                    if (latest.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Text("No active requirements available."),
-                      );
-                    }
-
-                    return Column(
-                      children: latest.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final r = entry.value;
-
-                        final isEven = index % 2 == 0;
-                        final bgColor = isEven ? Colors.grey.shade50 : Colors.white;
-
-                        final transaction = (r['transactionType'] ?? '').toString();
-                        final location = (r['locations'] != null && r['locations'].isNotEmpty)
-                            ? r['locations'][0]['completeAddress'] ?? 'Unknown'
-                            : 'Unknown';
-
-                        print('locations -> $location');
-
-                        final numMinPrice = double.tryParse(r['minPrice']?.toString() ?? '') ?? 0;
-                        final numMaxPrice = double.tryParse(r['maxPrice']?.toString() ?? '') ?? 0;
-                        final formattedMin = NumberFormat('#,##0').format(numMinPrice);
-                        final formattedMax = NumberFormat('#,##0').format(numMaxPrice);
-
-                        final priceRange = "${r['currency'] ?? 'AED'} $formattedMin"
-                            "${numMaxPrice > 0 ? ' - $formattedMax' : ''}";
-
-                        final minSize = r['minSizeSqft'] ?? '-';
-                        final maxSize = r['maxSizeSqft'] ?? '-';
-                        final sizeRange = "$minSize - $maxSize sqft";
-
-                        // 🏠 Rooms exact list
-                        final List<dynamic> roomList = (r['rooms'] ?? []);
-                        final roomText = roomList.isNotEmpty
-                            ? roomList.map((room) => "${room.toString()} BR").join(' • ')
-                            : "N/A";
-
-                        final tag = Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            transaction,
-                            style: GoogleFonts.poppins(
-                              color: Colors.green.shade700,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        );
-
-                        final roomChip = Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.king_bed_outlined,
-                                  color: Colors.orange, size: 13),
-                              const SizedBox(width: 4),
-                              Text(
-                                roomText,
+                              child: Text(
+                                transaction,
                                 style: GoogleFonts.poppins(
-                                  color: Colors.orange.shade700,
+                                  color: Colors.green.shade700,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ],
-                          ),
-                        );
+                            );
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: bgColor,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey.shade200, width: 0.7),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              decoration: BoxDecoration(
+                                color: bgColor,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        tag,
-
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: Text(
-                                            r['title'] ?? 'Untitled Requirement',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.poppins(
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black87,
-                                              fontSize: 14,
+                                        Row(
+                                          children: [
+                                            rentTag,
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                item['title'] ?? 'Untitled Property',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.poppins(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.black87,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
+                                        const SizedBox(height: 6),
                                         Text(
-                                          priceRange,
+                                          price,
                                           style: GoogleFonts.poppins(
                                             color: Colors.blueAccent.shade400,
                                             fontWeight: FontWeight.w700,
                                             fontSize: 13,
                                           ),
                                         ),
-                                        const SizedBox(width: 6),
-
-                                        roomChip,
-                                      ],
-                                    ),
-
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.location_on_outlined,
-                                            size: 13, color: Colors.grey),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                          child: Text(
-                                            "$location • $sizeRange",
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.poppins(
-                                              color: Colors.grey.shade600,
-                                              fontSize: 11.5,
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.location_on_outlined,
+                                                size: 13, color: Colors.grey),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                "${location['completeAddress']} • $size sqft",
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.grey.shade600,
+                                                  fontSize: 11.5,
+                                                ),
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ),
                                       ],
                                     ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              OutlinedButton.icon(
-                                onPressed: () => _openRequirementDrawer(context, r),
-                                icon: const Icon(Icons.arrow_forward_ios_rounded,
-                                    size: 13, color: kPrimaryColor),
-                                label: const Text(
-                                  "View",
-                                  style: TextStyle(
-                                    color: kPrimaryColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: kPrimaryColor, width: 1),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                  const SizedBox(width: 10),
+                                  OutlinedButton.icon(
+                                    onPressed: () => _viewPropertyDetails(context, item),
+                                    icon: const Icon(Icons.arrow_forward_ios_rounded,
+                                        size: 13, color: kPrimaryColor),
+                                    label: const Text(
+                                      "View",
+                                      style: TextStyle(
+                                        color: kPrimaryColor,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: kPrimaryColor, width: 1),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    ),
                                   ),
-                                  padding:
-                                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
+                            );
+                          }).toList(),
                         );
-                      }).toList(),
-                    );
 
-                  },
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          )
+              ),
+
+// ---------- LATEST REQUIREMENTS ----------
+
+              const SizedBox(height: 30),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.05),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Latest Requirements",
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: onNavigateToRequirements,
+                          child: const Text("View All →"),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    FutureBuilder(
+                      future: () async {
+                        final token = await AuthService.getToken();
+                        return await http.get(
+                          Uri.parse('$baseURL/api/requirements?page=1&limit=100'),
+                          headers: {'Authorization': 'Bearer $token'},
+                        );
+                      }(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 80),
+                                AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
+                              ],
+                            ),
+                          );
+                        }
+
+                        final response = jsonDecode(snapshot.data!.body);
+                        final all = (response['data'] ?? []) as List;
+
+                        // ✅ Filter only active
+                        final active = all.where((r) {
+                          final status = (r['listingStatus'] ?? '').toString().toLowerCase();
+                          return status == 'active';
+                        }).toList();
+
+                        // ✅ Sort newest first
+                        active.sort((a, b) {
+                          final aDate = DateTime.tryParse(a['createdAt'] ?? '') ?? DateTime(2000);
+                          final bDate = DateTime.tryParse(b['createdAt'] ?? '') ?? DateTime(2000);
+                          return bDate.compareTo(aDate);
+                        });
+
+                        final latest = active.take(5).toList();
+
+                        if (latest.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Text("No active requirements available."),
+                          );
+                        }
+
+                        return Column(
+                          children: latest.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final r = entry.value;
+
+                            final isEven = index % 2 == 0;
+                            final bgColor = isEven ? Colors.grey.shade50 : Colors.white;
+
+                            final transaction = (r['transactionType'] ?? '').toString();
+                            final location = (r['locations'] != null && r['locations'].isNotEmpty)
+                                ? r['locations'][0]['completeAddress'] ?? 'Unknown'
+                                : 'Unknown';
+
+                            print('locations -> $location');
+
+                            final numMinPrice = double.tryParse(r['minPrice']?.toString() ?? '') ?? 0;
+                            final numMaxPrice = double.tryParse(r['maxPrice']?.toString() ?? '') ?? 0;
+                            final formattedMin = NumberFormat('#,##0').format(numMinPrice);
+                            final formattedMax = NumberFormat('#,##0').format(numMaxPrice);
+
+                            final priceRange = "${r['currency'] ?? 'AED'} $formattedMin"
+                                "${numMaxPrice > 0 ? ' - $formattedMax' : ''}";
+
+                            final minSize = r['minSizeSqft'] ?? '-';
+                            final maxSize = r['maxSizeSqft'] ?? '-';
+                            final sizeRange = "$minSize - $maxSize sqft";
+
+                            // 🏠 Rooms exact list
+                            final List<dynamic> roomList = (r['rooms'] ?? []);
+                            final roomText = roomList.isNotEmpty
+                                ? roomList.map((room) => "${room.toString()} BR").join(' • ')
+                                : "N/A";
+
+                            final tag = Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                transaction,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.green.shade700,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            );
+
+                            final roomChip = Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.king_bed_outlined,
+                                      color: Colors.orange, size: 13),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    roomText,
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.orange.shade700,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              decoration: BoxDecoration(
+                                color: bgColor,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.grey.shade200, width: 0.7),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            tag,
+
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                r['title'] ?? 'Untitled Requirement',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.poppins(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.black87,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              priceRange,
+                                              style: GoogleFonts.poppins(
+                                                color: Colors.blueAccent.shade400,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+
+                                            roomChip,
+                                          ],
+                                        ),
+
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.location_on_outlined,
+                                                size: 13, color: Colors.grey),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                "$location • $sizeRange",
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.grey.shade600,
+                                                  fontSize: 11.5,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  OutlinedButton.icon(
+                                    onPressed: () => _openRequirementDrawer(context, r),
+                                    icon: const Icon(Icons.arrow_forward_ios_rounded,
+                                        size: 13, color: kPrimaryColor),
+                                    label: const Text(
+                                      "View",
+                                      style: TextStyle(
+                                        color: kPrimaryColor,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: kPrimaryColor, width: 1),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding:
+                                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        );
+
+                      },
+                    ),
+                  ],
+                ),
+              )
 
 
-        ],
+            ],
+          ),
+        )
       ),
     );
+
+
+
   }
 
   /// ---------- ROLE CHIP ----------

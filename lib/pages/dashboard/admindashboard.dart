@@ -78,200 +78,204 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
     '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
     final String email = userData['email'] ?? '';
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-      child:  isLoading?
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      body: Align(
+        alignment: Alignment.topCenter, // 👈 ensures top placement
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+          child:  isLoading?
 
-      Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 80),
-            AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 80),
+                AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
 
-          ],
-        ),
-      )
-          : Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          /// ---------- HEADER ----------
-          Row(
+              ],
+            ),
+          )
+              : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              /// ---------- HEADER ----------
+              Row(
+                children: [
+                  Text(
+                    "Admin Dashboard",
+                    style: GoogleFonts.poppins(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _roleChip("Admin", Colors.orange, Icons.workspace_premium_rounded),
+                  const SizedBox(width: 6),
+                  _roleChip("Broker", Colors.blue, Icons.badge_outlined),
+                ],
+              ),
+
+              const SizedBox(height: 40),
+
+              /// ---------- STATISTICS ----------
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  double cardWidth = (constraints.maxWidth - 60) / 4;
+                  if (constraints.maxWidth < 1000) {
+                    cardWidth = (constraints.maxWidth - 40) / 2;
+                  }
+                  if (constraints.maxWidth < 600) {
+                    cardWidth = constraints.maxWidth - 40;
+                  }
+
+                  return Wrap(
+                    spacing: 20,
+                    runSpacing: 20,
+                    children: [
+                      _statCard("Total Brokers", "$totalBrokers", Icons.people,
+                          Colors.blue, Colors.blue.shade50, cardWidth),
+                      _statCard("Approved", "$approvedBrokers",
+                          Icons.verified_user, Colors.green,
+                          Colors.green.shade50, cardWidth),
+                      _statCard("Pending", "$pendingBrokers",
+                          Icons.access_time, Colors.orange,
+                          Colors.orange.shade50, cardWidth),
+                      _statCard("Verified", "$verifiedBrokers", Icons.star,
+                          Colors.purple, Colors.purple.shade50, cardWidth),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: 40),
+
+              /// ---------- MANAGEMENT TOOLS ----------
               Text(
-                "Admin Dashboard",
+                "Administrative Tools",
                 style: GoogleFonts.poppins(
-                  fontSize: 28,
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black87,
                 ),
               ),
-              const SizedBox(width: 10),
-              _roleChip("Admin", Colors.orange, Icons.workspace_premium_rounded),
-              const SizedBox(width: 6),
-              _roleChip("Broker", Colors.blue, Icons.badge_outlined),
-            ],
-          ),
+              const SizedBox(height: 20),
 
-          const SizedBox(height: 40),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  int crossAxisCount = constraints.maxWidth < 1000 ? 1 : 2;
+                  double aspectRatio = constraints.maxWidth < 800 ? 2.5 : 3.0;
 
-          /// ---------- STATISTICS ----------
-         LayoutBuilder(
-            builder: (context, constraints) {
-              double cardWidth = (constraints.maxWidth - 60) / 4;
-              if (constraints.maxWidth < 1000) {
-                cardWidth = (constraints.maxWidth - 40) / 2;
-              }
-              if (constraints.maxWidth < 600) {
-                cardWidth = constraints.maxWidth - 40;
-              }
+                  return GridView.count(
+                    crossAxisCount: crossAxisCount,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: aspectRatio,
+                    children: [
 
-              return Wrap(
-                spacing: 20,
-                runSpacing: 20,
-                children: [
-                  _statCard("Total Brokers", "$totalBrokers", Icons.people,
-                      Colors.blue, Colors.blue.shade50, cardWidth),
-                  _statCard("Approved", "$approvedBrokers",
-                      Icons.verified_user, Colors.green,
-                      Colors.green.shade50, cardWidth),
-                  _statCard("Pending", "$pendingBrokers",
-                      Icons.access_time, Colors.orange,
-                      Colors.orange.shade50, cardWidth),
-                  _statCard("Verified", "$verifiedBrokers", Icons.star,
-                      Colors.purple, Colors.purple.shade50, cardWidth),
-                ],
-              );
-            },
-          ),
+                      _actionCard(
+                        context,
+                        "Manage Brokers",
+                        "Review and approve broker profiles",
+                        "Open Admin Panel",
+                        Icons.settings,
+                        onTap:  widget.onNavigateToBrokerManagement!,
+                      ),
 
-          const SizedBox(height: 40),
-
-          /// ---------- MANAGEMENT TOOLS ----------
-          Text(
-            "Administrative Tools",
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          LayoutBuilder(
-            builder: (context, constraints) {
-              int crossAxisCount = constraints.maxWidth < 1000 ? 1 : 2;
-              double aspectRatio = constraints.maxWidth < 800 ? 2.5 : 3.0;
-
-              return GridView.count(
-                crossAxisCount: crossAxisCount,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
-                childAspectRatio: aspectRatio,
-                children: [
-
-                  _actionCard(
-                    context,
-                    "Manage Brokers",
-                    "Review and approve broker profiles",
-                    "Open Admin Panel",
-                    Icons.settings,
-                    onTap:  widget.onNavigateToBrokerManagement!,
-                  ),
-
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.08),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.08),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
-                      children: [
-                        // ---- Title with Icon ----
-
-
-                        Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
                           children: [
-                            Row(
+                            // ---- Title with Icon ----
+
+
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.person, color: Colors.black87, size: 22),
-                                const SizedBox(width: 8),
+                                Row(
+                                  children: [
+                                    Icon(Icons.person, color: Colors.black87, size: 22),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Broker Directory',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+
+                                // ---- Description ----
                                 Text(
-                                 'Broker Directory',
+                                  'Explore and connect with other verified brokers',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black87,
+                                    fontSize: 14,
+                                    color: Colors.grey.shade700,
+                                    height: 1.5,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 10),
 
-                            // ---- Description ----
-                            Text(
-                              'Explore and connect with other verified brokers',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: Colors.grey.shade700,
-                                height: 1.5,
+
+                            const SizedBox(height: 20),
+
+                            // ---- Themed Blue Button ----
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: widget.onNavigateToBrokers,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white , // 👈 dynamic color
+                                  side: BorderSide(
+                                    color: kPrimaryColor.withOpacity(0.3), // 👈 soft border tone
+                                    width: 1.0,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                icon: const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: kPrimaryColor,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  "View Directory",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: kPrimaryColor,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
+                      ),
 
-
-                        const SizedBox(height: 20),
-
-                        // ---- Themed Blue Button ----
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: widget.onNavigateToBrokers,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white , // 👈 dynamic color
-                              side: BorderSide(
-                                color: kPrimaryColor.withOpacity(0.3), // 👈 soft border tone
-                                width: 1.0,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              elevation: 0,
-                            ),
-                            icon: const Icon(
-                              Icons.arrow_forward_rounded,
-                              color: kPrimaryColor,
-                              size: 18,
-                            ),
-                            label: Text(
-                              "View Directory",
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: kPrimaryColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                 /* _actionCard(
+                      /* _actionCard(
                     "System Settings",
                     "Update roles, permissions, and system-wide configurations.",
                     "Manage Settings",
@@ -292,13 +296,16 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
                       // 🔹 Navigate to Activities
                     },
                   ),*/
-                ],
-              );
-            },
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+
   }
 
   /// ---------- ROLE CHIP ----------

@@ -57,7 +57,7 @@ class BrokerSidebar extends StatelessWidget {
                 final item = items[i];
 
                 // disable A2A Forms & My Transactions if broker not verified
-                final bool isRestricted = !isVerified && (i==1 || i==2||i == 5 || i == 6);
+                final bool isRestricted = !isVerified && (i==1 || i==2||i == 5 || i == 6|| i == 7 || i == 8);
 
                 return AnimatedOpacity(
                   duration: const Duration(milliseconds: 0),

@@ -43,6 +43,10 @@ class _BrokerShellState extends State<BrokerShell> {
           :  UnverifiedBrokerDashboard(userData: userData,
         onNavigateToBrokers: () {
           setState(() => _selectedIndex = 3);
+        },
+
+        onNavigateToProfile: () {
+          setState(() => _selectedIndex = 4);
         },),
       ListingsScreen(userData: userData,),
       RequirementsScreen(userData: userData,),
