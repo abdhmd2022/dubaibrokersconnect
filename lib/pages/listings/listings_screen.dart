@@ -3724,7 +3724,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     final titleC = TextEditingController(text: propertyData['title'] ?? '');
     final priceC = TextEditingController(text: propertyData['price']?.toString() ?? '');
     final sizeC = TextEditingController(
-
         text: propertyData['sizeSqft']?.toString().replaceAll(' sqft', '') ?? '');
     final descC = TextEditingController(text: propertyData['description'] ?? '');
 
