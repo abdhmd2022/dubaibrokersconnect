@@ -139,9 +139,6 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     );
   }
 
-  // ------------------------------------------------------------
-  // 🔹 Property Details Card
-  // ------------------------------------------------------------
   Widget _propertyDetailsCard(Map<String, dynamic> propertyData) {
     final propertyType =
         propertyData['propertyType']?['name']
