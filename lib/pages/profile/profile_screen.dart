@@ -587,7 +587,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final avatar = broker!['user']?['avatar'];
     final email = broker!['email'];
     final phone = broker!['mobile'];
-    final whatsapp = broker!['user']['whatsappno'] ?? broker!['mobile'];
+    final whatsapp = broker!['user']['whatsappno'] ?? broker!['mobile'] ?? "0";
 
     final bio = broker!['bio'] ?? '';
     final rating = broker!['rating'] ?? 'N/A';
