@@ -286,6 +286,44 @@ class _LoginPageState extends State<LoginPage> {
     ),
   );
 
+  Future<void> _sendResetLink() async {
+    if (_emailController.text.trim().isEmpty) {
+      _showError("Please enter your email");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final url = Uri.parse('$baseURL/api/auth/forgot-password');
+
+    try {
+      final res = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"email": _emailController.text.trim()}),
+      );
+
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 200 && data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Password reset link sent to email"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Switch back to login view
+        setState(() => _mode = AuthMode.login);
+      } else {
+        _showError(data['message'] ?? "Failed to send reset link");
+      }
+    } catch (e) {
+      _showError("Error: $e");
+    }
+
+    setState(() => _isLoading = false);
+  }
 
 
 
@@ -431,10 +469,8 @@ class _LoginPageState extends State<LoginPage> {
             ? _login
             : _mode == AuthMode.signup
             ? _register
-            : () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Password reset link sent!')),
-        ),
+            : _sendResetLink,
+
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.zero,
           shape:

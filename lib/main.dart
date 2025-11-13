@@ -1,3 +1,4 @@
+import 'package:a2abrokerapp/pages/reset-password/reset_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'constants.dart';
@@ -15,6 +16,22 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Dubai Brokers Connect',
+      debugShowCheckedModeBanner: false,
+      onGenerateRoute: (settings) {
+        final uri = Uri.parse(settings.name ?? "");
+
+        // Example link: https://yourapp.com/reset-password?token=abc123
+        if (uri.path == "/reset-password") {
+          final token = uri.queryParameters["token"] ?? "";
+
+          return MaterialPageRoute(
+            builder: (_) => ResetPasswordPage(token: token),
+          );
+        }
+
+        // Default fallback = Login
+        return MaterialPageRoute(builder: (_) => const LoginPage());
+      },
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -72,7 +89,6 @@ class MyApp extends StatelessWidget {
       ),
 
         home: LoginPage(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }
