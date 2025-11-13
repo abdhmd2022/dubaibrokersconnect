@@ -104,6 +104,40 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
       setState(() => _loadingPropertyTypes = false);
     }
   }
+  void _resetForm() {
+    setState(() {
+      _currentStep = 1;
+
+      // Clear Bayut URL
+      bayutUrlC.clear();
+
+      // Clear step-3 controllers
+      titleC.clear();
+      refNoC.clear();
+      descriptionC.clear();
+      locationC.clear();
+      rentC.clear();
+      sizeC.clear();
+      parkingC.clear();
+
+      // Clear amenities
+      selectedAmenities.clear();
+      amenityController.clear();
+
+      // Reset selections
+      selectedPropertyTypeId = null;
+      propertyType = "";
+      furnishing = "FURNISHED";
+      status = "READY_TO_MOVE";
+      rooms = "Studio";
+      bathrooms = "1";
+      lookingFor = "";
+      category = "";
+    });
+
+    // Restart animation for step 1
+    _controller.forward(from: 0);
+  }
 
   Future<void> _submitListing() async {
     final token = await AuthService.getToken();
@@ -129,13 +163,16 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
     }
 
 
+    print('property type -> $selectedPropertyTypeId');
     // ✅ Build request body
     final Map<String, dynamic> body = {
       "broker_id": brokerId,
       "title": titleC.text.trim(),
       "reference_number": refNoC.text.trim(),
       "description": descriptionC.text.trim(),
-      "property_type_id": selectedPropertyTypeId,
+      "property_type_id": selectedPropertyTypeId ?? null,
+
+      "property_type_name": propertyType,
       "location_name": locationC.text,
       "category": category ?? "RESIDENTIAL",
 
@@ -147,9 +184,22 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
           : (rooms == "5+" && importedRooms != null
           ? importedRooms
           : rooms),
-      "bathrooms": (bathrooms == "5+" && importedBathrooms != null
-          ? importedBathrooms
-          : bathrooms),
+      "bathrooms": () {
+        if (bathrooms == null) return null;
+
+        // 5+ will be mapped to importedBathrooms or 5
+        if (bathrooms == "5+") {
+          if (importedBathrooms != null &&
+              int.tryParse(importedBathrooms!) != null) {
+            return int.parse(importedBathrooms!);
+          }
+          return 5;
+        }
+
+        // Normal numeric values
+        return int.tryParse(bathrooms!);
+      }(),
+
       "parking_spaces": int.tryParse(parkingC.text) ?? 0,
       "size_sqft": int.tryParse(sizeC.text.replaceAll(',', '')) ?? 0,
       "furnished_status": furnishing ?? "UNFURNISHED",
@@ -159,6 +209,8 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
       "amenities_tag_ids": selectedAmenities.map((a) => a['id']).toList(),
 
     };
+    body.removeWhere((key, value) => value == null || value == "");
+
 
 
 
@@ -175,12 +227,20 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        final message = responseData['message'] ?? "Listing created successfully!";
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("✅ Listing created successfully!"),
+          SnackBar(
+            content: Text("✅ $message"),
             behavior: SnackBarBehavior.floating,
           ),
         );
+
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _resetForm();
+        });
+
       } else {
         print("❌ Failed: ${response.body}");
         ScaffoldMessenger.of(context).showSnackBar(

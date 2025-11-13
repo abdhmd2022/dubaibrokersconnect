@@ -223,8 +223,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
 
   @override
   Widget build(BuildContext context) {
-    final fullName =
-        '${widget.userData['firstName']} ${widget.userData['lastName']}';
+    //final fullName = '${widget.userData['firstName']} ${widget.userData['lastName']}';
+    final fullName = '${widget.userData['broker']['displayName']}';
+
     final email = widget.userData['email'] ?? '';
     final avatar = widget.userData['avatar'] ?? '';
     final isAdmin = widget.userData['role'] == 'ADMIN';

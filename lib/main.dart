@@ -1,78 +1,58 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 import 'constants.dart';
 import 'pages/login/login_page.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Dubai Brokers Connect',
+      debugShowCheckedModeBanner: false,
+
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
-        // 👇 Remove grey hover/press highlight globally
         hoverColor: Colors.transparent,
         focusColor: Colors.transparent,
         highlightColor: Colors.transparent,
         splashColor: Colors.transparent,
-
-        // 👇 Disable material ink ripple glow entirely (optional)
         splashFactory: NoSplash.splashFactory,
 
-
-        // 👇 Global loader color
         progressIndicatorTheme: const ProgressIndicatorThemeData(
           color: kPrimaryColor,
           circularTrackColor: Colors.white,
         ),
-
-        // 👇 Primary color scheme (light theme)
-        colorScheme: ColorScheme.light(
+        colorScheme: const ColorScheme.light(
           primary: kPrimaryColor,
           secondary: kAccentColor,
         ),
-
-        // 👇 TextField styling across app
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+            borderSide: BorderSide(color: Colors.grey, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: kPrimaryColor, width: 1.6),
-          ),
-          labelStyle: const TextStyle(color: Colors.black54),
-          floatingLabelStyle: const TextStyle(
-            color: kPrimaryColor,
-            fontWeight: FontWeight.w600,
+            borderSide: BorderSide(color: kPrimaryColor, width: 1.6),
           ),
         ),
-
-        // 👇 Softer text selection highlight
-        textSelectionTheme: TextSelectionThemeData(
-          cursorColor: kPrimaryColor,
-          selectionColor: kPrimaryColor.withOpacity(0.25),  // soft, subtle highlight
-          selectionHandleColor: kPrimaryColor,
-        ),
-
-
-
       ),
 
-        home: LoginPage(),
-      debugShowCheckedModeBanner: false,
+      home: SelectableRegion(
+        focusNode: FocusNode(),
+        selectionControls: materialTextSelectionControls,
+        child: LoginPage(),   // 👈 text inside here becomes selectable
+      ),
     );
   }
 }
