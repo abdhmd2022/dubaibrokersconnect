@@ -3715,7 +3715,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     );
   }
 
-
   Future<void> _showEditPropertyDialog(
       BuildContext context, Map<String, dynamic> propertyData) async {
     final _formKey = GlobalKey<FormState>();
