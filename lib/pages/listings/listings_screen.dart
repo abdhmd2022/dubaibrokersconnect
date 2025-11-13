@@ -1399,7 +1399,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 'location': safeLocation,
                 'category': item['category'] ?? 'Residential',
 
-                'sizeSqft': '${item['sizeSqft'] ?? '0'} sqft',
+                'sizeSqft': '${item['sizeSqft'] ?? '0'}',
                 'propertyType': item['propertyType'] ?? 'Property',
                 'listingStatus' : item['listingStatus'] ?? 'Inactive',
                 'status': item['status'] ?? 'Unknown',

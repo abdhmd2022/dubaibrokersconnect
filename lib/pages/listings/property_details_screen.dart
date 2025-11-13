@@ -181,8 +181,8 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                 icon: Icons.currency_exchange_rounded,
                 label: "Price",
                 value:
-                "${propertyData['currency'] ?? 'AED'} ${propertyData['price'] ?? '0'}",
-                highlight: true,
+                "${propertyData['currency'] ?? 'AED'} ${((propertyData['price'] ?? '0').toString().replaceAll(",", "")).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ',')}"
+                ,highlight: true,
               ),
               _detailItem(
                   icon: Icons.bed_outlined,
@@ -208,7 +208,10 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               _detailItem(
                   icon: Icons.square_foot,
                   label: "Size",
-                  value: propertyData['sizeSqft'] ?? '0 sqft'),
+                  value: "${(propertyData['sizeSqft'] ?? 0).toString().replaceAllMapped(
+                    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+                        (match) => ',',
+                  )} sqft"),
               _detailItem(
                   icon: Icons.task_alt_rounded,
                   label: "Status",
@@ -518,10 +521,21 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
       if (label.contains("Call")) {
         final Uri callUri = Uri(scheme: 'tel', path: phone);
         await launchUrl(callUri, mode: LaunchMode.externalApplication);
-      } else if (label.contains("WhatsApp")) {
-        final Uri whatsappUri = Uri.parse("https://wa.me/$phone?text=Hello%20$name!");
-        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
-      } else if (label.contains("Email")) {
+      }  else if (label.contains("WhatsApp")) {
+    final whatsapp = brokerData['user']?['whatsappno'] ?? '';
+
+    if (whatsapp.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text("WhatsApp number not available")),
+    );
+    return;
+    }
+
+    final Uri whatsappUri = Uri.parse("https://wa.me/$whatsapp?text=Hello%20$name!");
+
+    await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+    }
+    else if (label.contains("Email")) {
         final Uri emailUri = Uri(
           scheme: 'mailto',
           path: email,

@@ -696,11 +696,32 @@ class BrokerDashboardContent extends StatelessWidget {
                             final isEven = index % 2 == 0;
                             final bgColor = isEven ? Colors.grey.shade50 : Colors.white;
 
-                            final location = (item['location'] is Map && item['location'] != null)
-                                ? item['location']
-                                : (item['location'].toString() ?? 'Unknown');
+                            String completeAddress = "";
 
-                            print('location -> $location');
+                          // Get location safely
+                            final loc = item['location'];
+
+                            // Case 1: location is a Map
+                            if (loc is Map<String, dynamic>) {
+                              completeAddress = loc['completeAddress']?.toString() ?? "";
+                            }
+                            // Case 2: location is string
+                            else if (loc is String) {
+                              completeAddress = loc;
+                            }
+                            // Case 3: location is null → use address or empty
+                            else {
+                              completeAddress = item['address']?.toString() ?? "";
+                            }
+
+                            // Final fallback
+                            if (completeAddress.isEmpty) {
+                              completeAddress = "Unknown";
+                            }
+
+
+
+                            print('completeAddress -> $completeAddress');
                             final transaction = (item['transactionType'] ?? '').toString();
                             final numPrice = double.tryParse(item['price']?.toString() ?? '') ?? 0;
                             final formattedPrice = NumberFormat('#,##0').format(numPrice);
@@ -774,7 +795,7 @@ class BrokerDashboardContent extends StatelessWidget {
                                             const SizedBox(width: 4),
                                             Expanded(
                                               child: Text(
-                                                "${location['completeAddress']} • $size sqft",
+                                                "$completeAddress • ${item['sizeSqft'] ?? ''} sqft",
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: GoogleFonts.poppins(
