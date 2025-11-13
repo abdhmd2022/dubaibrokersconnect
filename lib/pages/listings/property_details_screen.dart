@@ -40,6 +40,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 GestureDetector(
+
                   onTap: () => Navigator.pop(context),
                   child: Row(
                     children: [

@@ -1227,7 +1227,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
               width: 24,
               height: 24,
               child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Colors.white),
+                  strokeWidth: 2),
             )
                 : Text(
               "Create",

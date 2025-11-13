@@ -489,7 +489,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
           child: Center(
             child: _isLoading
-                ? const CircularProgressIndicator(color: Colors.grey)
+                ? const CircularProgressIndicator()
                 : Text(
               btnText,
               style: const TextStyle(

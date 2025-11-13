@@ -4,10 +4,14 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:intl_phone_field/country_picker_dialog.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
-
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
 import '../../widgets/animated_logo_loader.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -111,6 +115,451 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
   }
+  Future<void> updateBrokerField(Map<String, dynamic> payload) async {
+
+    print('payload -> $payload');
+    try {
+      final token = await AuthService.getToken();
+
+      final response = await http.put(
+        Uri.parse('$baseURL/api/brokers/${widget.brokerId}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        print("Field updated: ${response.body}");
+      } else {
+        print("Update failed: ${response.body}");
+      }
+    } catch (e) {
+      print("Error updating broker: $e");
+    }
+  }
+
+  void _openEditProfileDialog() {
+    bool isSaving = false;
+
+    Uint8List? selectedImageBytes;
+    String? uploadedImageUrl;
+    String fullWhatsappNumber = broker!['user']['whatsappno'] ?? "";
+    final TextEditingController whatsappC = TextEditingController(
+      text: fullWhatsappNumber.replaceAll("+971", ""),
+    );
+
+
+    final String savedMobile = broker!['mobile'] ?? ""; // e.g. +971585554845
+    final String savedWhatsapp = broker!['user']['whatsappno'] ?? "";
+
+    final TextEditingController mobileC = TextEditingController();
+
+    String fullMobileNumber = broker!['mobile'] ?? "";
+
+    bool sameAsMobile = broker!['mobile'] == broker!['user']['whatsappno'];
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        final TextEditingController nameCtrl =
+        TextEditingController(text: broker!['displayName']);
+        final TextEditingController mobileCtrl =
+        TextEditingController(text: broker!['mobile']);
+        final TextEditingController whatsappCtrl =
+        TextEditingController(text: broker!['user']['whatsappno'] ?? '');
+        bool copyWhatsapp = false;
+        String selectedCode = "+971";
+
+
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+
+            Future<void> pickImage() async {
+              final result = await FilePicker.platform.pickFiles(
+                type: FileType.image,
+                allowMultiple: false,
+                withData: true,
+              );
+
+              if (result != null && result.files.isNotEmpty) {
+                selectedImageBytes = result.files.first.bytes;
+                setStateDialog(() {}); // refresh UI in dialog
+              }
+            }
+
+            Future<String?> uploadProfileImage(Uint8List fileBytes) async {
+              try {
+                final token = await AuthService.getToken();
+
+                final request = http.MultipartRequest(
+                  'POST',
+                  Uri.parse('$baseURL/api/upload/profile'),
+                );
+
+                request.headers['Authorization'] = 'Bearer $token';
+
+                request.files.add(
+                  http.MultipartFile.fromBytes(
+                    'file',
+                    fileBytes,
+                    filename: "profile_${DateTime.now().millisecondsSinceEpoch}.jpg",
+                  ),
+                );
+
+                final response = await request.send();
+                final body = await response.stream.bytesToString();
+
+                final decoded = json.decode(body);
+
+                if (response.statusCode == 200 && decoded['url'] != null) {
+                  return decoded['url']; // returned image URL
+                }
+                return null;
+              } catch (e) {
+                return null;
+              }
+            }
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 80),
+              child: Center(
+                child: Container(
+                    width: 600,
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12.withOpacity(0.08),
+                          blurRadius: 18,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // BACK + TITLE
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.arrow_back_ios_new, size: 16),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Edit Profile",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+
+                              if(widget.userData['role'] == "ADMIN")...[
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border:
+                                    Border.all(color: Colors.orange.shade200),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.workspace_premium,
+                                          size: 16,
+                                          color: Colors.orange.shade700),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        "Admin",
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.orange.shade700,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              ]
+                            ],
+                          ),
+
+                          const SizedBox(height: 28),
+
+                          // DISPLAY NAME FIELD
+                          Text("Display Name *",
+                              style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: nameCtrl,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.grey.shade50,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 22),
+
+                          // 🌍 MOBILE FIELD — EXACT SAME AS YOUR CODE
+                          IntlPhoneField(
+                            initialValue: savedMobile,   // <-- THIS auto-selects UAE and fills number correctly
+                            pickerDialogStyle:  PickerDialogStyle(width: 400),
+                            decoration: InputDecoration(
+                              labelText: 'Mobile Number',
+                              filled: true,
+                              fillColor: Colors.white,
+                              labelStyle: GoogleFonts.poppins(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                              floatingLabelStyle: GoogleFonts.poppins(
+                                color: kPrimaryColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: kPrimaryColor, width: 1.6),
+                              ),
+                            ),
+
+                            // 🔄 When user types Mobile
+                            onChanged: (phone) {
+                              fullMobileNumber = phone.completeNumber;
+                            },
+
+                            validator: (phone) {
+                              if (phone == null || phone.number.isEmpty) {
+                                return 'Please enter a valid number';
+                              }
+                              return null;
+                            },
+                          ),
+
+// 🟩 Checkbox: SAME AS MOBILE
+                          Row(
+                            children: [
+                              Transform.scale(
+                                scale: 0.9,
+                                child: Checkbox(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                  activeColor: kPrimaryColor,
+                                  value: sameAsMobile,
+                                  onChanged: (val) {
+                                    setStateDialog(() {
+                                      sameAsMobile = val ?? false;
+
+                                      if (sameAsMobile) {
+                                        // Copy mobile → WhatsApp
+                                        whatsappC.text = mobileC.text;
+                                        fullWhatsappNumber = fullMobileNumber;
+                                      } else {
+                                        // CLEAR WhatsApp field completely
+                                        whatsappC.clear();
+                                        fullWhatsappNumber = "";
+                                      }
+                                    });
+                                  },
+                                ),
+
+                              ),
+                              Text(
+                                "Same as WhatsApp number",
+                                style: GoogleFonts.poppins(fontSize: 13.5, color: Colors.black87),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 14),
+
+// 🌍 WHATSAPP FIELD — HIDE IF SAME AS MOBILE
+                          if (!sameAsMobile)
+                            IntlPhoneField(
+                              key: ValueKey("whatsapp_field_${sameAsMobile}") , // IMPORTANT: forces rebuild
+
+                              initialCountryCode: 'AE',
+                              initialValue: fullWhatsappNumber.isNotEmpty ? fullWhatsappNumber : null,
+                              pickerDialogStyle:  PickerDialogStyle(width: 400),
+                              decoration: InputDecoration(
+                                labelText: 'WhatsApp Number',
+                                filled: true,
+                                fillColor: Colors.white,
+                                labelStyle: GoogleFonts.poppins(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 14,
+                                ),
+                                floatingLabelStyle: GoogleFonts.poppins(
+                                  color: kPrimaryColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: kPrimaryColor, width: 1.6),
+                                ),
+                              ),
+
+                              onChanged: (phone) {
+                                fullWhatsappNumber = phone.completeNumber;
+
+                                // ALSO update controller so clear() works
+                                whatsappC.text = phone.number;
+
+                                },
+
+                              validator: (phone) {
+                                if (!sameAsMobile && (phone == null || phone.number.isEmpty)) {
+                                  return 'Please enter a valid WhatsApp number';
+                                }
+                                return null;
+                              },
+                            ),
+
+
+                          const SizedBox(height: 24),
+
+                          // UPLOAD PICTURE
+                          Text("Upload Picture",
+                              style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+
+                          Row(
+                            children: [
+                              OutlinedButton(
+                                onPressed: pickImage,
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                                  side: BorderSide(color: Colors.grey.shade400, width: 1),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.upload, size: 18, color: Colors.black54),
+                                    const SizedBox(width: 10),
+                                    Text("Choose File",
+                                        style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w500)),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(width: 20),
+
+                              // IMAGE PREVIEW
+                              if (selectedImageBytes != null)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.memory(
+                                    selectedImageBytes!,
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                            ],
+                          ),
+
+
+                          const SizedBox(height: 32),
+
+                          // SAVE BUTTON
+                          Center(
+                            child: ElevatedButton.icon(
+                              onPressed: isSaving
+                                  ? null
+                                  : () async {
+                                setStateDialog(() => isSaving = true);
+                                // 1️⃣ Upload image if selected
+                                if (selectedImageBytes != null) {
+                                  uploadedImageUrl = await uploadProfileImage(selectedImageBytes!);
+                                }
+
+                                // 2️⃣ Prepare data to update
+                                Map<String, dynamic> payload = {
+                                  "display_name": nameCtrl.text.trim(),
+                                  "mobile": fullMobileNumber,
+                                  "whatsappno": fullWhatsappNumber,
+                                };
+
+                                /*if (uploadedImageUrl != null) {
+                                  payload["avatar"] = uploadedImageUrl!;
+                                }*/
+
+                                // 3️⃣ Send to API
+                                await updateBrokerField( payload);
+
+                                // 4️⃣ Close dialog
+                                Navigator.pop(context);
+
+                                // 5️⃣ Refresh profile
+                                await fetchBrokerById();
+                              },
+
+
+                              icon: isSaving? SizedBox(
+                              width: 18,   // smaller size
+                              height: 18,  // smaller size
+                              child: CircularProgressIndicator(
+                              strokeWidth: 2, // thinner stroke
+                              ),
+                                  ):  Icon(Icons.check_circle,
+                                  color: Colors.white, size: 18),
+                              label: isSaving? Text(
+                              "Saving...",
+                                  style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white),
+                                  ):
+
+
+                                                  Text(
+                                                  "Save Changes",
+                                style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white),
+                                ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kPrimaryColor,
+                                minimumSize: const Size(double.infinity, 52),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                ),
+              ),
+            );
+          });
+
+      },
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +588,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final avatar = broker!['user']?['avatar'];
     final email = broker!['email'];
     final phone = broker!['mobile'];
+    final whatsapp = broker!['user']['whatsappno'] ?? broker!['mobile'];
+
     final bio = broker!['bio'] ?? '';
     final rating = broker!['rating'] ?? 'N/A';
     final requirements = broker!['requirements'] ?? [];
@@ -193,201 +644,238 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   const SizedBox(height: 24),*/
 
-
-                  // 🧑‍💼 Header Content
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                  Stack(
                     children: [
-                      // 👤 Avatar
-                      CircleAvatar(
-                        radius: 45,
-                        backgroundColor: kPrimaryColor.withOpacity(0.08),
-                        child: ClipOval(
-                          child: avatar != null && avatar.isNotEmpty
-                              ? Image.network(
-                            avatar,
-                            width: 90,
-                            height: 90,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Image.asset(
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // 👤 Avatar
+                          CircleAvatar(
+                            radius: 45,
+                            backgroundColor: kPrimaryColor.withOpacity(0.08),
+                            child: ClipOval(
+                              child: avatar != null && avatar.isNotEmpty
+                                  ? Image.network(
+                                avatar,
+                                width: 90,
+                                height: 90,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Image.asset(
+                                    'assets/collabrix_logo.png',
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.contain,
+                                  );
+                                },
+                              )
+                                  : Image.asset(
                                 'assets/collabrix_logo.png',
                                 width: 80,
                                 height: 80,
                                 fit: BoxFit.contain,
-                              );
-                            },
-                          )
-                              : Image.asset(
-                            'assets/collabrix_logo.png',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 24),
-
-                      // 🧾 Info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Name + Verified Status
-                          Row(
-                          children: [
-                          Text(
-                          name,
-                          style: GoogleFonts.poppins(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87,
-                          ),
-                        ),
-                          const SizedBox(width: 10),
-
-
-                            // ✅ Approved Tag
-                            if (approvalStatus == "APPROVED")
-                              _statusTag(
-                                icon: Icons.check_circle_outline,
-                                label: "Approved",
-                                color: Colors.orange.shade700,
-                                bg: Colors.orange.shade50,
-                                border: Colors.orange.shade300,
-                              )
-                            else if (approvalStatus == "PENDING")
-                              _statusTag(
-                                icon: Icons.hourglass_empty_outlined,
-                                label: "Not Approved",
-                                color: Colors.blue.shade800,
-                                bg: Colors.blue.shade50,
-                                border: Colors.blue.shade300,
-                              )
-                            else
-                              _statusTag(
-                                icon: Icons.cancel_outlined,
-                                label: "Not Approved",
-                                color: Colors.red.shade700,
-                                bg: Colors.red.shade50,
-                                border: Colors.red.shade300,
                               ),
-                            const SizedBox(width: 8),
+                            ),
+                          ),
 
-                          // ✅ Verified Tag
-                          if (verified)
-        _statusTag(
-        icon: Icons.verified,
-        label: "Verified",
-        color: Colors.green.shade700,
-        bg: Colors.green.shade50,
-        border: Colors.green.shade300,
-      )
-      else
-      _statusTag(
-      icon: Icons.cancel_outlined,
-      label: "Not Verified",
-      color: Colors.redAccent.shade700,
-      bg: Colors.redAccent.withOpacity(0.1),
-      border: Colors.redAccent.shade400,
-    ),
+                          const SizedBox(width: 24),
 
-
-    ],
-    ),
-
-
-    // 🏢 Company
-                            if (company.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.business_outlined,
-                                      color: Colors.black54, size: 16),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      company,
+                          // 🧾 Info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Name + Verified Status
+                                Row(
+                                  children: [
+                                    Text(
+                                      name,
                                       style: GoogleFonts.poppins(
-                                        fontSize: 15,
-                                        color: Colors.black54,
-                                        fontWeight: FontWeight.w500,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black87,
                                       ),
                                     ),
+                                    const SizedBox(width: 10),
+
+
+                                    // ✅ Approved Tag
+                                    if (approvalStatus == "APPROVED")
+                                      _statusTag(
+                                        icon: Icons.check_circle_outline,
+                                        label: "Approved",
+                                        color: Colors.orange.shade700,
+                                        bg: Colors.orange.shade50,
+                                        border: Colors.orange.shade300,
+                                      )
+                                    else if (approvalStatus == "PENDING")
+                                      _statusTag(
+                                        icon: Icons.hourglass_empty_outlined,
+                                        label: "Not Approved",
+                                        color: Colors.blue.shade800,
+                                        bg: Colors.blue.shade50,
+                                        border: Colors.blue.shade300,
+                                      )
+                                    else
+                                      _statusTag(
+                                        icon: Icons.cancel_outlined,
+                                        label: "Not Approved",
+                                        color: Colors.red.shade700,
+                                        bg: Colors.red.shade50,
+                                        border: Colors.red.shade300,
+                                      ),
+                                    const SizedBox(width: 8),
+
+                                    // ✅ Verified Tag
+                                    if (verified)
+                                      _statusTag(
+                                        icon: Icons.verified,
+                                        label: "Verified",
+                                        color: Colors.green.shade700,
+                                        bg: Colors.green.shade50,
+                                        border: Colors.green.shade300,
+                                      )
+                                    else
+                                      _statusTag(
+                                        icon: Icons.cancel_outlined,
+                                        label: "Not Verified",
+                                        color: Colors.redAccent.shade700,
+                                        bg: Colors.redAccent.withOpacity(0.1),
+                                        border: Colors.redAccent.shade400,
+                                      ),
+
+SizedBox(width: 8,),
+                                    Positioned(
+                                      right: 12,
+                                      top: 0,
+                                      child: InkWell(
+                                        onTap: _openEditProfileDialog,
+                                        borderRadius: BorderRadius.circular(50), // FULL ROUND
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8), // control size
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade100,       // soft background (optional)
+                                            shape: BoxShape.circle,            // makes it round
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black12.withOpacity(0.05),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Icon(
+                                            Icons.edit,
+                                            color: kPrimaryColor,
+                                            size: 18,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+
+
+                                  ],
+                                ),
+
+
+                                // 🏢 Company
+                                if (company.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.business_outlined,
+                                          color: Colors.black54, size: 16),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          company,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 15,
+                                            color: Colors.black54,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
-                              ),
-                            ],
 
 
-                            // 🏷️ Categories
-                            if (categories.isNotEmpty) ...[
-                              const SizedBox(height: 10),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 6,
-                                children: categories.map((cat) {
-                                  final isResidential =
-                                      cat.toUpperCase() == "RESIDENTIAL";
-                                  final gradient = isResidential
-                                      ? const LinearGradient(
-                                    colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  )
-                                      : const LinearGradient(
-                                    colors: [Color(0xFFFFA751), Color(0xFFFF5F6D)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  );
+                                // 🏷️ Categories
+                                if (categories.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 6,
+                                    children: categories.map((cat) {
+                                      final isResidential =
+                                          cat.toUpperCase() == "RESIDENTIAL";
+                                      final gradient = isResidential
+                                          ? const LinearGradient(
+                                        colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      )
+                                          : const LinearGradient(
+                                        colors: [Color(0xFFFFA751), Color(0xFFFF5F6D)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      );
 
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      gradient: gradient,
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black12.withOpacity(0.1),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 3),
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          gradient: gradient,
+                                          borderRadius: BorderRadius.circular(12),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black12.withOpacity(0.1),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                    child: Text(
-                                      cat,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
+                                        child: Text(
+                                          cat,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
 
-                      // 📞 Contact Icons
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _contactButton(Icons.call, "Call", "tel:$phone", phone: phone),
-                          const SizedBox(height: 10),
-                          _contactButton(
-                              FontAwesomeIcons.whatsapp,
-                              "WhatsApp",
-                              "https://wa.me/${phone.toString().replaceAll('+', '')}"),
-                          const SizedBox(height: 10),
-                          _contactButton(Icons.email_outlined, "Email", "mailto:$email"),
+
+                          // 📞 Contact Icons
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              _contactButton(Icons.call, "Call", "tel:$phone", phone: phone),
+                              const SizedBox(height: 10),
+                              _contactButton(
+                                  FontAwesomeIcons.whatsapp,
+                                  "WhatsApp",
+                                  "https://wa.me/${whatsapp.toString().replaceAll('+', '')}"),
+                              const SizedBox(height: 10),
+                              _contactButton(Icons.email_outlined, "Email", "mailto:$email"),
+                            ],
+                          ),
+
                         ],
                       ),
+
                     ],
-                  ),
+                  )
+                  // 🧑‍💼 Header Content
+
                 ],
               ),
             ),
