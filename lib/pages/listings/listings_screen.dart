@@ -1412,7 +1412,29 @@ class _ListingsScreenState extends State<ListingsScreen> {
               };
             }).toList();
 
-            allListings.addAll(parsed);
+            final String? currentBrokerId = widget.userData['role'] == 'ADMIN'
+                ? null
+                : widget.userData['broker']?['id'];
+
+            final filtered = parsed.where((item) {
+              final brokerData = item['broker'];
+              final brokerId = (brokerData is Map && brokerData['id'] != null)
+                  ? brokerData['id']
+                  : item['brokerId'];
+
+              final bool isOwner = currentBrokerId == null || brokerId == currentBrokerId;
+
+              if (isOwner) {
+                // show EVERYTHING for current broker
+                return true;
+              }
+
+              // show ONLY ACTIVE listings of other brokers
+              return item['listingStatus'] == 'ACTIVE';
+            }).toList();
+
+
+            allListings.addAll(filtered);
             listings = List.from(allListings);
 
 
@@ -3222,6 +3244,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             // 🟢 Active / Inactive Switch (Left side)
+                            if(isOwner)
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -3247,6 +3270,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                 ),
                               ],
                             ),
+
+                            if(!isOwner)
+                              Spacer(),
 
                             // ✏️ Edit + 👁 View Chips (Right side)
                             Row(

@@ -143,6 +143,9 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   // 🔹 Property Details Card
   // ------------------------------------------------------------
   Widget _propertyDetailsCard(Map<String, dynamic> propertyData) {
+    final propertyType =
+        propertyData['propertyType']?['name']
+            ?? 'Unknown';
     return Container(
       padding: const EdgeInsets.all(24),
       margin: const EdgeInsets.only(right: 24),
@@ -200,7 +203,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               _detailItem(
                   icon: Icons.apartment_rounded,
                   label: "Property Type",
-                  value: propertyData['propertyType']['name'] ?? 'Apartment'),
+                  value: propertyType ?? 'Unknown'),
               _detailItem(
                   icon: Icons.chair_alt_outlined,
                   label: "Furnishing Status",

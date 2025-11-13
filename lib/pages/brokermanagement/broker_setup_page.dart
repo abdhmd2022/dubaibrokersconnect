@@ -140,13 +140,13 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
         "twitter": twitterC.text.trim(),
         "facebook": facebookC.text.trim(),
       },
-      /*"brn_number": brnNumberC.text.trim().isNotEmpty ? brnNumberC.text.trim() : null,
+      "brn_number": brnNumberC.text.trim().isNotEmpty ? brnNumberC.text.trim() : null,
       "brn_issues_date": brnIssueDate != null
           ? DateFormat('yyyy-MM-dd').format(brnIssueDate!)
           : null,
       "brn_expiry_date": brnExpiryDate != null
           ? DateFormat('yyyy-MM-dd').format(brnExpiryDate!)
-          : null,*/
+          : null,
       "specializations": selectedSpecs,
       "languages": selectedLangs,
     };
