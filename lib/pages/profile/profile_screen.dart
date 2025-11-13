@@ -150,7 +150,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       text: fullWhatsappNumber.replaceAll("+971", ""),
     );
 
-
     final String savedMobile = broker!['mobile'] ?? ""; // e.g. +971585554845
     final String savedWhatsapp = broker!['user']['whatsappno'] ?? "";
 
@@ -698,7 +697,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                     const SizedBox(width: 10),
 
-
                                     // ✅ Approved Tag
                                     if (approvalStatus == "APPROVED")
                                       _statusTag(
@@ -744,7 +742,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         border: Colors.redAccent.shade400,
                                       ),
 
-SizedBox(width: 8,),
+                                    SizedBox(width: 8,),
                                     Positioned(
                                       right: 12,
                                       top: 0,
@@ -772,12 +770,8 @@ SizedBox(width: 8,),
                                         ),
                                       ),
                                     ),
-
-
-
                                   ],
                                 ),
-
 
                                 // 🏢 Company
                                 if (company.isNotEmpty) ...[
@@ -800,7 +794,6 @@ SizedBox(width: 8,),
                                     ],
                                   ),
                                 ],
-
 
                                 // 🏷️ Categories
                                 if (categories.isNotEmpty) ...[
@@ -853,7 +846,6 @@ SizedBox(width: 8,),
                             ),
                           ),
 
-
                           // 📞 Contact Icons
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -868,14 +860,11 @@ SizedBox(width: 8,),
                               _contactButton(Icons.email_outlined, "Email", "mailto:$email"),
                             ],
                           ),
-
                         ],
                       ),
 
                     ],
                   )
-                  // 🧑‍💼 Header Content
-
                 ],
               ),
             ),
