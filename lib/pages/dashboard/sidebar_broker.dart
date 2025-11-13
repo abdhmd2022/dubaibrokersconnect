@@ -29,14 +29,14 @@ class BrokerSidebar extends StatelessWidget {
       {'icon': Icons.person, 'label': 'Profile'},
       {'icon': Icons.swap_horiz, 'label': 'My Transactions'},
       {'icon': Icons.assignment_outlined, 'label': 'A2A Forms'},
-      {
+      /*{
         'icon': Icons.cloud_download_outlined,
         'label': 'Import from Bayut',
       },
       {
         'icon': Icons.cloud_download_outlined,
         'label': 'Import from Property Finder',
-      },
+      },*/
     ];
 
     return Container(

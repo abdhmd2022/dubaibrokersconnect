@@ -31,10 +31,14 @@ class AdminSidebar extends StatelessWidget {
       {
         'icon': Icons.cloud_download_outlined,
         'label': 'Import from Bayut',
+        'badge': Icons.workspace_premium_rounded, // 👑 admin-style badge
+
       },
       {
         'icon': Icons.cloud_download_outlined,
         'label': 'Import from Property Finder',
+        'badge': Icons.workspace_premium_rounded, // 👑 admin-style badge
+
       },
 
       {

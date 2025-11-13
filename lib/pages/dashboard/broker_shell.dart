@@ -54,8 +54,8 @@ class _BrokerShellState extends State<BrokerShell> {
       ProfileScreen(brokerId: userData['broker']['id'], userData: userData),
       MyTransactionsScreen(userData: userData,),
       A2AFormsScreen(userData: userData,),
-      ImportFromBayutScreen(userData: userData,),
-      ImportFromPropertyFinderScreen(userData: userData),
+      /*ImportFromBayutScreen(userData: userData,),
+      ImportFromPropertyFinderScreen(userData: userData),*/
 
     ];
 
