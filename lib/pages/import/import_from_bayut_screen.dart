@@ -176,7 +176,7 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
       "location_name": locationC.text,
       "category": category ?? "RESIDENTIAL",
 
-      "transaction_type": (lookingFor == "Rent") ? "RENT" : "SALE",
+      "transaction_type": (lookingFor.trim().toLowerCase() == "rent") ? "RENT" : "SALE",
       "price": rentC.text.isEmpty ? 0 : int.tryParse(rentC.text.replaceAll(',', '')) ?? 0,
       "currency": "AED",
       "rooms": (rooms == "Studio")
@@ -356,10 +356,10 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
 
         // 🧱 Category & Transaction Type
         category = data['category'] ?? '';
-        lookingFor = (data['transaction_type']?.toString().toUpperCase() ==
+        /*lookingFor = (data['transaction_type']?.toString().toUpperCase() ==
             'SALE')
             ? 'Sale'
-            : 'Rent';
+            : 'Rent';*/
 
         // ✅ Amenities Mapping
         final List<String> apiAmenities =

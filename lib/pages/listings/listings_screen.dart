@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../constants.dart';
 import 'package:http/http.dart' as http;
 import '../../services/auth_service.dart';
@@ -2690,13 +2691,13 @@ class _ListingsScreenState extends State<ListingsScreen> {
                         children: [
 
                           Text(
-                            "${e['currency']} ${e['price']}${e['unit'] ?? ''}",
+                            "${e['currency']} ${NumberFormat('#,###').format(int.parse(e['price']?? 0))}${e['unit'] ?? ''}",
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
                               color: Colors.white,
                             ),
-                          ),
+                          )
                         ],
                       ),
                     ),
@@ -3098,7 +3099,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                 children: [
 
                                   Text(
-                                    "${e['currency']} ${e['price']}${e['unit'] ?? ''}",
+                                    "${e['currency']} ${NumberFormat('#,###').format(int.parse(e['price']?? 0))}${e['unit'] ?? ''}",
                                     style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 12.5,
@@ -3723,11 +3724,12 @@ class _ListingsScreenState extends State<ListingsScreen> {
     final titleC = TextEditingController(text: propertyData['title'] ?? '');
     final priceC = TextEditingController(text: propertyData['price']?.toString() ?? '');
     final sizeC = TextEditingController(
+
         text: propertyData['sizeSqft']?.toString().replaceAll(' sqft', '') ?? '');
     final descC = TextEditingController(text: propertyData['description'] ?? '');
 
     String? category = propertyData['category'] ?? 'RESIDENTIAL';
-    String? furnishing = propertyData['furnished'] ?? 'UNFURNISHED';
+    String? furnishing = propertyData['furnishedStatus'] ?? 'UNFURNISHED';
     String? status = propertyData['status'] ?? 'READY_TO_MOVE';
 
     await showDialog(
