@@ -3944,9 +3944,12 @@ class _ListingsScreenState extends State<ListingsScreen> {
   }
 
   Future<void> _showEditPropertyDialog(
+
       BuildContext context, Map<String, dynamic> propertyData) async {
     final _formKey = GlobalKey<FormState>();
     bool isLoading = false;
+
+
 
     final titleC = TextEditingController(text: propertyData['title'] ?? '');
     final priceC = TextEditingController(text: propertyData['price']?.toString() ?? '');
@@ -3957,6 +3960,16 @@ class _ListingsScreenState extends State<ListingsScreen> {
     String? category = propertyData['category'] ?? 'RESIDENTIAL';
     String? furnishing = propertyData['furnishedStatus'] ?? 'UNFURNISHED';
     String? status = propertyData['status'] ?? 'READY_TO_MOVE';
+
+    String transactionType = propertyData['transactionType'] ?? "RENT";
+    List<String> allowedStatusOptions =
+    transactionType == "RENT"
+        ? ["READY_TO_MOVE", "AVAILABLE_IN_FUTURE"]
+        : ["READY_TO_MOVE", "RENTED", "OFF_PLAN", "AVAILABLE_IN_FUTURE"];
+
+    if (!allowedStatusOptions.contains(status)) {
+      status = allowedStatusOptions.first;
+    }
 
     await showDialog(
       context: context,
@@ -4055,14 +4068,18 @@ class _ListingsScreenState extends State<ListingsScreen> {
                         ),
                         const SizedBox(height: 14),
 
-                        /// Status
                         _buildDialogDropdown(
                           "Status",
                           status,
                           Icons.home_work_outlined,
-                          ["READY_TO_MOVE", "OFF_PLAN", "RENTED", "AVAILABLE_IN_FUTURE"],
+                          allowedStatusOptions,
                               (v) => setState(() => status = v),
                         ),
+
+
+
+
+
                         const SizedBox(height: 14),
 
                         /// Description
