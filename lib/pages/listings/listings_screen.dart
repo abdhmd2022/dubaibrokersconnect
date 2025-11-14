@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:a2abrokerapp/pages/listings/property_details_screen.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -57,7 +58,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
   List<Map<String, dynamic>> locations = [];
   bool isLocationsLoading = true;
-  String? selectedLocationId;
+  String? selectedLocationId = null;
   String? selectedLocationName;
 
   String? sizeError;
@@ -93,6 +94,52 @@ class _ListingsScreenState extends State<ListingsScreen> {
   int totalPages = 1;
   final int limit = 10;
   final ScrollController _scrollController = ScrollController();
+  Widget highlightText(String source, String query) {
+    if (query.isEmpty) {
+      return Text(source, softWrap: true);
+    }
+
+    final lower = source.toLowerCase();
+    final q = query.toLowerCase();
+
+    if (!lower.contains(q)) {
+      return Text(source, softWrap: true);
+    }
+
+    List<TextSpan> spans = [];
+    int start = 0;
+
+    while (true) {
+      final index = lower.indexOf(q, start);
+      if (index < 0) {
+        spans.add(TextSpan(text: source.substring(start)));
+        break;
+      }
+
+      if (index > start) {
+        spans.add(TextSpan(text: source.substring(start, index)));
+      }
+
+      spans.add(
+        TextSpan(
+          text: source.substring(index, index + q.length),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+      );
+
+      start = index + q.length;
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(color: Colors.black, fontSize: 14),
+        children: spans,
+      ),
+    );
+  }
 
   @override
   void initState()  {
@@ -101,6 +148,14 @@ class _ListingsScreenState extends State<ListingsScreen> {
     fetchPropertyTypes();
     fetchListings();
     _scrollController.addListener(_handleScroll);
+  }
+
+  String prettyText(String value) {
+    return value
+        .split('_')
+        .map((word) =>
+    word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join(' ');
   }
 
   @override
@@ -151,37 +206,114 @@ class _ListingsScreenState extends State<ListingsScreen> {
     }
   }
 
+  String buildDisplayPath(Map<String, String?> h) {
+    final parts = [
+      h['emirate'],
+      h['neighbourhood'],
+      h['cluster'],
+      h['building'],
+      h['buildingLvl1'],
+      h['buildingLvl2'],
+    ];
+
+    // Remove null and empty items
+    final filtered = parts.where((e) => e != null && e!.trim().isNotEmpty).toList();
+
+    return filtered.join(" → ");
+  }
+
+
+  Map<String, String?> extractHierarchy(String fullPath) {
+    final parts = fullPath.split('/').map((e) => e.trim()).toList();
+
+    String? emirate;
+    String? neighbourhood;
+    String? cluster;
+    String? building;
+    String? buildingLvl1;
+    String? buildingLvl2;
+
+    // assign based on count
+    if (parts.isNotEmpty) emirate = parts[0];
+    if (parts.length > 1) neighbourhood = parts[1];
+    if (parts.length > 2) cluster = parts[2];
+    if (parts.length > 3) building = parts[3];
+    if (parts.length > 4) buildingLvl1 = parts[4];
+    if (parts.length > 5) buildingLvl2 = parts[5];
+
+    return {
+      "emirate": emirate,
+      "neighbourhood": neighbourhood,
+      "cluster": cluster,
+      "building": building,
+      "buildingLvl1": buildingLvl1,
+      "buildingLvl2": buildingLvl2,
+    };
+  }
+
+
   Future<void> _fetchLocations() async {
     try {
-
+      setState(() => isLocationsLoading = true);
       final token = await AuthService.getToken();
-      final response = await http.get(
-        Uri.parse('$baseURL/api/locations'),
+
+      // STEP 1: First lightweight request to get pagination.total
+      final page1Res = await http.get(
+        Uri.parse('$baseURL/api/locations?limit=1'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
         },
       );
 
-      if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        if (decoded['success'] == true && decoded['data'] != null) {
-          final List data = decoded['data'];
+      final decoded1 = jsonDecode(page1Res.body);
+      final pagination = decoded1["pagination"];
+      final int total = pagination["total"]; // ⭐ REAL TOTAL FROM API
 
-          // Filter active AREA-type locations (exclude CITY)
-          final filtered = data.where((e) => e['type'] == 'AREA' && e['isActive'] == true).toList();
+      print("📌 TOTAL FROM API → $total");
 
-          setState(() {
-            locations = List<Map<String, dynamic>>.from(filtered);
-            isLocationsLoading = false;
-          });
-        }
-      } else {
-        debugPrint("Failed to load locations: ${response.body}");
-        setState(() => isLocationsLoading = false);
-      }
+      // STEP 2: Fetch ALL RECORDS in ONE API CALL
+      final fullRes = await http.get(
+        Uri.parse('$baseURL/api/locations?limit=$total'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      final decodedFull = jsonDecode(fullRes.body);
+      final List data = decodedFull['data'] ?? [];
+
+      print("🔥 FULL LOCATIONS LOADED → ${data.length}");
+
+      // MAP FINAL OUTPUT
+      setState(() {
+        locations = data.map<Map<String, dynamic>>((loc) {
+          final hierarchy = extractHierarchy(loc['fullPath'] ?? "");
+          final displayPath = buildDisplayPath(hierarchy);
+
+          return {
+            "id": loc['id'],
+            "name": loc['name'],
+            "level": loc['level'],
+            "fullPath": loc['fullPath'],
+
+            "emirate": hierarchy['emirate'],
+            "neighbourhood": hierarchy['neighbourhood'],
+            "cluster": hierarchy['cluster'],
+            "building": hierarchy['building'],
+            "buildingLvl1": hierarchy['buildingLvl1'],
+            "buildingLvl2": hierarchy['buildingLvl2'],
+
+            "displayPath": displayPath,
+          };
+        }).toList();
+
+        isLocationsLoading = false;
+      });
+
     } catch (e) {
-      debugPrint("Error fetching locations: $e");
+      debugPrint("❌ Error fetching locations: $e");
       setState(() => isLocationsLoading = false);
     }
   }
@@ -494,7 +626,13 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
 
   Future<void> _showCreatePropertyDialog(BuildContext context) async {
-    setState(() => isDialogLoading = false);
+    setState(() => isDialogLoading = false
+    );
+    setState(() => selectedLocationId = null
+    );
+    setState(() => selectedLocationName = null
+    );
+
 
     final _formKey = GlobalKey<FormState>();
     List<String> locationFullPath = [];
@@ -513,6 +651,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
     final roomsC = TextEditingController();
     final bathsC = TextEditingController();
     final parkingC = TextEditingController();
+    final TextEditingController locationSearchController = TextEditingController();
 
     String? category ;
     String? transactionType ;
@@ -685,7 +824,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                                                 // ✅ define new allowed status options
                                                 final newStatusOptions = transactionType == "RENT"
-                                                    ? ["READY_TO_MOVE", "AVAILABLE_FROM_NOW"]
+                                                    ? ["READY_TO_MOVE", "AVAILABLE_IN_FUTURE"]
                                                     : ["READY_TO_MOVE", "OFF_PLAN", "RENTED"];
 
                                                 // ✅ if current status not valid anymore → reset it
@@ -727,7 +866,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                           child: _buildDropdownField(
                                             "Status",
                                             transactionType == "RENT"
-                                                ? ["READY_TO_MOVE", "AVAILABLE_FROM_NOW"]
+                                                ? ["READY_TO_MOVE", "AVAILABLE_IN_FUTURE"]
                                                 : ["READY_TO_MOVE", "OFF_PLAN", "RENTED"],
                                             status,
                                                 (v) => setDialogState(() => status = v!),
@@ -957,42 +1096,79 @@ class _ListingsScreenState extends State<ListingsScreen> {
                             ),
                             const SizedBox(height: 16),
 
-                            isLocationsLoading
-                                ? const Center(child: CircularProgressIndicator())
-                                : _buildCompactDropdown(
-                              title: "Select Location",
-                              value: selectedLocationName,
-                              items: locations.map((e) => e['name'] as String).toList(),
-                              onChanged: (val) {
-                                final matched = locations.firstWhere(
-                                      (loc) => loc['name'] == val,
-                                  orElse: () => {},
-                                );
+                                isLocationsLoading
+                                    ? const Center(child: CircularProgressIndicator())
+                                    : InkWell(
+                                  onTap: () async {
+                                    final selected = await showDialog(
+                                      context: context,
+                                      barrierDismissible: true,
+                                      builder: (ctx) {
+                                        return Dialog(
+                                          insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+                                          backgroundColor: Colors.transparent,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                          child: Center(
+                                            child: ConstrainedBox(
+                                              constraints: const BoxConstraints(
+                                                maxWidth: 700,   // 👈 SAME WIDTH
+                                                maxHeight: 720,  // 👈 SAME HEIGHT
+                                              ),
+                                              child: LocationSearchDialog(
+                                                locations: locations,
+                                                preselectedId: selectedLocationId,  // 🔥 current selected
 
-                                setState(() {
-                                  selectedLocationId = matched['id'];
-                                  selectedLocationName = matched['name'];
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
 
-                                  // ✅ Now treat this as the property address too
-                                  locationFullPath = [
-                                    "United Arab Emirates",
-                                    if (matched['parent'] != null &&
-                                        matched['parent']['name'] != null)
-                                      matched['parent']['name'],
-                                    matched['name']
-                                  ];
-                                });
-                              },
-                            ),
+
+                                    if (selected != null) {
+                                      final full = selected['displayPath'] ?? "";
+                                      final last = full.split(" → ").last; // ⭐ correct separator
+
+                                      setDialogState(() {
+                                        selectedLocationId = selected['id'];
+                                        selectedLocationName = last;      // 👈 only last level in main dialog
+                                      });
+
+                                    }
+
+                                  },
+
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.grey.shade400),
+                                      color: Colors.white,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            selectedLocationName ?? "Select Location",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 14,
+                                              color: selectedLocationName == null ? Colors.grey : Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                        const Icon(Icons.search, color: Colors.grey),
+                                      ],
+                                    ),
+                                  ),
+                                )
+
                               ],
                             ),
                           ),
 
-
-
                           SizedBox(height: 10,),
-
-
 
                           if (amenitiesList.isNotEmpty) ...[
 
@@ -1209,7 +1385,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
       },
     );
   }
-
   Widget _buildDropdownField(
       String label,
       List<String> items,
@@ -1249,7 +1424,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
           .map((item) => DropdownMenuItem(
         value: item,
         child: Text(
-          item,
+          prettyText(item),
           style: GoogleFonts.poppins(
             fontSize: 13,
             color: Colors.black87,
@@ -1814,7 +1989,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final bool isApproved = widget.userData['role'] == 'ADMIN' ? widget.userData['approvalStatus'] == "APPROVED" : widget.userData['broker']['approvalStatus'] == "APPROVED";
+    final bool isApproved = widget.userData['broker']['approvalStatus'] == "APPROVED";
     final String? currentBrokerId = widget.userData['role'] == 'ADMIN'
         ? null
         : widget.userData['broker']?['id'];
@@ -1889,7 +2064,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        color: Colors.white,
                       ),
                     )
                         : const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
@@ -4063,7 +4237,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
           .map((e) => DropdownMenuItem(
         value: e,
         child: Text(
-          e,
+          prettyText(e),
           style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
         ),
       ))
@@ -4081,6 +4255,14 @@ Widget _buildCompactDropdown({
   required List<String> items,
   required Function(String?) onChanged,
 }) {
+
+  String prettyText(String value) {
+    return value
+        .split('_')
+        .map((word) =>
+    word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join(' ');
+  }
   return SizedBox(
     width: 180,
     child: DropdownButtonFormField<String>(
@@ -4130,7 +4312,7 @@ Widget _buildCompactDropdown({
             (e) => DropdownMenuItem(
           value: e,
           child: Text(
-            e,
+            prettyText(e),
             style: GoogleFonts.poppins(
               fontSize: 13,
               color: Colors.black87,
@@ -4183,4 +4365,192 @@ Widget _buildCompactField({
 }
 
 
+class LocationSearchDialog extends StatefulWidget {
+  final List locations;
+  final String? preselectedId;
+
+  const LocationSearchDialog({
+    super.key,
+    required this.locations,
+    this.preselectedId,
+  });
+
+  @override
+  State<LocationSearchDialog> createState() => _LocationSearchDialogState();
+}
+
+class _LocationSearchDialogState extends State<LocationSearchDialog> {
+  final TextEditingController searchC = TextEditingController();
+  final ScrollController _scrollC = ScrollController();
+
+  List filtered = [];
+  String query = "";
+
+  @override
+  void initState() {
+    super.initState();
+    filtered = [];
+
+    /// Auto-scroll AFTER dialog builds
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.preselectedId != null) {
+        final index = widget.locations.indexWhere(
+                (loc) => loc['id'] == widget.preselectedId);
+
+        if (index != -1) {
+          // Approx 55px per item height
+          final double offset = index * 55.0;
+          _scrollC.jumpTo(offset);
+        }
+      }
+    });
+  }
+
+  void runSearch(String value) {
+    setState(() {
+      query = value.trim().toLowerCase();
+
+      if (query.isEmpty) {
+        filtered = [];
+        return;
+      }
+
+      filtered = widget.locations
+          .where((loc) =>
+          loc['displayPath'].toString().toLowerCase().contains(query))
+          .take(80)
+          .toList();
+    });
+  }
+
+  Widget highlightText(String text, String query, bool isSelected) {
+    if (query.isEmpty) {
+      return Text(
+        text,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? Colors.blue : Colors.black,
+        ),
+      );
+    }
+
+    final lower = text.toLowerCase();
+    final index = lower.indexOf(query.toLowerCase());
+
+    if (index == -1) {
+      return Text(
+        text,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? Colors.blue : Colors.black,
+        ),
+      );
+    }
+
+    final before = text.substring(0, index);
+    final match = text.substring(index, index + query.length);
+    final after = text.substring(index + query.length);
+
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: before,
+            style: TextStyle(
+              color: isSelected ? Colors.blue : Colors.black,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          TextSpan(
+            text: match,
+            style: const TextStyle(
+              color: Colors.blue,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          TextSpan(
+            text: after,
+            style: TextStyle(
+              color: isSelected ? Colors.blue : Colors.black,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 80, vertical: 120),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        height: 500,
+        child: Column(
+          children: [
+            /// ---- SEARCH BAR ----
+            TextField(
+              controller: searchC,
+              autofocus: true,
+              onChanged: runSearch,
+              decoration: InputDecoration(
+                hintText: "Search location...",
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            /// ---- RESULTS LIST ----
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                child: Text(
+                  query.isEmpty
+                      ? "Start typing to search..."
+                      : "No matching results",
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              )
+                  : ListView.builder(
+                controller: _scrollC,
+                itemCount: filtered.length,
+                itemBuilder: (_, i) {
+                  final loc = filtered[i];
+                  final bool isSelected = widget.preselectedId != null &&
+                      widget.preselectedId!.toString() == loc['id'].toString();
+
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    decoration: BoxDecoration(
+                      color:
+                      isSelected ? Colors.blue.withOpacity(0.08) : null,
+                      border: isSelected
+                          ? Border.all(color: Colors.blue, width: 1.5)
+                          : null,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListTile(
+                      dense: true,
+                      title: highlightText(
+                          loc['displayPath'], query, isSelected),
+                      onTap: () => Navigator.pop(context, loc),
+                    ),
+                  );
+
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
