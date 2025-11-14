@@ -1814,7 +1814,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final bool isVerified = widget.userData['role'] == 'ADMIN' ? widget.userData['isVerified'] == true : widget.userData['broker']['isVerified'];
+    final bool isApproved = widget.userData['role'] == 'ADMIN' ? widget.userData['approvalStatus'] == "APPROVED" : widget.userData['broker']['approvalStatus'] == "APPROVED";
     final String? currentBrokerId = widget.userData['role'] == 'ADMIN'
         ? null
         : widget.userData['broker']?['id'];
@@ -1856,7 +1856,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                   ),
 
                   // 🔹 Right: Create Listing Button
-                  if(isVerified)
+                  if(isApproved)
                   ElevatedButton.icon(
                     onPressed: isDialogLoading
                         ? null // disable button while loading
@@ -2512,10 +2512,24 @@ class _ListingsScreenState extends State<ListingsScreen> {
     // Sort descending (newest first)
     final sortedListings = List<Map<String, dynamic>>.from(listings)
       ..sort((a, b) {
+        // Extract broker IDs
+        final brokerA = a['broker']?['id'] ?? a['brokerId'];
+        final brokerB = b['broker']?['id'] ?? b['brokerId'];
+
+        final bool aIsOwner = brokerA == currentBrokerId;
+        final bool bIsOwner = brokerB == currentBrokerId;
+
+        // 1️⃣ Owner listings come first
+        if (aIsOwner && !bIsOwner) return -1;
+        if (!aIsOwner && bIsOwner) return 1;
+
+        // 2️⃣ If both are owner or both are not → sort by createdAt desc
         final dateA = DateTime.tryParse(a['createdAt'] ?? a['created_at'] ?? '') ?? DateTime(1900);
         final dateB = DateTime.tryParse(b['createdAt'] ?? b['created_at'] ?? '') ?? DateTime(1900);
-        return dateB.compareTo(dateA); // newest first
+
+        return dateB.compareTo(dateA);
       });
+
     return GridView.builder(
       shrinkWrap: true,
       controller: _scrollController,
@@ -2974,10 +2988,24 @@ class _ListingsScreenState extends State<ListingsScreen> {
     // Sort descending (newest first)
     final sortedListings = List<Map<String, dynamic>>.from(listings)
       ..sort((a, b) {
+        // Extract broker IDs
+        final brokerA = a['broker']?['id'] ?? a['brokerId'];
+        final brokerB = b['broker']?['id'] ?? b['brokerId'];
+
+        final bool aIsOwner = brokerA == currentBrokerId;
+        final bool bIsOwner = brokerB == currentBrokerId;
+
+        // 1️⃣ Owner listings come first
+        if (aIsOwner && !bIsOwner) return -1;
+        if (!aIsOwner && bIsOwner) return 1;
+
+        // 2️⃣ If both are owner or both are not → sort by createdAt desc
         final dateA = DateTime.tryParse(a['createdAt'] ?? a['created_at'] ?? '') ?? DateTime(1900);
         final dateB = DateTime.tryParse(b['createdAt'] ?? b['created_at'] ?? '') ?? DateTime(1900);
-        return dateB.compareTo(dateA); // newest first
+
+        return dateB.compareTo(dateA);
       });
+
 
 
     return Column(

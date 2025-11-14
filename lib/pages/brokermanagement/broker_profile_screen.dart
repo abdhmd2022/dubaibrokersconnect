@@ -35,8 +35,8 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
 
 
     // Default selection based on broker verification
-    final isVerified = widget.userData['broker']['isVerified'] == true;
-    activeSection = isVerified ? "Listings" : "Reviews";
+    final isApproved = widget.userData['broker']['approvalStatus'] == "APPROVED";
+    activeSection = isApproved ? "Listings" : "Reviews";
 
 
     fetchBrokerById();
@@ -103,6 +103,8 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     final name = broker!['displayName'] ?? '';
     final company = broker!['companyName'] ?? '';
     final verified = broker!['isVerified'] == true;
+    final approved = broker!['approvalStatus'] == "APPROVED";
+
     final avatar = broker!['user']?['avatar'];
     final email = broker!['email'];
     final phone = broker!['mobile'];
@@ -214,6 +216,35 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
+                          if (approved)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.orange.shade300,
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.approval_rounded,
+                                      color: Colors.orange.shade700, size: 16),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    "Approved",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      color: Colors.orange.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(width: 8),
                           if (verified)
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -242,34 +273,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                                 ],
                               ),
                             )
-                          else
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.redAccent.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.redAccent.shade400,
-                                  width: 0.8,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.cancel_outlined,
-                                      color: Colors.redAccent.shade700, size: 16),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    "Not Verified",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      color: Colors.redAccent.shade700,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+
                         ],
                       ),
 
@@ -655,7 +659,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
 
-                                  if(widget.userData['broker']['isVerified'])...[
+                                  if(widget.userData['broker']['approvalStatus'] == "APPROVED")...[
                                     _buildSegmentButton("Listings", count: properties.length),
                                     _buildSegmentButton("Requirements", count: requirements.length),
                                   ],

@@ -57,7 +57,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
         // 🔹 Extract and filter only verified brokers
         final allBrokers = List<Map<String, dynamic>>.from(data['data'] ?? []);
         final verifiedBrokers =
-        allBrokers.where((b) => b['isVerified'] == true).toList();
+        allBrokers.where((b) => b['approvalStatus'] == "APPROVED").toList();
 
         setState(() {
 
@@ -89,7 +89,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
               .toLowerCase()
               .contains(searchQuery.toLowerCase());
 
-      final matchVerified = !verifiedOnly || (b['isVerified']?.toString() == 'true');
+      final matchApproved = !verifiedOnly || (b['approvalStatus']?.toString() == 'APPROVED');
 
       // 🏢 Category filter
       final categories = List<String>.from(b['categories'] ?? []);
@@ -97,7 +97,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
           categories.any((cat) =>
           cat.toString().toLowerCase() == selectedCategory.toLowerCase());
 
-      return matchSearch && matchVerified && matchCategory;
+      return matchSearch && matchApproved && matchCategory;
     }).toList();
   }
 
@@ -108,6 +108,8 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
 
     final company = b['user']['companyName'] ?? '';
     final verified = b['isVerified'] == true;
+    final approved = b['approvalStatus'] == "APPROVED";
+
     final rating = b['rating']?.toString() ?? 'N/A';
     final email = b['email'];
     final phone = b['mobile'];
@@ -211,6 +213,37 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                         ),
 
                         SizedBox(width: 8),
+
+                        if (approved)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.orange.shade300,
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.approval_rounded,
+                                    color: Colors.orange.shade700, size: 14),
+                                const SizedBox(width: 3),
+                                Text(
+                                  "Approved",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.2,
+                                    color: Colors.orange.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        SizedBox(width: 8),
+
                         if (verified)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -239,34 +272,8 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                               ],
                             ),
                           ),
-                        if (!verified)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.redAccent.shade400,
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.cancel_outlined,
-                                    color: Colors.redAccent.shade700, size: 14),
-                                const SizedBox(width: 3),
-                                Text(
-                                  "Not Verified",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12.2,
-                                    color: Colors.redAccent.shade700,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+
+
                       ],
                     ),
 

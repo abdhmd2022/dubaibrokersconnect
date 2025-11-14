@@ -700,7 +700,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     // ✅ Approved Tag
                                     if (approvalStatus == "APPROVED")
                                       _statusTag(
-                                        icon: Icons.check_circle_outline,
+                                        icon: Icons.approval_rounded,
                                         label: "Approved",
                                         color: Colors.orange.shade700,
                                         bg: Colors.orange.shade50,
@@ -732,15 +732,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         color: Colors.green.shade700,
                                         bg: Colors.green.shade50,
                                         border: Colors.green.shade300,
-                                      )
-                                    else
-                                      _statusTag(
-                                        icon: Icons.cancel_outlined,
-                                        label: "Not Verified",
-                                        color: Colors.redAccent.shade700,
-                                        bg: Colors.redAccent.withOpacity(0.1),
-                                        border: Colors.redAccent.shade400,
                                       ),
+
 
                                     SizedBox(width: 8,),
                                     Positioned(

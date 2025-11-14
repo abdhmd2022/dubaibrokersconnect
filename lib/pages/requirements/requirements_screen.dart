@@ -110,8 +110,30 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
           } else if (selectedTransaction == "SALE_AND_RENT") {
             fetched = fetched.where((r) => r['transactionType'] == "SALE_AND_RENT").toList();
           }
-          requirements = fetched;
-          filteredRequirements = fetched;
+          final currentBrokerId = widget.userData['broker']['id'];
+
+          fetched.sort((a, b) {
+            final bool isAOwner = a['brokerId'] == currentBrokerId;
+            final bool isBOwner = b['brokerId'] == currentBrokerId;
+
+            if (isAOwner && !isBOwner) return -1;
+            if (!isAOwner && isBOwner) return 1;
+            return 0;
+          });
+
+          List ownReqs = fetched.where((r) => r['brokerId'] == currentBrokerId).toList();
+          List otherReqs = fetched.where((r) => r['brokerId'] != currentBrokerId).toList();
+
+          otherReqs = otherReqs.where((r) => r['isApproved'] == true).toList();
+
+          final finalList = [...ownReqs, ...otherReqs];
+
+          setState(() {
+            requirements = finalList;
+            filteredRequirements = finalList;
+          });
+
+
 
           currentPage = data['pagination']['page'] ?? 1;
           totalPages = data['pagination']['totalPages'] ?? 1;

@@ -353,6 +353,8 @@ class BrokerDashboardContent extends StatelessWidget {
     final String fullName =
     '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
     final bool isVerified = userData['broker']['isVerified'] == true;
+    final bool isApproved = userData['broker']['approvalStatus'] == "APPROVED";
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: Align(
@@ -375,6 +377,12 @@ class BrokerDashboardContent extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   _roleChip("Broker", kPrimaryColor, Icons.badge_outlined),
+                  if (isApproved)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child:
+                      _roleChip("Approved", Colors.orange, Icons.approval_rounded),
+                    ),
                   if (isVerified)
                     Padding(
                       padding: const EdgeInsets.only(left: 6),
@@ -384,7 +392,7 @@ class BrokerDashboardContent extends StatelessWidget {
                 ],
               ),
 
-              if (!isVerified)
+              if (!isVerified && !isApproved)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Row(

@@ -3,7 +3,7 @@ import '../../constants.dart';
 import '../brokermanagement/broker_profile_screen.dart';
 import '../import/import_from_bayut_screen.dart';
 import '../import/import_from_propertyfinder_screen.dart';
-import 'UnverifiedBrokerDashboard.dart';
+import 'UnApprovedBrokerDashboard.dart';
 import 'brokerdashboard.dart';
 import '../listings/listings_screen.dart';
 import '../requirements/requirements_screen.dart';
@@ -29,9 +29,11 @@ class _BrokerShellState extends State<BrokerShell> {
   @override
   Widget build(BuildContext context) {
     final userData = widget.userData;
-    final bool isVerified = userData['broker']['isVerified'] == true;
+    final bool isApproved = userData['broker']['approvalStatus'] == "APPROVED";
+
+
     final List<Widget> _pages = [
-      isVerified
+      isApproved
 
           ? BrokerDashboardContent(userData: userData,
         onNavigateToListings: () => setState(() => _selectedIndex = 1),

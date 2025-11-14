@@ -19,6 +19,7 @@ class BrokerSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isApproved = userData['broker']['approvalStatus'] == "APPROVED";
     final bool isVerified = userData['broker']['isVerified'] == true;
 
     final items = [
@@ -55,125 +56,102 @@ class BrokerSidebar extends StatelessWidget {
               itemBuilder: (context, i) {
                 final active = i == selectedIndex;
                 final item = items[i];
+                final bool restrictedByApproval =
+                    !isApproved && (i == 1 || i == 2 || i == 5 || i == 6 || i == 7 || i == 8);
 
-                // disable A2A Forms & My Transactions if broker not verified
-                final bool isRestricted = !isVerified && (i==1 || i==2||i == 5 || i == 6|| i == 7 || i == 8);
+                final bool restrictedByVerification = (!isVerified && i == 5);
 
-                return AnimatedOpacity(
+                final bool isRestricted = restrictedByApproval || restrictedByVerification;
+
+                if (isRestricted) {
+                  return const SizedBox.shrink();
+                }
+
+
+                return AnimatedContainer(
                   duration: const Duration(milliseconds: 0),
-                  opacity: isRestricted ? 0.45 : 1,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 0),
-                    curve: Curves.easeInOut,
-                    margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: active ? Colors.white.withOpacity(0.7) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: active
-                          ? [
-                        BoxShadow(
-                          color: kPrimaryColor.withOpacity(0.15),
-                          blurRadius: 20,
-                          spreadRadius: 1,
-                          offset: const Offset(0, 6),
-                        ),
-                      ]
-                          : [],
-                      border: active
-                          ? Border.all(color: kPrimaryColor.withOpacity(0.15), width: 1)
-                          : null,
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      splashColor:
-                      isRestricted ? Colors.transparent : kAccentColor.withOpacity(0.1),
-                      hoverColor:
-                      isRestricted ? Colors.transparent : kPrimaryColor.withOpacity(0.05),
-                      onTap: isRestricted
-                          ? () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              "Your account is not verified yet. Access to this section is restricted.",
+                  curve: Curves.easeInOut,
+                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: active ? Colors.white.withOpacity(0.7) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: active
+                        ? [
+                      BoxShadow(
+                        color: kPrimaryColor.withOpacity(0.15),
+                        blurRadius: 20,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
+                        : [],
+                    border: active
+                        ? Border.all(color: kPrimaryColor.withOpacity(0.15), width: 1)
+                        : null,
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    splashColor: kAccentColor.withOpacity(0.1),
+                    hoverColor: kPrimaryColor.withOpacity(0.05),
+                    onTap: () => onItemSelected(i),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                      child: Row(
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: 4,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              gradient: active
+                                  ? const LinearGradient(
+                                colors: [Color(0xFF42A5F5), Color(0xFF478DE0)],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              )
+                                  : null,
+                              borderRadius: BorderRadius.circular(6),
                             ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Colors.orangeAccent,
                           ),
-                        );
-                      }
-                          : () => onItemSelected(i),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                        child: Row(
-                          children: [
-                            /// --- Left gradient bar
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              width: 4,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                gradient: active
-                                    ? const LinearGradient(
-                                  colors: [Color(0xFF42A5F5), Color(0xFF478DE0)],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                )
-                                    : null,
-                                borderRadius: BorderRadius.circular(6),
+                          const SizedBox(width: 12),
+                          Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: active
+                                    ? [kPrimaryColor, kAccentColor]
+                                    : [Colors.grey.shade500, Colors.grey.shade400],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              item['icon'] as IconData,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              item['label'] as String,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color:
+                                active ? kPrimaryColor : Colors.grey.shade800,
+                                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                                letterSpacing: 0.2,
                               ),
                             ),
-                            const SizedBox(width: 12),
-
-                            /// --- Gradient Icon
-                            Container(
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: active
-                                      ? [kPrimaryColor, kAccentColor]
-                                      : [Colors.grey.shade500, Colors.grey.shade400],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                item['icon'] as IconData,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-
-                            /// --- Label
-                            Expanded(
-                              child: Text(
-                                item['label'] as String,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: active
-                                      ? kPrimaryColor
-                                      : Colors.grey.shade800,
-                                  fontWeight:
-                                  active ? FontWeight.w600 : FontWeight.w500,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ),
-
-                            if (isRestricted)
-                              const Icon(
-                                Icons.lock_outline,
-                                color: Colors.grey,
-                                size: 16,
-                              ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 );
+
               },
             ),
           ),
@@ -209,6 +187,17 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final email = widget.userData['broker']['email'] ?? '';
     final avatar = widget.userData['avatar'] ?? '';
     final bool isVerified = widget.userData['broker']['isVerified'] == true;
+    final bool isApproved = widget.userData['broker']['approvalStatus'] == "APPROVED";
+    String finalStatus = "";
+
+    if (isApproved && isVerified) {
+      finalStatus = "Verified";
+    } else if (isApproved && !isVerified) {
+      finalStatus = "Approved";
+    } else {
+      finalStatus = "Not Approved";
+    }
+
     final String role = widget.userData['role']?.toString().toUpperCase() ?? 'BROKER';
 
 
@@ -303,33 +292,59 @@ class _ProfileSectionState extends State<_ProfileSection> {
                         style: GoogleFonts.poppins(
                             fontSize: 11, color: Colors.grey[600]),
                         overflow: TextOverflow.ellipsis),
-                    if (!isVerified)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 5),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.redAccent.withOpacity(0.4), width: 0.8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.error_outline, size: 14, color: Colors.redAccent),
-                              const SizedBox(width: 4),
-                              Text(
-                                "Not Verified",
-                                style: GoogleFonts.poppins(
-                                  color: Colors.redAccent,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                    Padding(
+                      padding: const EdgeInsets.only(top: 5),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: finalStatus == "Verified"
+                              ? Colors.green.withOpacity(0.12)
+                              : finalStatus == "Approved"
+                              ? Colors.orange.withOpacity(0.12)
+                              : Colors.redAccent.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: finalStatus == "Verified"
+                                ? Colors.green.withOpacity(0.6)
+                                : finalStatus == "Approved"
+                                ? Colors.orange.withOpacity(0.6)
+                                : Colors.redAccent.withOpacity(0.6),
                           ),
                         ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              finalStatus == "Verified"
+                                  ? Icons.verified_rounded
+                                  : finalStatus == "Approved"
+                                  ? Icons.check_circle_outline
+                                  : Icons.error_outline,
+                              size: 14,
+                              color: finalStatus == "Verified"
+                                  ? Colors.green
+                                  : finalStatus == "Approved"
+                                  ? Colors.orange
+                                  : Colors.redAccent,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              finalStatus,
+                              style: GoogleFonts.poppins(
+                                color: finalStatus == "Verified"
+                                    ? Colors.green
+                                    : finalStatus == "Approved"
+                                    ? Colors.orange
+                                    : Colors.redAccent,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    )
+
 
                   ],
                 ),
