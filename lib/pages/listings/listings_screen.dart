@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:a2abrokerapp/pages/listings/property_details_screen.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,7 +10,6 @@ import 'package:intl/intl.dart';
 import '../../constants.dart';
 import 'package:http/http.dart' as http;
 import '../../services/auth_service.dart';
-import 'dart:math' as math;
 import 'package:flutter/animation.dart';
 import '../../widgets/animated_logo_loader.dart';
 import 'package:vector_math/vector_math_64.dart' show Matrix4;
@@ -217,7 +215,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
     ];
 
     // Remove null and empty items
-    final filtered = parts.where((e) => e != null && e!.trim().isNotEmpty).toList();
+    final filtered = parts.where((e) => e != null && e.trim().isNotEmpty).toList();
 
     return filtered.join(" → ");
   }
