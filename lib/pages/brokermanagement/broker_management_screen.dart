@@ -1319,10 +1319,9 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     final brnNumber = b['brnNumber'];
 
     // both required to enable approve
-    final bool canApprove = company != null &&
-        company.toString().trim().isNotEmpty &&
-        brnNumber != null &&
-        brnNumber.toString().trim().isNotEmpty;
+    final bool hasBRN = brnNumber != null && brnNumber.toString().trim().isNotEmpty;
+    final bool canApprove = true; // always allow approval now
+
 
     return Align(
       alignment: Alignment.centerRight,
@@ -1332,27 +1331,17 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
         children: [
           // ✅ Approve Button
           ElevatedButton.icon(
-            onPressed: canApprove
-                ? () => _confirmApprove(b)
-                : () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    "Company and BRN details are required before approval.",
-                  ),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            },
+            onPressed: () => _confirmApprove(b),
             icon: const FaIcon(FontAwesomeIcons.circleCheck, size: 14),
             label: const Text("Approve"),
             style: ElevatedButton.styleFrom(
               elevation: 4,
               shadowColor: Colors.green.withOpacity(0.3),
-              backgroundColor:
-              canApprove ? Colors.green.shade600 : Colors.grey.shade400,
+              backgroundColor: Colors.green.shade600,
+
               foregroundColor: Colors.white,
               padding:
+
               const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1578,28 +1567,44 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
   Future<void> _approveBroker(Map<String, dynamic> b) async {
     final token = await AuthService.getToken();
     final id = b['id'];
-    final res = await http.post(
+
+    final bool hasBRN =
+        b['brnNumber'] != null && b['brnNumber'].toString().trim().isNotEmpty;
+
+    // 1️⃣ APPROVE (always)
+    final approveResponse = await http.post(
       Uri.parse('$baseURL/api/brokers/$id/approve'),
-      headers: {'Authorization': 'Bearer $token'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({
         "approvalStatus": "APPROVED",
       }),
     );
-    if (res.statusCode == 200 || res.statusCode == 201) {
-      await http.post(
-        Uri.parse('$baseURL/api/brokers/$id/verify'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-      /*ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Broker approved & verified successfully"))
+
+    if (approveResponse.statusCode == 200 || approveResponse.statusCode == 201) {
 
 
-      );*/
+      // 2️⃣ If broker has BRN → VERIFY also
+      if (hasBRN) {
+        await http.post(
+          Uri.parse('$baseURL/api/brokers/$id/verify'),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
+      }
+
+      // 3️⃣ Refresh list
       _fetchBrokers(refresh: true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
           content: Text("Failed to approve broker"),
-          backgroundColor: Colors.redAccent));
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 

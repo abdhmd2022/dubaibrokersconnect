@@ -46,7 +46,7 @@ class _AdminShellState extends State<AdminShell> {
       RequirementsScreen(userData: userData,),
       BrokerDirectoryScreen(userData: userData,),
       ProfileScreen(brokerId: userData['broker']['id'], userData: userData),
-      MyTransactionsScreen(userData: userData,),
+      // MyTransactionsScreen(userData: userData,),
       A2AFormsScreen(userData: userData,),
       ImportFromBayutScreen(userData: userData,),
       ImportFromPropertyFinderScreen(userData: userData),

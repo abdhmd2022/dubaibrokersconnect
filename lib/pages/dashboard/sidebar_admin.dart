@@ -26,7 +26,7 @@ class AdminSidebar extends StatelessWidget {
       {'icon': Icons.assignment, 'label': 'Requirements'},
       {'icon': Icons.people, 'label': 'Broker Directory'},
       {'icon': Icons.person, 'label': 'Profile'},
-      {'icon': Icons.swap_horiz, 'label': 'My Transactions'},
+      // {'icon': Icons.swap_horiz, 'label': 'My Transactions'},
       {'icon': Icons.assignment_outlined, 'label': 'A2A Forms'},
       {
         'icon': Icons.cloud_download_outlined,
@@ -38,7 +38,6 @@ class AdminSidebar extends StatelessWidget {
         'icon': Icons.cloud_download_outlined,
         'label': 'Import from Property Finder',
         'badge': Icons.workspace_premium_rounded, // 👑 admin-style badge
-
       },
 
       {
