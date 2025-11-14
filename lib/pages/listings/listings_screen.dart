@@ -2317,7 +2317,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                   _buildCompactDropdown(
                                     title: "Status",
                                     value: selectedStatus,
-                                    items: ["Ready_to_Move", "Off-Plan", "Rented", "Available in Future"],
+                                    items: ["Ready_to_Move", "Off-Plan", "Rented", "Available_in_Future"],
                                     onChanged: (val) {
                                       setState(() => selectedStatus = val);
                                     },
@@ -4099,6 +4099,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                   'description': descC.text.trim(),
                                 };
 
+                                print('edit body -> $body');
+
                                 final response = await http.put(
                                   url,
                                   headers: {
@@ -4107,6 +4109,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                   },
                                   body: jsonEncode(body),
                                 );
+
+                                print('response  -> ${response.body}');
 
                                 if (response.statusCode == 200) {
                                   final data = jsonDecode(response.body);

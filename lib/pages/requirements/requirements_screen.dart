@@ -162,6 +162,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
         headers: {'Authorization': 'Bearer $token'},
       );
 
+
       if (propRes.statusCode == 200) {
         propertyTypes = json.decode(propRes.body)['data'] ?? [];
       }
