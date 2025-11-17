@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:a2abrokerapp/pages/listings/property_details_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -219,7 +218,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
     return filtered.join(" → ");
   }
-
 
   Map<String, String?> extractHierarchy(String fullPath) {
     final parts = fullPath.split('/').map((e) => e.trim()).toList();
@@ -583,44 +581,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     return path;
   }
 
-  Widget _buildSegment({
-    required double width,
-    required String label,
-    required String value,
-    required bool selected,
-    required Color color,
-    required bool isLeft,
-    required VoidCallback onTap,
-  }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      width: width,
-      decoration: BoxDecoration(
-        color: selected ? color : Colors.white,
-        border: Border(
-          right: BorderSide(
-            color: isLeft
-                ? Colors.transparent // ✅ no divider line
-                : Colors.transparent,
-            width: 0,
-          ),
-        ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        child: Center(
-          child: Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: selected ? Colors.white : Colors.black87,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
 
   Future<void> _showCreatePropertyDialog(BuildContext context) async {

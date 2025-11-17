@@ -52,8 +52,6 @@ class _LoginPageState extends State<LoginPage> {
       _rememberMe = true;
       _login(autoLogin: true);
     }
-
-
   }
 
   Future<void> _login({bool autoLogin = false}) async {
@@ -69,7 +67,9 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final res = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'x-jwt-secret' : xjwtsecret,
+          'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
 
@@ -144,7 +144,9 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final res = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'x-jwt-secret' : xjwtsecret,
+          'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
 
