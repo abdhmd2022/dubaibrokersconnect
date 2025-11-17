@@ -599,29 +599,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Card
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+      body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 1400,   // fix deployment bug
+            ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Card
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // 🔙 Back Button
-                  /*InkWell(
+                  child: Column(
+                    children: [
+                      // 🔙 Back Button
+                      /*InkWell(
                     onTap: () => Navigator.pop(context),
                     borderRadius: BorderRadius.circular(8),
                     child: Row(
@@ -643,564 +648,566 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   const SizedBox(height: 24),*/
 
-                  Stack(
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                      Stack(
                         children: [
-                          // 👤 Avatar
-                          CircleAvatar(
-                            radius: 45,
-                            backgroundColor: kPrimaryColor.withOpacity(0.08),
-                            child: ClipOval(
-                              child: avatar != null && avatar.isNotEmpty
-                                  ? Image.network(
-                                avatar,
-                                width: 90,
-                                height: 90,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Image.asset(
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // 👤 Avatar
+                              CircleAvatar(
+                                radius: 45,
+                                backgroundColor: kPrimaryColor.withOpacity(0.08),
+                                child: ClipOval(
+                                  child: avatar != null && avatar.isNotEmpty
+                                      ? Image.network(
+                                    avatar,
+                                    width: 90,
+                                    height: 90,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Image.asset(
+                                        'assets/collabrix_logo.png',
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.contain,
+                                      );
+                                    },
+                                  )
+                                      : Image.asset(
                                     'assets/collabrix_logo.png',
                                     width: 80,
                                     height: 80,
                                     fit: BoxFit.contain,
-                                  );
-                                },
-                              )
-                                  : Image.asset(
-                                'assets/collabrix_logo.png',
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(width: 24),
-
-                          // 🧾 Info
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Name + Verified Status
-                                Row(
-                                  children: [
-                                    Text(
-                                      name,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-
-                                    // ✅ Approved Tag
-                                    if (approvalStatus == "APPROVED")
-                                      _statusTag(
-                                        icon: Icons.approval_rounded,
-                                        label: "Approved",
-                                        color: Colors.orange.shade700,
-                                        bg: Colors.orange.shade50,
-                                        border: Colors.orange.shade300,
-                                      )
-                                    else if (approvalStatus == "PENDING")
-                                      _statusTag(
-                                        icon: Icons.hourglass_empty_outlined,
-                                        label: "Not Approved",
-                                        color: Colors.blue.shade800,
-                                        bg: Colors.blue.shade50,
-                                        border: Colors.blue.shade300,
-                                      )
-                                    else
-                                      _statusTag(
-                                        icon: Icons.cancel_outlined,
-                                        label: "Not Approved",
-                                        color: Colors.red.shade700,
-                                        bg: Colors.red.shade50,
-                                        border: Colors.red.shade300,
-                                      ),
-                                    const SizedBox(width: 8),
-
-                                    // ✅ Verified Tag
-                                    if (verified)
-                                      _statusTag(
-                                        icon: Icons.verified,
-                                        label: "Verified",
-                                        color: Colors.green.shade700,
-                                        bg: Colors.green.shade50,
-                                        border: Colors.green.shade300,
-                                      ),
-
-
-                                    SizedBox(width: 8,),
-                                    Positioned(
-                                      right: 12,
-                                      top: 0,
-                                      child: InkWell(
-                                        onTap: _openEditProfileDialog,
-                                        borderRadius: BorderRadius.circular(50), // FULL ROUND
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8), // control size
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey.shade100,       // soft background (optional)
-                                            shape: BoxShape.circle,            // makes it round
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black12.withOpacity(0.05),
-                                                blurRadius: 4,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Icon(
-                                            Icons.edit,
-                                            color: kPrimaryColor,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
+                              ),
 
-                                // 🏢 Company
-                                if (company.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.business_outlined,
-                                          color: Colors.black54, size: 16),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          company,
+                              const SizedBox(width: 24),
+
+                              // 🧾 Info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Name + Verified Status
+                                    Row(
+                                      children: [
+                                        Text(
+                                          name,
                                           style: GoogleFonts.poppins(
-                                            fontSize: 15,
-                                            color: Colors.black54,
-                                            fontWeight: FontWeight.w500,
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.black87,
                                           ),
                                         ),
+                                        const SizedBox(width: 10),
+
+                                        // ✅ Approved Tag
+                                        if (approvalStatus == "APPROVED")
+                                          _statusTag(
+                                            icon: Icons.approval_rounded,
+                                            label: "Approved",
+                                            color: Colors.orange.shade700,
+                                            bg: Colors.orange.shade50,
+                                            border: Colors.orange.shade300,
+                                          )
+                                        else if (approvalStatus == "PENDING")
+                                          _statusTag(
+                                            icon: Icons.hourglass_empty_outlined,
+                                            label: "Not Approved",
+                                            color: Colors.blue.shade800,
+                                            bg: Colors.blue.shade50,
+                                            border: Colors.blue.shade300,
+                                          )
+                                        else
+                                          _statusTag(
+                                            icon: Icons.cancel_outlined,
+                                            label: "Not Approved",
+                                            color: Colors.red.shade700,
+                                            bg: Colors.red.shade50,
+                                            border: Colors.red.shade300,
+                                          ),
+                                        const SizedBox(width: 8),
+
+                                        // ✅ Verified Tag
+                                        if (verified)
+                                          _statusTag(
+                                            icon: Icons.verified,
+                                            label: "Verified",
+                                            color: Colors.green.shade700,
+                                            bg: Colors.green.shade50,
+                                            border: Colors.green.shade300,
+                                          ),
+
+
+                                        SizedBox(width: 8,),
+                                        Positioned(
+                                          right: 12,
+                                          top: 0,
+                                          child: InkWell(
+                                            onTap: _openEditProfileDialog,
+                                            borderRadius: BorderRadius.circular(50), // FULL ROUND
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8), // control size
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.shade100,       // soft background (optional)
+                                                shape: BoxShape.circle,            // makes it round
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black12.withOpacity(0.05),
+                                                    blurRadius: 4,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Icon(
+                                                Icons.edit,
+                                                color: kPrimaryColor,
+                                                size: 18,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    // 🏢 Company
+                                    if (company.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.business_outlined,
+                                              color: Colors.black54, size: 16),
+                                          const SizedBox(width: 6),
+                                          Flexible(
+                                            child: Text(
+                                              company,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 15,
+                                                color: Colors.black54,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
-                                  ),
-                                ],
 
-                                // 🏷️ Categories
-                                if (categories.isNotEmpty) ...[
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 6,
-                                    children: categories.map((cat) {
-                                      final isResidential =
-                                          cat.toUpperCase() == "RESIDENTIAL";
-                                      final gradient = isResidential
-                                          ? const LinearGradient(
-                                        colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      )
-                                          : const LinearGradient(
-                                        colors: [Color(0xFFFFA751), Color(0xFFFF5F6D)],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      );
-
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          gradient: gradient,
-                                          borderRadius: BorderRadius.circular(12),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black12.withOpacity(0.1),
-                                              blurRadius: 6,
-                                              offset: const Offset(0, 3),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          cat,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-
-                          // 📞 Contact Icons
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              _contactButton(Icons.call, "Call", "tel:$phone", phone: phone),
-                              const SizedBox(height: 10),
-                              _contactButton(
-                                  FontAwesomeIcons.whatsapp,
-                                  "WhatsApp",
-                                  "https://wa.me/${whatsapp.toString().replaceAll('+', '')}"),
-                              const SizedBox(height: 10),
-                              _contactButton(Icons.email_outlined, "Email", "mailto:$email"),
-                            ],
-                          ),
-                        ],
-                      ),
-
-                    ],
-                  )
-                ],
-              ),
-            ),
-
-
-            const SizedBox(height: 30),
-
-            // Stats Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _statCard("Reputation Score", "0", Icons.bar_chart),
-                _statCard("Average Rating", rating.toString(), Icons.star),
-                _statCard("Completed Deals", "0", Icons.check_circle_outline),
-                _statCard("AI Review Score", "N/A", Icons.memory),
-              ],
-            ),
-
-            const SizedBox(height: 40),
-
-            // --- ABOUT + SEGMENTED SECTION SIDE BY SIDE ---
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final double maxW = constraints.maxWidth.isFinite
-                    ? constraints.maxWidth
-                    : MediaQuery.of(context).size.width;
-
-                final double halfWidth = (maxW - 40) / 2;
-                return
-                  Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // LEFT: About Section
-                    Container(
-                      width: halfWidth,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "About ${name.split(" ").first}",
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            bio.isNotEmpty ? bio : "No description available.",
-                            style: GoogleFonts.poppins(
-                              fontSize: 14.5,
-                              color: Colors.black87,
-                            ),
-                          ),
-
-                          // 🌐 Languages & Social Links Section (auto-hide if empty)
-                          if ((languages.isNotEmpty) ||
-                              (broker!['socialLinks'] != null && broker!['socialLinks'].isNotEmpty))
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // 🗣️ Languages
-                                if (languages.isNotEmpty) ...[
-                                  const SizedBox(height: 24),
-                                  Text(
-                                    "Languages",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 10,
-                                    runSpacing: 8,
-                                    children: languages.map((lang) {
-                                      return Container(
-                                        padding:
-                                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.teal.shade50,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.teal.shade200, width: 0.6),
-                                        ),
-                                        child: Text(
-                                          lang,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13.5,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.teal.shade800,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ],
-
-                                // 🔗 Social Links
-                                if (broker!['socialLinks'] != null &&
-                                    broker!['socialLinks'].isNotEmpty) ...[
-                                  const SizedBox(height: 28),
-                                  Text(
-                                    "Social Links",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  Wrap(
-                                    spacing: 14,
-                                    runSpacing: 12,
-                                    children: broker!['socialLinks'].entries.map<Widget>((entry) {
-                                      final platform = entry.key.toLowerCase();
-                                      final link = entry.value.toString().trim();
-
-                                      IconData icon;
-                                      Gradient? gradient;
-                                      Color solidColor;
-
-                                      switch (platform) {
-                                        case 'linkedin':
-                                          icon = FontAwesomeIcons.linkedinIn;
-                                          gradient = const LinearGradient(
-                                            colors: [Color(0xFF0077B5), Color(0xFF0E6791)],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          );
-                                          solidColor = const Color(0xFF0077B5);
-                                          break;
-                                        case 'instagram':
-                                          icon = FontAwesomeIcons.instagram;
-                                          gradient = const LinearGradient(
-                                            colors: [
-                                              Color(0xFFF58529),
-                                              Color(0xFFDD2A7B),
-                                              Color(0xFF8134AF)
-                                            ],
-                                            begin: Alignment.bottomLeft,
-                                            end: Alignment.topRight,
-                                          );
-                                          solidColor = const Color(0xFFE1306C);
-                                          break;
-                                        case 'facebook':
-                                          icon = FontAwesomeIcons.facebookF;
-                                          gradient = const LinearGradient(
-                                            colors: [Color(0xFF1877F2), Color(0xFF145DBF)],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          );
-                                          solidColor = const Color(0xFF1877F2);
-                                          break;
-                                        case 'twitter':
-                                        case 'x':
-                                          icon = FontAwesomeIcons.xTwitter;
-                                          gradient = const LinearGradient(
-                                            colors: [Color(0xFF000000), Color(0xFF333333)],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          );
-                                          solidColor = Colors.black87;
-                                          break;
-                                        default:
-                                          icon = FontAwesomeIcons.globe;
-                                          gradient = const LinearGradient(
+                                    // 🏷️ Categories
+                                    if (categories.isNotEmpty) ...[
+                                      const SizedBox(height: 10),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 6,
+                                        children: categories.map((cat) {
+                                          final isResidential =
+                                              cat.toUpperCase() == "RESIDENTIAL";
+                                          final gradient = isResidential
+                                              ? const LinearGradient(
                                             colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
+                                          )
+                                              : const LinearGradient(
+                                            colors: [Color(0xFFFFA751), Color(0xFFFF5F6D)],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
                                           );
-                                          solidColor = kPrimaryColor;
-                                      }
 
-                                      return MouseRegion(
-                                        cursor: SystemMouseCursors.click,
-                                        onEnter: (_) => setState(() => hoveredSocial = platform),
-                                        onExit: (_) => setState(() => hoveredSocial = ''),
-                                        child: AnimatedScale(
-                                          duration: const Duration(milliseconds: 200),
-                                          scale: hoveredSocial == platform ? 1.08 : 1.0,
-                                          child: InkWell(
-                                            borderRadius: BorderRadius.circular(14),
-                                            onTap: () async {
-                                              final url = link.startsWith("http")
-                                                  ? link
-                                                  : "https://${link.replaceAll('@', '')}";
-                                              if (await canLaunchUrl(Uri.parse(url))) {
-                                                await launchUrl(Uri.parse(url),
-                                                    mode: LaunchMode.externalApplication);
-                                              }
-                                            },
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 16, vertical: 10),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: BorderRadius.circular(14),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: hoveredSocial == platform
-                                                        ? solidColor.withOpacity(0.25)
-                                                        : Colors.black12.withOpacity(0.05),
-                                                    blurRadius: hoveredSocial == platform ? 10 : 6,
-                                                    offset: const Offset(0, 3),
-                                                  ),
-                                                ],
-                                                border: Border.all(
-                                                  color: hoveredSocial == platform
-                                                      ? solidColor.withOpacity(0.5)
-                                                      : Colors.grey.shade200,
+                                          return Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              gradient: gradient,
+                                              borderRadius: BorderRadius.circular(12),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black12.withOpacity(0.1),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 3),
                                                 ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  ShaderMask(
-                                                    shaderCallback: (rect) =>
-                                                        gradient!.createShader(rect),
-                                                    child:
-                                                    Icon(icon, color: Colors.white, size: 18),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Text(
-                                                    platform[0].toUpperCase() + platform.substring(1),
-                                                    style: GoogleFonts.poppins(
-                                                      fontSize: 14,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: Colors.black87,
-                                                    ),
-                                                  ),
-                                                ],
+                                              ],
+                                            ),
+                                            child: Text(
+                                              cat,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white,
                                               ),
                                             ),
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+
+                              // 📞 Contact Icons
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  _contactButton(Icons.call, "Call", "tel:$phone", phone: phone),
+                                  const SizedBox(height: 10),
+                                  _contactButton(
+                                      FontAwesomeIcons.whatsapp,
+                                      "WhatsApp",
+                                      "https://wa.me/${whatsapp.toString().replaceAll('+', '')}"),
+                                  const SizedBox(height: 10),
+                                  _contactButton(Icons.email_outlined, "Email", "mailto:$email"),
                                 ],
-                              ],
-                            )
+                              ),
+                            ],
+                          ),
+
                         ],
-                      ),
-                    ),
+                      )
+                    ],
+                  ),
+                ),
 
-                    const SizedBox(width: 40),
 
-                    // RIGHT: Segmented Bar + Dynamic Content
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black12.withOpacity(0.08),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                const SizedBox(height: 30),
+
+                // Stats Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _statCard("Reputation Score", "0", Icons.bar_chart),
+                    _statCard("Average Rating", rating.toString(), Icons.star),
+                    _statCard("Completed Deals", "0", Icons.check_circle_outline),
+                    _statCard("AI Review Score", "N/A", Icons.memory),
+                  ],
+                ),
+
+                const SizedBox(height: 40),
+
+                // --- ABOUT + SEGMENTED SECTION SIDE BY SIDE ---
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double maxW = constraints.maxWidth.isFinite
+                        ? constraints.maxWidth
+                        : MediaQuery.of(context).size.width;
+
+                    final double halfWidth = (maxW - 40) / 2;
+                    return
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // LEFT: About Section
+                          Container(
+                            width: halfWidth,
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Segmented Bar with full width
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(14.0),
-                                  topRight: Radius.circular(14.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "About ${name.split(" ").first}",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  bio.isNotEmpty ? bio : "No description available.",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14.5,
+                                    color: Colors.black87,
+                                  ),
                                 ),
 
+                                // 🌐 Languages & Social Links Section (auto-hide if empty)
+                                if ((languages.isNotEmpty) ||
+                                    (broker!['socialLinks'] != null && broker!['socialLinks'].isNotEmpty))
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // 🗣️ Languages
+                                      if (languages.isNotEmpty) ...[
+                                        const SizedBox(height: 24),
+                                        Text(
+                                          "Languages",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Wrap(
+                                          spacing: 10,
+                                          runSpacing: 8,
+                                          children: languages.map((lang) {
+                                            return Container(
+                                              padding:
+                                              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                              decoration: BoxDecoration(
+                                                color: Colors.teal.shade50,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.teal.shade200, width: 0.6),
+                                              ),
+                                              child: Text(
+                                                lang,
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 13.5,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.teal.shade800,
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ],
 
-                                border: Border.all(color: Colors.grey.shade200, width: 1.2),
+                                      // 🔗 Social Links
+                                      if (broker!['socialLinks'] != null &&
+                                          broker!['socialLinks'].isNotEmpty) ...[
+                                        const SizedBox(height: 28),
+                                        Text(
+                                          "Social Links",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+
+                                        Wrap(
+                                          spacing: 14,
+                                          runSpacing: 12,
+                                          children: broker!['socialLinks'].entries.map<Widget>((entry) {
+                                            final platform = entry.key.toLowerCase();
+                                            final link = entry.value.toString().trim();
+
+                                            IconData icon;
+                                            Gradient? gradient;
+                                            Color solidColor;
+
+                                            switch (platform) {
+                                              case 'linkedin':
+                                                icon = FontAwesomeIcons.linkedinIn;
+                                                gradient = const LinearGradient(
+                                                  colors: [Color(0xFF0077B5), Color(0xFF0E6791)],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                );
+                                                solidColor = const Color(0xFF0077B5);
+                                                break;
+                                              case 'instagram':
+                                                icon = FontAwesomeIcons.instagram;
+                                                gradient = const LinearGradient(
+                                                  colors: [
+                                                    Color(0xFFF58529),
+                                                    Color(0xFFDD2A7B),
+                                                    Color(0xFF8134AF)
+                                                  ],
+                                                  begin: Alignment.bottomLeft,
+                                                  end: Alignment.topRight,
+                                                );
+                                                solidColor = const Color(0xFFE1306C);
+                                                break;
+                                              case 'facebook':
+                                                icon = FontAwesomeIcons.facebookF;
+                                                gradient = const LinearGradient(
+                                                  colors: [Color(0xFF1877F2), Color(0xFF145DBF)],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                );
+                                                solidColor = const Color(0xFF1877F2);
+                                                break;
+                                              case 'twitter':
+                                              case 'x':
+                                                icon = FontAwesomeIcons.xTwitter;
+                                                gradient = const LinearGradient(
+                                                  colors: [Color(0xFF000000), Color(0xFF333333)],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                );
+                                                solidColor = Colors.black87;
+                                                break;
+                                              default:
+                                                icon = FontAwesomeIcons.globe;
+                                                gradient = const LinearGradient(
+                                                  colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                );
+                                                solidColor = kPrimaryColor;
+                                            }
+
+                                            return MouseRegion(
+                                              cursor: SystemMouseCursors.click,
+                                              onEnter: (_) => setState(() => hoveredSocial = platform),
+                                              onExit: (_) => setState(() => hoveredSocial = ''),
+                                              child: AnimatedScale(
+                                                duration: const Duration(milliseconds: 200),
+                                                scale: hoveredSocial == platform ? 1.08 : 1.0,
+                                                child: InkWell(
+                                                  borderRadius: BorderRadius.circular(14),
+                                                  onTap: () async {
+                                                    final url = link.startsWith("http")
+                                                        ? link
+                                                        : "https://${link.replaceAll('@', '')}";
+                                                    if (await canLaunchUrl(Uri.parse(url))) {
+                                                      await launchUrl(Uri.parse(url),
+                                                          mode: LaunchMode.externalApplication);
+                                                    }
+                                                  },
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                        horizontal: 16, vertical: 10),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius: BorderRadius.circular(14),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: hoveredSocial == platform
+                                                              ? solidColor.withOpacity(0.25)
+                                                              : Colors.black12.withOpacity(0.05),
+                                                          blurRadius: hoveredSocial == platform ? 10 : 6,
+                                                          offset: const Offset(0, 3),
+                                                        ),
+                                                      ],
+                                                      border: Border.all(
+                                                        color: hoveredSocial == platform
+                                                            ? solidColor.withOpacity(0.5)
+                                                            : Colors.grey.shade200,
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        ShaderMask(
+                                                          shaderCallback: (rect) =>
+                                                              gradient!.createShader(rect),
+                                                          child:
+                                                          Icon(icon, color: Colors.white, size: 18),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        Text(
+                                                          platform[0].toUpperCase() + platform.substring(1),
+                                                          style: GoogleFonts.poppins(
+                                                            fontSize: 14,
+                                                            fontWeight: FontWeight.w600,
+                                                            color: Colors.black87,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ],
+                                    ],
+                                  )
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(width: 40),
+
+                          // RIGHT: Segmented Bar + Dynamic Content
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12.withOpacity(0.08),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  // Segmented Bar with full width
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(14.0),
+                                        topRight: Radius.circular(14.0),
+                                      ),
 
-                                  if(widget.userData['broker']['isVerified'])...[
-                                    _buildSegmentButton("Listings", count: properties.length),
-                                    _buildSegmentButton("Requirements", count: requirements.length),
-                                  ],
+
+                                      border: Border.all(color: Colors.grey.shade200, width: 1.2),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      children: [
+
+                                        if(widget.userData['broker']['isVerified'])...[
+                                          _buildSegmentButton("Listings", count: properties.length),
+                                          _buildSegmentButton("Requirements", count: requirements.length),
+                                        ],
 
 
-                                  _buildSegmentButton(
-                                    "Reviews",
-                                    count: reviews.where((r) => r['status'] == "APPROVED").length,
+                                        _buildSegmentButton(
+                                          "Reviews",
+                                          count: reviews.where((r) => r['status'] == "APPROVED").length,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 0),
+
+                                  // Dynamic content area
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 400),
+                                    child: activeSection == "Listings"
+                                        ? _buildListings(properties)
+                                        : activeSection == "Requirements"
+                                        ? _buildRequirements(requirements)
+                                        : _buildReviews(reviews),
                                   ),
                                 ],
                               ),
                             ),
+                          ),
 
-                            const SizedBox(height: 0),
-
-                            // Dynamic content area
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 400),
-                              child: activeSection == "Listings"
-                                  ? _buildListings(properties)
-                                  : activeSection == "Requirements"
-                                  ? _buildRequirements(requirements)
-                                  : _buildReviews(reviews),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                  ],
-                );
+                        ],
+                      );
 
 
-              },
+                  },
+                ),
+
+
+
+
+
+
+              ],
             ),
+          ),),)
 
-
-
-
-
-
-          ],
-        ),
-      ),
     );
   }
+
   Widget _buildSegmentButton(String label, {int count = 0}) {
     final bool isActive = activeSection == label;
     final bool isVerified = widget.userData['broker']['isVerified'] == true;
