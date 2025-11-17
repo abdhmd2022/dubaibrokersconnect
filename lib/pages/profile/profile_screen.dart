@@ -881,8 +881,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // --- ABOUT + SEGMENTED SECTION SIDE BY SIDE ---
             LayoutBuilder(
               builder: (context, constraints) {
-                final double halfWidth = (constraints.maxWidth - 40) / 2;
-                return Row(
+                final double maxW = constraints.maxWidth.isFinite
+                    ? constraints.maxWidth
+                    : MediaQuery.of(context).size.width;
+
+                final double halfWidth = (maxW - 40) / 2;
+                return
+                  Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // LEFT: About Section
@@ -1181,6 +1186,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   ],
                 );
+
+
               },
             ),
 
