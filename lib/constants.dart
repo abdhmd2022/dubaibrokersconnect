@@ -10,6 +10,7 @@ const String baseURL= "http://192.168.2.185:3001";
 const String xjwtsecret= "80384bcd0c04af5d29743362aa6a242edc8e3366ca1fa1f097f69d11576fb2f1568a6cfa7b7ff8401edb96beb04274167b8bdc7cca9a7c6a93755db24a80d";
 
 class Responsive {
+
   static bool isMobile(BuildContext context) =>
       MediaQuery.of(context).size.width < 600;
 

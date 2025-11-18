@@ -77,73 +77,74 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
         'limit': '10',
       };
 
+      if (selectedCategory != "ALL") query['category'] = selectedCategory;
+      if (searchQuery.isNotEmpty) query['search'] = searchQuery;
 
-
-      // 🔹 Category Filter
-      if (selectedCategory != "ALL") {
-        query['category'] = selectedCategory;
-      }
-
-      // 🔹 Search
-      if (searchQuery.isNotEmpty) {
-        query['search'] = searchQuery;
-      }
-
-      final uri =
-      Uri.parse('$baseURL/api/requirements').replace(queryParameters: query);
+      final uri = Uri.parse('$baseURL/api/requirements')
+          .replace(queryParameters: query);
 
       final response = await http.get(uri, headers: {
-        'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
       });
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        List<dynamic> fetched = data['data'] ?? [];
+        final body = json.decode(response.body);
 
-        setState(() {
+        // THE CORRECT LIST → from your actual API response
+        List fetched = body['data'] ?? [];
 
-          if (selectedTransaction == "RENT") {
-            fetched = fetched.where((r) => r['transactionType'] == "RENT").toList();
-          } else if (selectedTransaction == "SALE") {
-            fetched = fetched.where((r) => r['transactionType'] == "SALE").toList();
-          } else if (selectedTransaction == "SALE_AND_RENT") {
-            fetched = fetched.where((r) => r['transactionType'] == "SALE_AND_RENT").toList();
-          }
-          final currentBrokerId = widget.userData['broker']['id'];
+        print("API Returned Requirements Count = ${fetched.length}");
 
-          fetched.sort((a, b) {
-            final bool isAOwner = a['brokerId'] == currentBrokerId;
-            final bool isBOwner = b['brokerId'] == currentBrokerId;
+        // ⭐ Apply transaction filter
+        if (selectedTransaction != "ALL") {
+          fetched = fetched
+              .where((r) => r['transactionType'] == selectedTransaction)
+              .toList();
+        }
 
-            if (isAOwner && !isBOwner) return -1;
-            if (!isAOwner && isBOwner) return 1;
-            return 0;
-          });
+        final currentBrokerId = widget.userData['broker']['id'];
 
-          List ownReqs = fetched.where((r) => r['brokerId'] == currentBrokerId).toList();
-          List otherReqs = fetched.where((r) => r['brokerId'] != currentBrokerId).toList();
+        // ⭐ Sort: My requirements first
+        fetched.sort((a, b) {
+          final isAOwner = a['brokerId'] == currentBrokerId;
+          final isBOwner = b['brokerId'] == currentBrokerId;
 
-          otherReqs = otherReqs.where((r) => r['isApproved'] == true).toList();
-
-          final finalList = [...ownReqs, ...otherReqs];
-
-          setState(() {
-            requirements = finalList;
-            filteredRequirements = finalList;
-          });
-
-
-
-          currentPage = data['pagination']['page'] ?? 1;
-          totalPages = data['pagination']['totalPages'] ?? 1;
-
+          if (isAOwner && !isBOwner) return -1;
+          if (!isAOwner && isBOwner) return 1;
+          return 0;
         });
+
+        // ⭐ Separate mine vs others
+        final ownReqs =
+        fetched.where((r) => r['brokerId'] == currentBrokerId).toList();
+
+        final otherReqs = fetched
+            .where((r) => r['brokerId'] != currentBrokerId)
+            .where((r) => r['broker']?['approvalStatus'] == "APPROVED")
+            .toList();
+
+        final finalList = [...ownReqs, ...otherReqs];
+
+        print("My Requirements = ${ownReqs.length}");
+        print("Other Approved Requirements = ${otherReqs.length}");
+        print("Final Total = ${finalList.length}");
+
+        // ⭐ SINGLE setState ONLY
+        setState(() {
+          requirements = finalList;
+          filteredRequirements = finalList;
+
+          currentPage = body['pagination']?['page'] ?? 1;
+          totalPages = body['pagination']?['totalPages'] ?? 1;
+        });
+
       } else {
-        debugPrint("❌ Failed to fetch requirements: ${response.statusCode}");
+        debugPrint("❌ Failed: ${response.statusCode}");
+        debugPrint(response.body);
       }
     } catch (e) {
-      debugPrint("⚠️ Error fetching requirements: $e");
+      debugPrint("⚠️ Error: $e");
     } finally {
       setState(() => isLoading = false);
     }
@@ -1586,6 +1587,18 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     final broker = e['broker'] ?? {};
     final brokerId = widget.userData['broker']?['id'];
     final isOwnRequirement = e['brokerId'] == brokerId;
+    String formatTransactionType(String value) {
+      if (value.isEmpty) return "N/A";
+
+      value = value.toLowerCase();
+
+      if (value == "sale") return "Sale";
+      if (value == "rent") return "Rent";
+      if (value == "sale_and_rent") return "Sale and Rent";
+
+      // fallback → first letter capital
+      return value[0].toUpperCase() + value.substring(1);
+    }
 
     final propertyType = e['propertyType']?['name'] ?? 'N/A';
     final category = e['category'] ?? 'N/A';
@@ -1603,6 +1616,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     final priceRange = transactionType == 'RENT'
         ? "AED $minPrice - $maxPrice /yr"
         : "AED $minPrice - $maxPrice";
+
 
     return Stack(
       children: [
@@ -1719,7 +1733,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                             ],
                         _chip(
                           Icons.swap_horiz_rounded,
-                          'For $transactionType',
+                          'For ${formatTransactionType(transactionType)}',
                           Colors.indigo,
                         ),
                       ],
@@ -2436,6 +2450,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
           .where((r) => r['propertyTypeId'] == selectedPropertyType)
           .toList();
     }
+
 
     // 🛏 Rooms Filter
     if (selectedRooms != null && selectedRooms!.isNotEmpty) {
@@ -3998,6 +4013,18 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     final broker = e['broker'] ?? {};
     final brokerId = widget.userData['broker']?['id'];
     final isOwnRequirement = e['brokerId'] == brokerId;
+    String formatTransactionType(String value) {
+      if (value.isEmpty) return "N/A";
+
+      value = value.toLowerCase();
+
+      if (value == "sale") return "Sale";
+      if (value == "rent") return "Rent";
+      if (value == "sale_and_rent") return "Sale and Rent";
+
+      // fallback → first letter capital
+      return value[0].toUpperCase() + value.substring(1);
+    }
 
     final propertyType = e['propertyType']?['name'] ?? 'N/A';
     final location = (e['locations'] != null && e['locations'].isNotEmpty)
@@ -4114,7 +4141,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
                 _chip(
                   Icons.swap_horiz_rounded,
-                  'For $transactionType',
+                  'For ${formatTransactionType(transactionType)}',
                   Colors.indigo,
                 ),
               ],
