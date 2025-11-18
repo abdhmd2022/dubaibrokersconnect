@@ -666,6 +666,14 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     final formattedDate = created != null
         ? "Registered on ${DateFormat('dd-MMM-yyyy').format(created)}"
         : '-';
+    final company = b['companyName'];
+    final brnNumber = b['brnNumber'];
+    final brnIssueDate = b['brnIssuesDate'];
+
+
+    final hasDetails = (company != null && company.toString().trim().isNotEmpty) ||
+        (brnNumber != null && brnNumber.toString().trim().isNotEmpty) ||
+        (brnIssueDate != null && brnIssueDate.toString().trim().isNotEmpty);
 
     final bool isActive = user['isActive'] == true;
     final bool isDisabled = !isActive;
@@ -902,6 +910,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                           color: Colors.grey.shade600,
                         ),
                       ),
+                      if(hasDetails)
                       IconButton(
                         icon: const Icon(Icons.info_outline_rounded,
                             color: Colors.blueAccent, size: 22),
