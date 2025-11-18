@@ -32,6 +32,13 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscureConfirmPassword = true;
   bool _rememberMe = true;
 
+  int forgotStep = 1;
+  String? _resetOtp;
+  String? _resetEmail;
+  final _otpController = TextEditingController();
+  final _newPassController = TextEditingController();
+  final _confirmNewPassController = TextEditingController();
+
   bool _isLoading = false;
   AuthMode _mode = AuthMode.login;
 
@@ -40,6 +47,59 @@ class _LoginPageState extends State<LoginPage> {
     super.initState();
     _loadSavedCredentials();
   }
+
+  Future<void> _resetPassword() async {
+    if (_newPassController.text.trim().isEmpty ||
+        _confirmNewPassController.text.trim().isEmpty) {
+      _showError("Enter all fields");
+      return;
+    }
+
+    if (_newPassController.text.trim() !=
+        _confirmNewPassController.text.trim()) {
+      _showError("Passwords do not match");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final url = Uri.parse('$baseURL/api/auth/reset-password');
+
+    try {
+      final res = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "email": _resetEmail,
+          "otp": _resetOtp,
+          "password": _newPassController.text.trim(),
+        }),
+      );
+
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 200 && data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Password reset successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        setState(() {
+          _mode = AuthMode.login;
+          forgotStep = 1;
+        });
+      } else {
+        _showError(data['message'] ?? "Password reset failed");
+      }
+    } catch (e) {
+      _showError("Error: $e");
+    }
+
+    setState(() => _isLoading = false);
+  }
+
 
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
@@ -288,7 +348,7 @@ class _LoginPageState extends State<LoginPage> {
     ),
   );
 
-  Future<void> _sendResetLink() async {
+  Future<void> _sendResetOtp() async {
     if (_emailController.text.trim().isEmpty) {
       _showError("Please enter your email");
       return;
@@ -308,23 +368,36 @@ class _LoginPageState extends State<LoginPage> {
       final data = jsonDecode(res.body);
 
       if (res.statusCode == 200 && data['success'] == true) {
+        _resetOtp = data['data']['resetOtp'];
+        _resetEmail = _emailController.text.trim();
+
+        setState(() {
+          forgotStep = 2; // Move to OTP screen
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Password reset link sent to email"),
+            content: Text("OTP sent to your email"),
             backgroundColor: Colors.green,
           ),
         );
-
-        // Switch back to login view
-        setState(() => _mode = AuthMode.login);
       } else {
-        _showError(data['message'] ?? "Failed to send reset link");
+        _showError(data['message'] ?? "Failed to send OTP");
       }
     } catch (e) {
       _showError("Error: $e");
     }
 
     setState(() => _isLoading = false);
+  }
+  void _verifyOtp() {
+    if (_otpController.text.trim() == _resetOtp) {
+      setState(() {
+        forgotStep = 3; // Show new password fields
+      });
+    } else {
+      _showError("Incorrect OTP");
+    }
   }
 
 
@@ -436,22 +509,64 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildForgotPassword() {
-    return Column(
-      children: [
-        _buildTextField(
-          controller: _emailController,
-          label: 'Enter your registered email',
-          icon: Icons.email_outlined,
-          inputType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          "We'll send password reset instructions to your email.",
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.black54),
-        ),
-      ],
-    );
+    if (forgotStep == 1) {
+      return Column(
+        children: [
+          _buildTextField(
+            controller: _emailController,
+            label: 'Enter your registered email',
+            icon: Icons.email_outlined,
+            inputType: TextInputType.emailAddress,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            "We will send an OTP to your email.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54),
+          ),
+        ],
+      );
+    }
+
+    if (forgotStep == 2) {
+      return Column(
+        children: [
+          const Text("Enter the OTP sent to your email"),
+          const SizedBox(height: 12),
+          _buildTextField(
+            controller: _otpController,
+            label: 'Enter OTP',
+            icon: Icons.lock_outline,
+            isPassword: true,   // 👈 Hide OTP
+
+          ),
+        ],
+      );
+    }
+
+    if (forgotStep == 3) {
+      return Column(
+        children: [
+          const Text("Reset Your Password"),
+          const SizedBox(height: 12),
+          _buildTextField(
+            controller: _newPassController,
+            label: 'New Password',
+            icon: Icons.lock_outline,
+            isPassword: true,
+          ),
+          const SizedBox(height: 16),
+          _buildTextField(
+            controller: _confirmNewPassController,
+            label: 'Confirm Password',
+            icon: Icons.lock_reset_outlined,
+            isPassword: true,
+          ),
+        ],
+      );
+    }
+
+    return Container();
   }
 
   Widget _buildActionButton() {
@@ -459,7 +574,13 @@ class _LoginPageState extends State<LoginPage> {
         ? 'Sign In'
         : _mode == AuthMode.signup
         ? 'Sign Up'
-        : 'Send Reset Link';
+        : (forgotStep == 1
+        ? 'Send OTP'
+        : forgotStep == 2
+        ? 'Verify OTP'
+        : 'Reset Password');
+
+
 
     return SizedBox(
       width: double.infinity,
@@ -471,7 +592,11 @@ class _LoginPageState extends State<LoginPage> {
             ? _login
             : _mode == AuthMode.signup
             ? _register
-            : _sendResetLink,
+            : (forgotStep == 1
+            ? _sendResetOtp
+            : forgotStep == 2
+            ? _verifyOtp
+            : _resetPassword),
 
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.zero,
