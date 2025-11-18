@@ -1889,8 +1889,6 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
     sellerFaxC.text = data['sellerAgentFax'] ?? '';
     sellerOfficePhoneC.text = data['sellerAgentPhone'] ?? '';
 
-
-
     // 🟦 Buyer Agent
     buyerAgentNameC.text = data['buyerAgentName'] ?? '';
     buyerEstablishmentNameC.text = data['buyerAgentEstablishment'] ?? '';
@@ -2068,9 +2066,11 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
     print('broker -> $broker');
 
 
+
+
     // 🧩 Safely map values to text fields
     buyerAgentNameC.text = broker?['displayName'] ?? '${user['firstName']} ${user['lastName']}';
-    buyerEstablishmentNameC.text = user['companyName'] ?? broker?['user']?['companyName'] ?? '';
+    buyerEstablishmentNameC.text = user['companyName'] ?? broker?['user']?['companyName'] ?? 'Freelancer';
     buyerOfficeAddressC.text = broker?['address'] ?? '';
     buyerPhoneC.text = broker?['phone'] ?? broker['mobile'] ?? '';
     buyerFaxC.text = '';
@@ -2720,7 +2720,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   isExpanded: true,
-                                  value: widget.userData["companyName"],
+                                  value: widget.userData["companyName"]?? 'Freelancer',
                                   icon: const Icon(Icons.keyboard_arrow_down_rounded,
                                       color: Colors.black54),
                                   style: GoogleFonts.poppins(
@@ -2729,9 +2729,9 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                                   ),
                                   items: [
                                     DropdownMenuItem<String>(
-                                      value: widget.userData["companyName"],
+                                      value: widget.userData["companyName"]?? 'Freelancer',
                                       child: Text(
-                                          '${widget.userData["companyName"]} (ORN: ${widget.userData['broker']["reraNumber"]})' ?? "No Company Found",
+                                          '${widget.userData["companyName"]?? 'Freelancer'} (ORN: ${widget.userData['broker']["reraNumber"]})' ?? "No Company Found",
                                         style: GoogleFonts.poppins(fontSize: 13),
                                       ),
                                     ),
