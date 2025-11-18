@@ -498,7 +498,7 @@ class BrokerDashboardContent extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 20,
-                childAspectRatio: 3.5,
+                childAspectRatio: 3.3,
                 children: [
                   /*_actionCard(
                     context,
