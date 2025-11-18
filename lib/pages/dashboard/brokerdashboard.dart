@@ -610,7 +610,6 @@ class BrokerDashboardContent extends StatelessWidget {
                     ),
                   ),
 
-
                 ],
               ),
               const SizedBox(height: 30),
