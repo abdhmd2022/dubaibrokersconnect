@@ -296,62 +296,53 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
             ),
           ],
         ),
-        child: Stack(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-           /* // 🔹 faint diagonal highlight lines for background texture
-            Positioned.fill(
-              child: CustomPaint(painter: _LinePatternPainter(color)),
-            ),*/
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      count.toString(),
-                      style: GoogleFonts.poppins(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      label,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: color,
-                        fontWeight: FontWeight.w500
-                      ),
-                    ),
-                  ],
-                ),
-                // ✳️ Glowing icon badge
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        color.withOpacity(0.9),
-                        color.withOpacity(0.7),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withOpacity(0.5),
-                        blurRadius: 12,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
+                Text(
+                  count.toString(),
+                  style: GoogleFonts.poppins(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
                   ),
-                  child: Icon(icon, color: Colors.white, size: 22),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: color,
+                      fontWeight: FontWeight.w500
+                  ),
                 ),
               ],
+            ),
+            // ✳️ Glowing icon badge
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    color.withOpacity(0.9),
+                    color.withOpacity(0.7),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.5),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 22),
             ),
           ],
         ),
@@ -911,15 +902,11 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                           color: Colors.grey.shade600,
                         ),
                       ),
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        child: IconButton(
-                          icon: const Icon(Icons.info_outline_rounded,
-                              color: Colors.blueAccent, size: 22),
-                          tooltip: "View Company & BRN Details",
-                          onPressed: () => _showBrokerDetailsDialog(context, b),
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.info_outline_rounded,
+                            color: Colors.blueAccent, size: 22),
+                        tooltip: "View Company & BRN Details",
+                        onPressed: () => _showBrokerDetailsDialog(context, b),
                       ),
 
                     ],
