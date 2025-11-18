@@ -1,8 +1,14 @@
-import 'dart:io';
+import 'package:a2abrokerapp/services/auth_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../constants.dart';
+import 'package:http/http.dart' as http;
+import 'dart:typed_data';
+import 'package:http_parser/http_parser.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
+import 'package:http/browser_client.dart';
 
 class LocationManagementScreen extends StatefulWidget {
   const LocationManagementScreen({Key? key}) : super(key: key);
@@ -13,17 +19,113 @@ class LocationManagementScreen extends StatefulWidget {
 
 class _LocationManagementScreenState extends State<LocationManagementScreen> {
   String? _selectedFileName;
-  File? _selectedFile;
+  Uint8List? _selectedBytes;
+  bool _isUploading = false;
+
+
+  Future<void> _uploadCsv() async {
+    if (_selectedBytes == null) return;
+
+    setState(() => _isUploading = true);
+
+    try {
+      final token = await AuthService.getToken();
+      final url = Uri.parse("$baseURL/api/locations/bulk-upload");
+
+      if (kIsWeb) {
+        // 🔥 Browser-safe client
+        final client = BrowserClient()..withCredentials = false;
+
+        // Create multipart
+        final request = http.MultipartRequest("POST", url);
+
+        request.headers['Authorization'] = "Bearer $token";
+
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'file',                    // MUST match backend
+            _selectedBytes!,
+            filename: _selectedFileName,
+            contentType: MediaType("text", "csv"),   // 👈 FIX
+
+          ),
+        );
+
+        final streamed = await client.send(request);
+        final response = await http.Response.fromStream(streamed);
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          setState(() {
+            _selectedBytes = null;
+            _selectedFileName = null;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("CSV uploaded successfully!"), backgroundColor: Colors.green),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed: ${response.body}"), backgroundColor: Colors.red),
+          );
+        }
+      }
+      else {
+        // 📱 Mobile/desktop uses normal MultipartRequest
+        var req = http.MultipartRequest("POST", url);
+        req.headers['Authorization'] = 'Bearer $token';
+
+        req.files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            _selectedBytes!,
+            filename: _selectedFileName,
+          ),
+        );
+
+        var res = await req.send();
+        var body = await http.Response.fromStream(res);
+
+        if (body.statusCode == 200 || body.statusCode == 201) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("CSV uploaded successfully!"), backgroundColor: Colors.green),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Upload failed: ${body.body}"), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+      );
+    }
+
+    setState(() => _isUploading = false);
+  }
+
+  void _handleResponse(http.Response response) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("CSV uploaded successfully!"), backgroundColor: Colors.green),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed: ${response.body}"), backgroundColor: Colors.red),
+      );
+    }
+  }
+
 
   Future<void> _pickCsvFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['csv'],
+      withData: true, // 🔥 IMPORTANT for Web
     );
 
-    if (result != null && result.files.single.path != null) {
+    if (result != null) {
       setState(() {
-        _selectedFile = File(result.files.single.path!);
+        _selectedBytes = result.files.single.bytes;   // WEB SAFE
         _selectedFileName = result.files.single.name;
       });
     }
@@ -54,21 +156,9 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                   children: [
                     Row(
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: kPrimaryColor.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          padding: const EdgeInsets.all(10),
-                          child: Icon(
-                            Icons.location_on_outlined,
-                            color: kPrimaryColor,
-                            size: 26,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
+
                         Text(
-                          "Location Management",
+                          "",
                           style: GoogleFonts.poppins(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
@@ -77,20 +167,13 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Import Locations from CSV",
-                      style: GoogleFonts.poppins(
-                        fontSize: 13.5,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
+
                   ],
                 ),
               ),
 
 
-              SizedBox(height: 50,),
+              SizedBox(height: 20,),
               // MAIN CARD
               Container(
                 width: 650,
@@ -107,8 +190,40 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                   ],
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center, // center everything
                   children: [
+
+
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: kPrimaryColor.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            padding: const EdgeInsets.all(10),
+                            child: Icon(
+                              Icons.location_on_outlined,
+                              color: kPrimaryColor,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            "Import Locations from CSV",
+                            style: GoogleFonts.poppins(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      )
+                    ),
+
+                    SizedBox(height: 18),
                     // INFO BOX
                     Container(
                       width: double.infinity,
@@ -219,29 +334,54 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 6),
+
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: Colors.grey),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            "Supported File Types (.csv only)",
+                            style: GoogleFonts.poppins(
+                              fontSize: 12.5,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
 
                     const SizedBox(height: 22),
 
                     // Upload Button
                     ElevatedButton.icon(
-                      onPressed: _selectedFile == null
+                      onPressed: _selectedBytes == null || _isUploading
                           ? null
                           : () {
-                        // TODO: implement upload logic
+                        _uploadCsv();
                       },
-                      icon:
-                      const Icon(Icons.cloud_upload_outlined, size: 20),
+                      icon: _isUploading
+                          ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+
+                        ),
+                      )
+                          : const Icon(Icons.cloud_upload_outlined, size: 20),
                       label: Text(
-                        "Upload and Process",
+                        _isUploading ? "Uploading..." : "Upload and Process",
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _selectedFile == null
+                        backgroundColor: _selectedBytes == null
                             ? Colors.grey.shade300
                             : kPrimaryColor,
-                        foregroundColor: _selectedFile == null
+                        foregroundColor: _selectedBytes == null
                             ? Colors.grey.shade600
                             : Colors.white,
                         elevation: 4,
@@ -251,7 +391,8 @@ class _LocationManagementScreenState extends State<LocationManagementScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    ),
+                    )
+
                   ],
                 ),
               ),

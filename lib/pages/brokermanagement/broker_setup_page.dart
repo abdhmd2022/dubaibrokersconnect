@@ -131,7 +131,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       "postal_code": postalCodeC.text.trim(),
       "phone": fullMobileNumber ?? '',
       "mobile": fullMobileNumber ?? '',
-      "whatsapp": fullWhatsappNumber ?? '',
+      "whatsappno": fullWhatsappNumber ?? '',
       "email": emailC.text.trim(),
       "categories": selectedCategories,
       "website": websiteC.text.trim(),

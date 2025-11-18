@@ -13,6 +13,11 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import '../../widgets/animated_logo_loader.dart';
+import 'dart:typed_data';
+import 'package:http_parser/http_parser.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
+import 'package:http/browser_client.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -145,19 +150,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     Uint8List? selectedImageBytes;
     String? uploadedImageUrl;
-    String fullWhatsappNumber = broker!['user']['whatsappno'] ?? "";
+    String fullWhatsappNumber = broker!['whatsappno'] ?? "";
     final TextEditingController whatsappC = TextEditingController(
       text: fullWhatsappNumber.replaceAll("+971", ""),
     );
 
     final String savedMobile = broker!['mobile'] ?? ""; // e.g. +971585554845
-    final String savedWhatsapp = broker!['user']['whatsappno'] ?? "";
+    final String savedWhatsapp = broker!['whatsappno'] ?? "";
 
     final TextEditingController mobileC = TextEditingController();
 
     String fullMobileNumber = broker!['mobile'] ?? "";
 
-    bool sameAsMobile = broker!['mobile'] == broker!['user']['whatsappno'];
+    bool sameAsMobile = broker!['mobile'] == broker!['whatsappno'];
 
     showDialog(
       context: context,
@@ -168,7 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final TextEditingController mobileCtrl =
         TextEditingController(text: broker!['mobile']);
         final TextEditingController whatsappCtrl =
-        TextEditingController(text: broker!['user']['whatsappno'] ?? '');
+        TextEditingController(text: broker!['whatsappno'] ?? '');
         bool copyWhatsapp = false;
         String selectedCode = "+971";
 
@@ -192,12 +197,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Future<String?> uploadProfileImage(Uint8List fileBytes) async {
               try {
                 final token = await AuthService.getToken();
+                final url = Uri.parse('$baseURL/api/upload/profile');
 
+                // Detect if Flutter Web
+                if (kIsWeb) {
+                  final client = BrowserClient()..withCredentials = false;
+
+                  final request = http.MultipartRequest("POST", url);
+                  request.headers['Authorization'] = "Bearer $token";
+
+                  request.files.add(
+                    http.MultipartFile.fromBytes(
+                      'file',
+                      fileBytes,
+                      filename: "profile_${DateTime.now().millisecondsSinceEpoch}.jpg",
+                      contentType: MediaType("image", "jpeg"), // 🔥 VERY IMPORTANT
+                    ),
+                  );
+
+                  final streamed = await client.send(request);
+                  final response = await http.Response.fromStream(streamed);
+
+                  if (response.statusCode == 200) {
+                    final decoded = jsonDecode(response.body);
+                    return decoded['url'];
+                  }
+                  return null;
+                }
+
+                // 📱 Mobile / Desktop
                 final request = http.MultipartRequest(
                   'POST',
-                  Uri.parse('$baseURL/api/upload/profile'),
+                  url,
                 );
-
                 request.headers['Authorization'] = 'Bearer $token';
 
                 request.files.add(
@@ -205,17 +237,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'file',
                     fileBytes,
                     filename: "profile_${DateTime.now().millisecondsSinceEpoch}.jpg",
+                    contentType: MediaType("image", "jpeg"), // 🔥 Force correct image type
                   ),
                 );
 
                 final response = await request.send();
                 final body = await response.stream.bytesToString();
-
                 final decoded = json.decode(body);
 
                 if (response.statusCode == 200 && decoded['url'] != null) {
-                  return decoded['url']; // returned image URL
+                  return decoded['url'];
                 }
+
                 return null;
               } catch (e) {
                 return null;
@@ -490,6 +523,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 // 1️⃣ Upload image if selected
                                 if (selectedImageBytes != null) {
                                   uploadedImageUrl = await uploadProfileImage(selectedImageBytes!);
+
                                 }
 
                                 // 2️⃣ Prepare data to update
@@ -610,6 +644,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header Card
+
+
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -623,249 +659,221 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
-                  child: Column(
+                  child: Stack(
                     children: [
-                      // 🔙 Back Button
-                      /*InkWell(
-                    onTap: () => Navigator.pop(context),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.arrow_back_ios_new,
-                            size: 13, color: kPrimaryColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          "Back to Broker Directory",
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            color: kPrimaryColor,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),*/
-
-                      Stack(
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // 👤 Avatar
-                              CircleAvatar(
-                                radius: 45,
-                                backgroundColor: kPrimaryColor.withOpacity(0.08),
-                                child: ClipOval(
-                                  child: avatar != null && avatar.isNotEmpty
-                                      ? Image.network(
-                                    avatar,
-                                    width: 90,
-                                    height: 90,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Image.asset(
-                                        'assets/collabrix_logo.png',
-                                        width: 80,
-                                        height: 80,
-                                        fit: BoxFit.contain,
-                                      );
-                                    },
-                                  )
-                                      : Image.asset(
+                          // 👤 Avatar
+                          CircleAvatar(
+                            radius: 45,
+                            backgroundColor: kPrimaryColor.withOpacity(0.08),
+                            child: ClipOval(
+                              child: avatar != null && avatar.isNotEmpty
+                                  ? Image.network(
+                                avatar,
+                                width: 90,
+                                height: 90,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Image.asset(
                                     'assets/collabrix_logo.png',
                                     width: 80,
                                     height: 80,
                                     fit: BoxFit.contain,
-                                  ),
-                                ),
+                                  );
+                                },
+                              )
+                                  : Image.asset(
+                                'assets/collabrix_logo.png',
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.contain,
                               ),
-
-                              const SizedBox(width: 24),
-
-                              // 🧾 Info
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Name + Verified Status
-                                    Row(
-                                      children: [
-                                        Text(
-                                          name,
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-
-                                        // ✅ Approved Tag
-                                        if (approvalStatus == "APPROVED")
-                                          _statusTag(
-                                            icon: Icons.approval_rounded,
-                                            label: "Approved",
-                                            color: Colors.orange.shade700,
-                                            bg: Colors.orange.shade50,
-                                            border: Colors.orange.shade300,
-                                          )
-                                        else if (approvalStatus == "PENDING")
-                                          _statusTag(
-                                            icon: Icons.hourglass_empty_outlined,
-                                            label: "Not Approved",
-                                            color: Colors.blue.shade800,
-                                            bg: Colors.blue.shade50,
-                                            border: Colors.blue.shade300,
-                                          )
-                                        else
-                                          _statusTag(
-                                            icon: Icons.cancel_outlined,
-                                            label: "Not Approved",
-                                            color: Colors.red.shade700,
-                                            bg: Colors.red.shade50,
-                                            border: Colors.red.shade300,
-                                          ),
-                                        const SizedBox(width: 8),
-
-                                        // ✅ Verified Tag
-                                        if (verified)
-                                          _statusTag(
-                                            icon: Icons.verified,
-                                            label: "Verified",
-                                            color: Colors.green.shade700,
-                                            bg: Colors.green.shade50,
-                                            border: Colors.green.shade300,
-                                          ),
-
-
-                                        SizedBox(width: 8,),
-                                        Positioned(
-                                          right: 12,
-                                          top: 0,
-                                          child: InkWell(
-                                            onTap: _openEditProfileDialog,
-                                            borderRadius: BorderRadius.circular(50), // FULL ROUND
-                                            child: Container(
-                                              padding: const EdgeInsets.all(8), // control size
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey.shade100,       // soft background (optional)
-                                                shape: BoxShape.circle,            // makes it round
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black12.withOpacity(0.05),
-                                                    blurRadius: 4,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: Icon(
-                                                Icons.edit,
-                                                color: kPrimaryColor,
-                                                size: 18,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                    // 🏢 Company
-                                    if (company.isNotEmpty) ...[
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.business_outlined,
-                                              color: Colors.black54, size: 16),
-                                          const SizedBox(width: 6),
-                                          Flexible(
-                                            child: Text(
-                                              company,
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 15,
-                                                color: Colors.black54,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-
-                                    // 🏷️ Categories
-                                    if (categories.isNotEmpty) ...[
-                                      const SizedBox(height: 10),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 6,
-                                        children: categories.map((cat) {
-                                          final isResidential =
-                                              cat.toUpperCase() == "RESIDENTIAL";
-                                          final gradient = isResidential
-                                              ? const LinearGradient(
-                                            colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          )
-                                              : const LinearGradient(
-                                            colors: [Color(0xFFFFA751), Color(0xFFFF5F6D)],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          );
-
-                                          return Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 12, vertical: 6),
-                                            decoration: BoxDecoration(
-                                              gradient: gradient,
-                                              borderRadius: BorderRadius.circular(12),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black12.withOpacity(0.1),
-                                                  blurRadius: 6,
-                                                  offset: const Offset(0, 3),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Text(
-                                              cat,
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 12.5,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-
-                              // 📞 Contact Icons
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  _contactButton(Icons.call, "Call", "tel:$phone", phone: phone),
-                                  const SizedBox(height: 10),
-                                  _contactButton(
-                                      FontAwesomeIcons.whatsapp,
-                                      "WhatsApp",
-                                      "https://wa.me/${whatsapp.toString().replaceAll('+', '')}"),
-                                  const SizedBox(height: 10),
-                                  _contactButton(Icons.email_outlined, "Email", "mailto:$email"),
-                                ],
-                              ),
-                            ],
+                            ),
                           ),
 
+                          const SizedBox(width: 24),
+
+                          // 🧾 Info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Name + Verified Status
+                                Row(
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+
+                                    // APPROVAL TAGS
+                                    if (approvalStatus == "APPROVED")
+                                      _statusTag(
+                                        icon: Icons.approval_rounded,
+                                        label: "Approved",
+                                        color: Colors.orange.shade700,
+                                        bg: Colors.orange.shade50,
+                                        border: Colors.orange.shade300,
+                                      )
+                                    else if (approvalStatus == "PENDING")
+                                      _statusTag(
+                                        icon: Icons.hourglass_empty_outlined,
+                                        label: "Not Approved",
+                                        color: Colors.blue.shade800,
+                                        bg: Colors.blue.shade50,
+                                        border: Colors.blue.shade300,
+                                      )
+                                    else
+                                      _statusTag(
+                                        icon: Icons.cancel_outlined,
+                                        label: "Not Approved",
+                                        color: Colors.red.shade700,
+                                        bg: Colors.red.shade50,
+                                        border: Colors.red.shade300,
+                                      ),
+
+                                    const SizedBox(width: 8),
+
+                                    // VERIFIED TAG
+                                    if (verified)
+                                      _statusTag(
+                                        icon: Icons.verified,
+                                        label: "Verified",
+                                        color: Colors.green.shade700,
+                                        bg: Colors.green.shade50,
+                                        border: Colors.green.shade300,
+                                      ),
+                                    const SizedBox(width: 8),
+                                    InkWell(
+                                      onTap: _openEditProfileDialog,
+                                      borderRadius: BorderRadius.circular(50),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black12.withOpacity(0.05),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Icon(
+                                          Icons.edit,
+                                          color: kPrimaryColor,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                // 🏢 Company
+                                if (company.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.business_outlined,
+                                          color: Colors.black54, size: 16),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          company,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 15,
+                                            color: Colors.black54,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+
+                                // 🏷️ Categories
+                                if (categories.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 6,
+                                    children: categories.map((cat) {
+                                      final isResidential =
+                                          cat.toUpperCase() == "RESIDENTIAL";
+                                      final gradient = isResidential
+                                          ? const LinearGradient(
+                                        colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      )
+                                          : const LinearGradient(
+                                        colors: [Color(0xFFFFA751), Color(0xFFFF5F6D)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      );
+
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          gradient: gradient,
+                                          borderRadius: BorderRadius.circular(12),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black12.withOpacity(0.1),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Text(
+                                          cat,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+
+                          // 📞 Contact Icons
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              _contactButton(Icons.call, "Call", "tel:$phone", phone: phone),
+                              const SizedBox(height: 10),
+                              _contactButton(
+                                FontAwesomeIcons.whatsapp,
+                                "WhatsApp",
+                                "https://wa.me/${whatsapp.toString().replaceAll('+', '')}",
+                              ),
+                              const SizedBox(height: 10),
+                              _contactButton(
+                                  Icons.email_outlined, "Email", "mailto:$email"),
+                            ],
+                          ),
                         ],
-                      )
+                      ),
+
+
                     ],
                   ),
                 ),
+
 
 
                 const SizedBox(height: 30),
