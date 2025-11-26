@@ -2885,10 +2885,11 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
                     // 🟢 Status Badge
                     _badge(
-                      e['status'] ?? 'Status',
+                      toSentenceCase(e['status'] ?? 'Unknown'),
                       Colors.teal,
-                      icon: Icons.home,
+                      icon: Icons.home_rounded,
                     ),
+
                   ],
                 ),
 
@@ -3386,8 +3387,12 @@ class _ListingsScreenState extends State<ListingsScreen> {
                               icon: Icons.home_work_outlined,
                             ),
 
-                            _badge(e['status'] ?? 'Unknown', Colors.teal,
-                                icon: Icons.home_rounded),
+                            _badge(
+                              toSentenceCase(e['status'] ?? 'Unknown'),
+                              Colors.teal,
+                              icon: Icons.home_rounded,
+                            ),
+
                           ],
                         ),
 
@@ -3732,6 +3737,15 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
 
 
+  String toSentenceCase(String value) {
+    // replace underscores with spaces
+    value = value.replaceAll('_', ' ');
+
+    if (value.isEmpty) return value;
+
+    // capitalize first letter only
+    return value[0].toUpperCase() + value.substring(1).toLowerCase();
+  }
 
 
   /// 🔹 Reusable badge
