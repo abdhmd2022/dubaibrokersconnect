@@ -353,7 +353,6 @@ class _ImportFromBayutScreenState extends State<ImportFromBayutScreen>
           }
         }
 
-
         // 🧱 Category & Transaction Type
         category = data['category'] ?? '';
         /*lookingFor = (data['transaction_type']?.toString().toUpperCase() ==
