@@ -3583,16 +3583,11 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 ),
               ),
             ),
-
-
-
-
           ],
         );
       }).toList(),
     );
   }
-
 
   Widget _iconInfo(IconData icon, String text) {
     return Padding(
