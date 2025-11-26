@@ -63,7 +63,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   bool showMyListingsOnly = false;
 
   bool showMoreFilters = false;
-  List<Map<String, dynamic>> allListings = []; // keep original data
+  List<Map<String, dynamic>> allListings = [];
   final TextEditingController _titleSearchController = TextEditingController();
   final TextEditingController _locationSearchController = TextEditingController();
   final TextEditingController _minPriceController = TextEditingController();
@@ -125,7 +125,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
     return RichText(
       text: TextSpan(
-        style: const TextStyle(color: Colors.black, fontSize: 14),
+        style:  GoogleFonts.poppins(color: Colors.black, fontSize: 14),
         children: spans,
       ),
     );

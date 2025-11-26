@@ -522,6 +522,8 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     final total = stats?['brokers']?['total'] ?? 0;
     final pending = stats?['brokers']?['pending'] ?? 0;
     final approved = stats?['brokers']?['approved'] ?? 0;
+    final rejected = stats?['brokers']?['rejected'] ?? 0;
+
     return Scaffold(
         backgroundColor: backgroundColor,
         floatingActionButton: FloatingActionButton(
@@ -560,7 +562,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     Icons.access_time_rounded),
     _buildStatCard("Approved", approved, Colors.green,
         Icons.verified),
-    _buildStatCard("Rejected", 0, Colors.red, FontAwesomeIcons.circleXmark),
+    _buildStatCard("Rejected", rejected, Colors.red, FontAwesomeIcons.circleXmark),
 
     ],
     ),
