@@ -3735,19 +3735,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     );
   }
 
-
-
-  String toSentenceCase(String value) {
-    // replace underscores with spaces
-    value = value.replaceAll('_', ' ');
-
-    if (value.isEmpty) return value;
-
-    // capitalize first letter only
-    return value[0].toUpperCase() + value.substring(1).toLowerCase();
-  }
-
-
   /// 🔹 Reusable badge
   Widget _badge(String text, Color color, {IconData? icon}) {
     return Container(
