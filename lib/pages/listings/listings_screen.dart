@@ -50,8 +50,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
   List<String> selectedAmenityName = [];
   bool isAmenitiesLoading = true;
 
-
-
   List<Map<String, dynamic>> locations = [];
   bool isLocationsLoading = true;
   String? selectedLocationId = null;
@@ -60,11 +58,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
   String? sizeError;
   bool isDialogLoading = false;
 
-
-
   List originalListings = [];
-
-// inside your build:
 
   bool showMyListingsOnly = false;
 
