@@ -33,7 +33,6 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
   int _page = 1;
   final int _limit = 10;
 
-
   String activeFilter = 'Pending';
   String searchQuery = '';
 
@@ -92,7 +91,6 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
       setState(() {
         if (refresh) {
           brokers = newData;
-
         } else {
           brokers.addAll(newData);
         }
@@ -155,7 +153,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
       }).toList();
     }
 
-    // 🔍 Handle search query
+    /// 🔍 Handle search query
     if (searchQuery.isNotEmpty) {
       final q = searchQuery.toLowerCase();
       list = list.where((b) {
