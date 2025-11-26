@@ -27,7 +27,6 @@ class ListingsScreen extends StatefulWidget {
   State<ListingsScreen> createState() => _ListingsScreenState();
 }
 
-
 class _ListingsScreenState extends State<ListingsScreen> {
   bool isGridView = false;
   String selectedPurpose = "All";
@@ -327,7 +326,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     _updateFormValidity();
   }
 
-
   void _updateFormValidity() {
     setState(() {
       isFormValid = (priceError == null && sizeError == null);
@@ -385,6 +383,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
     }
 
   }
+
   Widget _buildAmenitiesTypeAhead(Function(void Function()) setDialogState) {
 
     final TextEditingController controller = TextEditingController();
@@ -580,8 +579,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
     return path;
   }
-
-
 
   Future<void> _showCreatePropertyDialog(BuildContext context) async {
     setState(() => isDialogLoading = false
@@ -1343,6 +1340,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
       },
     );
   }
+
   Widget _buildDropdownField(
       String label,
       List<String> items,
@@ -1393,6 +1391,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
       onChanged: onChanged,
     );
   }
+
   Future<void> fetchPropertyTypes() async {
     try {
       setState(() => isPropertyTypesLoading = true);
@@ -1455,6 +1454,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
     await _fetchPage(page: currentPage + 1);
     setState(() => isLoadingMore = false);
   }
+
   bool get isFilterApplied {
     return selectedPurpose != "All" ||
         selectedCategory != "All" ||
@@ -1469,7 +1469,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
         _minSizeController.text.trim().isNotEmpty ||
         _maxSizeController.text.trim().isNotEmpty;
   }
-
 
   /// 🔹 Core API call for a specific page
   Future<void> _fetchPage({required int page, Map<String, dynamic>? filters}) async {
@@ -1587,7 +1586,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     }
   }
 
-
   Future<void> _togglePropertyStatus(
       String propertyId,
       String currentStatus, {
@@ -1630,7 +1628,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
       debugPrint('Error toggling status: $e');
     }
   }
-
 
   Widget _buildStatusChangeDialog(String newStatus) {
     return Dialog(
@@ -1855,8 +1852,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     );
   }
 
-
-
   /// 🔹 Apply Filters
   void _applyFilters() {
     setState(() {
@@ -1941,8 +1936,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
 
     print("✅ Filtered ${listings.length} / ${allListings.length}");
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -2635,10 +2628,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
     );
   }
 
-
   /// 🔹 Modern Grid View (with icons & more info)
   int hoveredIndex = -1; // put this at the top of your state
-
 
   Widget _buildGridListings(double width, String? currentBrokerId) {
     // Sort descending (newest first)
