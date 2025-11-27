@@ -34,7 +34,6 @@ dependencies:
   http:
   shared_preferences:
   url_launcher:
-  go_router:
   font_awesome_flutter:
   url_launcher_web:
   data_table_2:

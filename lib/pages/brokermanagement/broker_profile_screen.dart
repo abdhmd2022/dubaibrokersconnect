@@ -122,11 +122,10 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     final verified = broker!['isVerified'] == true;
     final approved = broker!['approvalStatus'] == "APPROVED";
 
-    final avatar = broker!['user']?['broker']?['avatar'];
+    final avatar = broker!['avatar'];
     final email = broker!['email'];
     final phone = broker!['mobile'];
     final whatsapp = broker!['whatsappno'];
-
     final bio = broker!['bio'] ?? '';
     final rating = broker!['rating'] ?? 'N/A';
     final requirements = broker!['requirements'] ?? [];
@@ -190,8 +189,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                   radius: 45,
                   backgroundColor: kPrimaryColor.withOpacity(0.08),
                   child: ClipOval(
-                    child: avatar != null && avatar.isNotEmpty
-                        ? Image.network(
+                    child: Image.network(
                       '$baseURL/$avatar',
                       width: 90,
                       height: 90,
@@ -205,12 +203,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                         );
                       },
                     )
-                        : Image.asset(
-                      'assets/collabrix_logo.png',
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.contain,
-                    ),
                   ),
                 ),
 

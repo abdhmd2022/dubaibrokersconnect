@@ -62,8 +62,7 @@ class AdminSidebar extends StatelessWidget {
       },
     ];
 
-    final fullName = '${userData['firstName']} ${userData['lastName']}';
-    final avatar = userData['avatar'] ?? '';
+
 
     return Container(
       width: 250,
