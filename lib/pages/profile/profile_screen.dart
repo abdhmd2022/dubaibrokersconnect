@@ -149,6 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool isSaving = false;
 
     Uint8List? selectedImageBytes;
+    String? selectedImageName;
     String? uploadedImageUrl;
     String fullWhatsappNumber = broker!['whatsappno'] ?? "";
     final TextEditingController whatsappC = TextEditingController(
@@ -190,67 +191,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               if (result != null && result.files.isNotEmpty) {
                 selectedImageBytes = result.files.first.bytes;
+                 selectedImageName = result.files.first.name; // ✅ Actual file name
+
                 setStateDialog(() {}); // refresh UI in dialog
               }
             }
 
-            Future<String?> uploadProfileImage(Uint8List fileBytes) async {
+            Future<String?> uploadProfileImage(Uint8List fileBytes, String? originalFileName, BuildContext context) async {
               try {
                 final token = await AuthService.getToken();
-                final url = Uri.parse('$baseURL/api/upload/profile');
+                final url = Uri.parse('$baseURL/api/upload/avatar');
 
-                // Detect if Flutter Web
-                if (kIsWeb) {
-                  final client = BrowserClient()..withCredentials = false;
+                // ✅ BrowserClient for web uploads
+                final client = BrowserClient()..withCredentials = false;
+                final request = http.MultipartRequest("POST", url);
+                request.headers['Authorization'] = "Bearer $token";
 
-                  final request = http.MultipartRequest("POST", url);
-                  request.headers['Authorization'] = "Bearer $token";
+                // ✅ Use actual file name if available, else skip filename entirely
+                final multipartFile = http.MultipartFile.fromBytes(
+                  'avatar', // <-- backend expects this exact key
+                  fileBytes,
+                  filename: originalFileName?.isNotEmpty == true ? originalFileName : null,
+                  contentType: MediaType("image", "jpeg"),
+                );
 
-                  request.files.add(
-                    http.MultipartFile.fromBytes(
-                      'file',
-                      fileBytes,
-                      filename: "profile_${DateTime.now().millisecondsSinceEpoch}.jpg",
-                      contentType: MediaType("image", "jpeg"), // 🔥 VERY IMPORTANT
+                request.files.add(multipartFile);
+
+                final streamed = await client.send(request);
+                final response = await http.Response.fromStream(streamed);
+
+                print("🛰️ Upload status: ${response.statusCode}");
+                print("📤 Upload response: ${response.body}");
+
+                if (response.statusCode == 200) {
+                  final decoded = jsonDecode(response.body);
+
+                  // ✅ Your backend returns avatar under data.user.avatar
+                  final avatarUrl = decoded['data']?['user']?['broker']?['avatar'];
+
+                  if (avatarUrl != null && avatarUrl.isNotEmpty) {
+
+                    return avatarUrl;
+                  } else {
+                    print("⚠️ Avatar URL not found in response: $decoded");
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("⚠️ Upload failed (${response.statusCode})"),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
                     ),
                   );
-
-                  final streamed = await client.send(request);
-                  final response = await http.Response.fromStream(streamed);
-
-                  if (response.statusCode == 200) {
-                    final decoded = jsonDecode(response.body);
-                    return decoded['url'];
-                  }
-                  return null;
-                }
-
-                // 📱 Mobile / Desktop
-                final request = http.MultipartRequest(
-                  'POST',
-                  url,
-                );
-                request.headers['Authorization'] = 'Bearer $token';
-
-                request.files.add(
-                  http.MultipartFile.fromBytes(
-                    'file',
-                    fileBytes,
-                    filename: "profile_${DateTime.now().millisecondsSinceEpoch}.jpg",
-                    contentType: MediaType("image", "jpeg"), // 🔥 Force correct image type
-                  ),
-                );
-
-                final response = await request.send();
-                final body = await response.stream.bytesToString();
-                final decoded = json.decode(body);
-
-                if (response.statusCode == 200 && decoded['url'] != null) {
-                  return decoded['url'];
                 }
 
                 return null;
               } catch (e) {
+                print("❌ Upload error: $e");
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("❌ Error uploading: $e"),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
                 return null;
               }
             }
@@ -522,7 +526,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 setStateDialog(() => isSaving = true);
                                 // 1️⃣ Upload image if selected
                                 if (selectedImageBytes != null) {
-                                  uploadedImageUrl = await uploadProfileImage(selectedImageBytes!);
+                                   uploadedImageUrl = await uploadProfileImage(selectedImageBytes!, selectedImageName, context);
 
                                 }
 
@@ -533,9 +537,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   "whatsappno": fullWhatsappNumber,
                                 };
 
-                                /*if (uploadedImageUrl != null) {
-                                  payload["avatar"] = uploadedImageUrl!;
-                                }*/
+
 
                                 // 3️⃣ Send to API
                                 await updateBrokerField( payload);
@@ -618,7 +620,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final company = broker!['companyName'] ?? '';
     final verified = broker!['isVerified'] == true;
     final approvalStatus = (broker!['approvalStatus'] ?? '').toString().toUpperCase();
-    final avatar = broker!['user']?['avatar'];
+    final isAdmin = widget.userData['role'] == 'ADMIN';
+
+    final avatar = widget.userData['broker']?['avatar'];
+
+    print('avatarr -> $baseURL/$avatar');
     final email = broker!['email'];
     final phone = broker!['mobile'];
     final whatsapp = broker!['user']['whatsappno'] ?? broker!['mobile'] ?? "0";
@@ -671,7 +677,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: ClipOval(
                               child: avatar != null && avatar.isNotEmpty
                                   ? Image.network(
-                                avatar,
+                                '$baseURL/$avatar',
                                 width: 90,
                                 height: 90,
                                 fit: BoxFit.cover,
@@ -1720,7 +1726,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       children: approvedReviews.map((r) {
         final reviewer = r['reviewer']?['displayName'] ?? "Anonymous";
-        final avatar = r['reviewer']?['user']?['avatar'];
+        final avatar = r['reviewer']?['user']?['broker']['avatar'];
         final rating = r['rating'] ?? 0;
         final comment = r['comment'] ?? '';
 
@@ -1742,7 +1748,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundImage: avatar != null ? NetworkImage(avatar) : null,
+                backgroundImage: avatar != null ? NetworkImage('$baseURL/$avatar') : null,
                 backgroundColor: Colors.white,
                 child: avatar == null
                     ? Text(

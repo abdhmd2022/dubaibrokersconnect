@@ -182,10 +182,13 @@ class _ProfileSectionState extends State<_ProfileSection> {
   @override
   Widget build(BuildContext context) {
     final fullName = '${widget.userData['broker']['displayName'] ?? ''}'.trim();
+    final isAdmin = widget.userData['role'] == 'ADMIN';
+
+    final avatar = widget.userData['broker']?['avatar'];
+    print('avatar r -> $avatar');
 
     final name = fullName.isNotEmpty ? fullName : {widget.userData['broker']['displayName']}.isNotEmpty ? '${widget.userData['broker']['displayName']}':  "";
     final email = widget.userData['broker']['email'] ?? '';
-    final avatar = widget.userData['avatar'] ?? '';
     final bool isVerified = widget.userData['broker']['isVerified'] == true;
     final bool isApproved = widget.userData['broker']['approvalStatus'] == "APPROVED";
     String finalStatus = "";
@@ -259,7 +262,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                   CircleAvatar(
                     radius: 20,
                     backgroundImage: avatar.isNotEmpty
-                        ? NetworkImage(avatar)
+                        ? NetworkImage('$baseURL/$avatar')
                         : const AssetImage('assets/collabrix_logo.png') as ImageProvider,
                   ),
                   if (isVerified)

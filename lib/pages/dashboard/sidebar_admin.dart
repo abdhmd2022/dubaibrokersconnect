@@ -230,9 +230,12 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final fullName = '${widget.userData['broker']['displayName']}';
 
     final email = widget.userData['email'] ?? '';
-    final avatar = widget.userData['avatar'] ?? '';
     final isAdmin = widget.userData['role'] == 'ADMIN';
+// If Admin → get from user directly
+// If Broker → get from broker.avatar
+    final avatar = widget.userData['broker']?['avatar'];
 
+    print('avatarrr -> $avatar');
     return Column(
       children: [
         // --- Segmented Role Toggle ---
@@ -291,8 +294,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
               CircleAvatar(
                 radius: 22,
                 backgroundImage: avatar.isNotEmpty
-                    ? NetworkImage(avatar)
-                    : const AssetImage('assets/user.png') as ImageProvider,
+                    ? NetworkImage('$baseURL/$avatar')
+                    : const AssetImage('assets/collabrix_logo.png') as ImageProvider,
               ),
               const SizedBox(width: 12),
 

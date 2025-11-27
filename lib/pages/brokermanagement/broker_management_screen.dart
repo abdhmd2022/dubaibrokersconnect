@@ -717,23 +717,40 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                 Stack(
                   alignment: Alignment.center,
                   children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor: kPrimaryColor.withOpacity(0.1),
-                      backgroundImage: user['avatar'] != null
-                          ? NetworkImage(user['avatar'])
-                          : null,
-                      child: user['avatar'] == null
-                          ? Text(
-                        (b['displayName'] ?? 'B')[0].toUpperCase(),
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: kPrimaryColor,
-                        ),
-                      )
-                          : null,
+                    Builder(
+                      builder: (context) {
+                        final bool isAdmin = user['role'] == 'ADMIN';
+
+
+                        // 🧠 If Admin → get avatar from broker
+                        // Otherwise → from user directly
+                        dynamic avatarUrl = user['avatar'];
+
+                        final displayName = user['displayName'] ??
+                            user['broker']?['displayName'] ??
+                            'B';
+
+                        avatarUrl = '$baseURL/$avatarUrl';
+
+                        return CircleAvatar(
+                          radius: 32,
+                          backgroundColor: kPrimaryColor.withOpacity(0.1),
+                          backgroundImage:
+                          (avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
+                          child: avatarUrl.isEmpty
+                              ? Text(
+                            displayName[0].toUpperCase(),
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: kPrimaryColor,
+                            ),
+                          )
+                              : null,
+                        );
+                      },
                     ),
+
                     if (isDisabled)
                       Positioned.fill(
                         child: Container(
@@ -750,6 +767,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                       ),
                   ],
                 ),
+
                 const SizedBox(width: 16),
 
                 // 📋 Broker Details

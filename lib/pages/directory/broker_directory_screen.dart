@@ -102,7 +102,9 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
   }
 
   Widget _buildBrokerCard(Map<String, dynamic> b) {
-    final avatar = b['user']?['avatar'];
+    final avatar = b['avatar'];
+    print('avatar -> $baseURL/$avatar');
+
     final name = b['displayName'] ?? 'N/A';
     final role = b['brokerTitle'] ?? 'Broker';
 
@@ -145,6 +147,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+
               // 👤 Avatar with gradient ring
               Container(
                 width: 60,
@@ -167,7 +170,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                   child: ClipOval(
                     child: avatar != null && avatar.isNotEmpty
                         ? Image.network(
-                      avatar,
+                      '$baseURL/$avatar',
                       fit: BoxFit.cover,
                       width: 60,
                       height: 60,
