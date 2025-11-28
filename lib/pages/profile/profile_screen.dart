@@ -11,11 +11,8 @@ import '../../services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
-import 'package:http/http.dart' as http;
 import '../../widgets/animated_logo_loader.dart';
-import 'dart:typed_data';
 import 'package:http_parser/http_parser.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/foundation.dart';
 import 'package:http/browser_client.dart';
 
@@ -39,9 +36,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String activeSection = "Listings";
   String hoveredSocial = '';
 
-
   OverlayEntry? _activeTooltip;
   bool _tooltipVisible = false;
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +50,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     fetchBrokerById();
   }
+
   void _hideTooltip() {
     _activeTooltip?.remove();
     _activeTooltip = null;
@@ -64,6 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _hideTooltip();
     super.dispose();
   }
+
   Widget _statusTag({
     required IconData icon,
     required String label,
@@ -94,7 +93,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
 
   Future<void> fetchBrokerById() async {
     try {
@@ -133,6 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
   }
+
   Future<void> updateBrokerField(Map<String, dynamic> payload) async {
 
     print('payload -> $payload');
@@ -607,7 +606,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
   }
-
 
   @override
   Widget build(BuildContext context) {

@@ -324,10 +324,10 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                       "property_type_id": propertyTypeId,
                       "location_ids": locationIds,
                       "rooms": rooms != null ? [rooms] : [],
-                      "min_size_sqft": int.tryParse(minSizeC.text) ?? 0,
-                      "max_size_sqft": int.tryParse(maxSizeC.text) ?? 0,
-                      "min_price": int.tryParse(minPriceC.text) ?? 0,
-                      "max_price": int.tryParse(maxPriceC.text) ?? 0,
+                      "min_size_sqft": int.tryParse(minSizeC.text.replaceAll(',', '')) ?? 0,
+                      "max_size_sqft": int.tryParse(maxSizeC.text.replaceAll(',', '')) ?? 0,
+                      "min_price": int.tryParse(minPriceC.text.replaceAll(',', '')) ?? 0,
+                      "max_price": int.tryParse(maxPriceC.text.replaceAll(',', '')) ?? 0,
                       "furnished_status": furnishedStatus != null ? [furnishedStatus] : [],
                       "category": category,
                       "transaction_type": transactionType,
@@ -727,7 +727,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                             label: Text(
                               expireDate == null
                                   ? "Pick Expiry Date"
-                                  : "Expires on: ${expireDate!.toLocal().toString().split(' ')[0]}",
+                                  : "Expires on: ${DateFormat('dd-MMM-yyyy').format(expireDate!.toLocal())}",
+
                               style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.black87),
                             ),
                             onPressed: () async {
@@ -1614,8 +1615,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     final minPrice = e['minPrice'] ?? '-';
     final maxPrice = e['maxPrice'] ?? '-';
     final priceRange = transactionType == 'RENT'
-        ? "AED $minPrice - $maxPrice /yr"
-        : "AED $minPrice - $maxPrice";
+        ? "AED ${formatPrice(minPrice)} - AED ${formatPrice(maxPrice)} /yr"
+        : "AED ${formatPrice(minPrice)} - AED ${formatPrice(maxPrice)}";
 
 
     return Stack(
@@ -2889,8 +2890,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
         : 'N/A';
 
     final priceRange = (req['transactionType'] == 'RENT')
-        ? "AED ${req['minPrice']} - ${req['maxPrice']} /yr"
-        : "AED ${req['minPrice']} - ${req['maxPrice']}";
+        ? "AED ${req['minPrice']} - AED ${req['maxPrice']} /yr"
+        : "AED ${req['minPrice']} - AED ${req['maxPrice']}";
     // 🌐 Social Links Section
     final social = broker['socialLinks'] as Map<String, dynamic>? ?? {};
 
@@ -2987,16 +2988,16 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                       // 💰 Price Range
                       _sectionHeader(Icons.monetization_on_rounded, "Price Range"),
                       const SizedBox(height: 6),
-                      _infoRow(Icons.trending_up_rounded, "Min Price", "AED ${req['minPrice'] ?? 'N/A'}"),
-                      _infoRow(Icons.trending_down_rounded, "Max Price", "AED ${req['maxPrice'] ?? 'N/A'}"),
+                      _infoRow(Icons.trending_up_rounded, "Min Price", "AED ${formatPrice(req['minPrice']) ?? 'N/A'}"),
+                      _infoRow(Icons.trending_down_rounded, "Max Price", "AED ${formatPrice(req['maxPrice']) ?? 'N/A'}"),
 
                       const SizedBox(height: 10),
 
                       // 📏 Size Range
                       _sectionHeader(Icons.square_foot_rounded, "Size Range (sqft)"),
                       const SizedBox(height: 6),
-                      _infoRow(Icons.expand_less_rounded, "Min Size", "${req['minSizeSqft'] ?? 'N/A'} sqft"),
-                      _infoRow(Icons.expand_more_rounded, "Max Size", "${req['maxSizeSqft'] ?? 'N/A'} sqft"),
+                      _infoRow(Icons.expand_less_rounded, "Min Size", "${formatPrice(req['minSizeSqft']) ?? 'N/A'} sqft"),
+                      _infoRow(Icons.expand_more_rounded, "Max Size", "${formatPrice(req['maxSizeSqft'])?? 'N/A'} sqft"),
 
                       const SizedBox(height: 10),
 
@@ -3431,10 +3432,10 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                             if (widget.userData['role'].toLowerCase() == 'admin')
                               "broker_id": widget.userData['broker']['id'],
                             "rooms": rooms != null ? [rooms] : [],
-                            "min_size_sqft": int.tryParse(minSizeC.text) ?? 0,
-                            "max_size_sqft": int.tryParse(maxSizeC.text) ?? 0,
-                            "min_price": int.tryParse(minPriceC.text) ?? 0,
-                            "max_price": int.tryParse(maxPriceC.text) ?? 0,
+                            "min_size_sqft": int.tryParse(minSizeC.text.replaceAll(',', '')) ?? 0,
+                            "max_size_sqft": int.tryParse(maxSizeC.text.replaceAll(',', '')) ?? 0,
+                            "min_price": int.tryParse(minPriceC.text.replaceAll(',', '')) ?? 0,
+                            "max_price": int.tryParse(maxPriceC.text.replaceAll(',', '')) ?? 0,
                             "furnished_status":
                             furnishedStatus != null ? [furnishedStatus] : [],
                             "category": category,
@@ -3774,9 +3775,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                             Expanded(
                                               child: TextFormField(
                                                 keyboardType: TextInputType.number,
-                                                inputFormatters: [
-                                                  FilteringTextInputFormatter.digitsOnly,
-                                                ],
+                                                inputFormatters: [ThousandsSeparatorInputFormatter()],
+
                                                 controller: minPriceC,
                                                 decoration: modernInputDecoration(
                                                   label: "Min Price",
@@ -3789,9 +3789,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                             Expanded(
                                               child: TextFormField(
                                                 keyboardType: TextInputType.number,
-                                                inputFormatters: [
-                                                  FilteringTextInputFormatter.digitsOnly,
-                                                ],
+                                                inputFormatters: [ThousandsSeparatorInputFormatter()],
+
                                                 controller: maxPriceC,
                                                 decoration: modernInputDecoration(
                                                   label: "Max Price",
@@ -3813,9 +3812,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                               child: TextFormField(
                                                 controller: minSizeC,
                                                 keyboardType: TextInputType.number,
-                                                inputFormatters: [
-                                                  FilteringTextInputFormatter.digitsOnly,
-                                                ],
+                                                inputFormatters: [ThousandsSeparatorInputFormatter()],
                                                 decoration: modernInputDecoration(
                                                   label: "Min Size",
                                                   icon: Icons.square_foot_rounded,
@@ -3828,9 +3825,9 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                               child: TextFormField(
                                                 controller: maxSizeC,
                                                 keyboardType: TextInputType.number,
-                                                inputFormatters: [
-                                                  FilteringTextInputFormatter.digitsOnly,
-                                                ],
+                                                inputFormatters: [ThousandsSeparatorInputFormatter()],
+
+
                                                 decoration: modernInputDecoration(
                                                   label: "Max Size",
                                                   icon: Icons.square_foot_rounded,
@@ -3978,7 +3975,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                               : const Icon(Icons.send_rounded,
                                               color: Colors.white),
                                           label: Text(
-                                            isSubmitting ? "Posting..." : "Post Requirement",
+                                            isSubmitting ? "Posting..." : "Create Requirement",
                                             style: GoogleFonts.poppins(
                                                 fontWeight: FontWeight.w600,
                                                 color: Colors.white),
@@ -4008,6 +4005,16 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
 // Add this field at the top of your State class
   int hoveredIndex = -1;
+
+  final format = NumberFormat.decimalPattern(); // adds commas automatically
+
+  String formatPrice(dynamic value) {
+    if (value == null || value.toString().isEmpty) return "0";
+    final parsed = double.tryParse(value.toString().replaceAll(',', '')) ?? 0.0;
+    return format.format(parsed);
+  }
+
+
 
   Widget _buildRequirementGridCard(Map<String, dynamic> e, int index) {
     final broker = e['broker'] ?? {};
@@ -4043,8 +4050,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     final minPrice = e['minPrice'] ?? '-';
     final maxPrice = e['maxPrice'] ?? '-';
     final priceRange = transactionType == 'RENT'
-        ? "AED $minPrice - $maxPrice /yr"
-        : "AED $minPrice - $maxPrice";
+        ? "AED ${formatPrice(minPrice)} - AED ${formatPrice(maxPrice)} /yr"
+        : "AED ${formatPrice(minPrice)} - AED ${formatPrice(maxPrice)}";
 
     final bool isHovered = hoveredIndex == index;
     final bool isSelected = selectedRequirementIds.contains(e['id']);
@@ -4116,7 +4123,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
             const SizedBox(height: 8),
 
             // 💰 Price + Location + Type chips
-            // 💰 Price, Locations (multi), Transaction Chips
             Wrap(
               spacing: 8,
               runSpacing: 6,
@@ -4272,4 +4278,30 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
 
 
+}
+
+class ThousandsSeparatorInputFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat.decimalPattern();
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Remove any commas before parsing
+    final cleaned = newValue.text.replaceAll(',', '');
+
+    if (double.tryParse(cleaned) == null) {
+      return oldValue; // invalid input (non-numeric)
+    }
+
+    final formatted = _formatter.format(double.parse(cleaned));
+
+    // Calculate cursor position from the end
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
 }

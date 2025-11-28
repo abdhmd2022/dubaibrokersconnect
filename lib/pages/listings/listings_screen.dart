@@ -936,6 +936,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                         priceC,
                                         Icons.currency_exchange_rounded,
                                         keyboardType: TextInputType.number,
+                                        inputFormatters: [ThousandsSeparatorInputFormatter()],
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -945,6 +946,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                         sizeC,
                                         Icons.square_foot_rounded,
                                         keyboardType: TextInputType.number,
+                                        inputFormatters: [ThousandsSeparatorInputFormatter()],
+
                                       ),
                                     ),
                                   ],
@@ -990,6 +993,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                         roomsC,
                                         Icons.king_bed_rounded,
                                         keyboardType: TextInputType.number,
+                                        inputFormatters: [ThousandsSeparatorInputFormatter()],
+
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -999,6 +1004,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                         bathsC,
                                         Icons.bathtub_rounded,
                                         keyboardType: TextInputType.number,
+                                        inputFormatters: [ThousandsSeparatorInputFormatter()],
+
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -1008,6 +1015,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                         parkingC,
                                         Icons.local_parking_rounded,
                                         keyboardType: TextInputType.number,
+                                        inputFormatters: [ThousandsSeparatorInputFormatter()],
+
                                       ),
                                     ),
                                   ],
@@ -1275,12 +1284,12 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                     "category": category ?? "",
 
                                     "transaction_type": transactionType ?? "",
-                                    "price": double.tryParse(priceC.text) ?? 0.0,
+                                    "price": double.tryParse(priceC.text.replaceAll(',', '')) ?? 0.0,
                                     "currency": "AED",
-                                    "rooms": int.tryParse(roomsC.text) ?? 0,
-                                    "bathrooms": int.tryParse(bathsC.text) ?? 0,
-                                    "parking_spaces": int.tryParse(parkingC.text) ?? 0,
-                                    "size_sqft": double.tryParse(sizeC.text) ?? 0.0,
+                                    "rooms": int.tryParse(roomsC.text.replaceAll(',', '')) ?? 0,
+                                    "bathrooms": int.tryParse(bathsC.text.replaceAll(',', '')) ?? 0,
+                                    "parking_spaces": int.tryParse(parkingC.text.replaceAll(',', '')) ?? 0,
+                                    "size_sqft": double.tryParse(sizeC.text.replaceAll(',', '')) ?? 0.0,
                                     "furnished_status": furnishing ?? "",
                                     "status": status ?? "",
                                     //"maintenance_fee": 8500,
@@ -4137,14 +4146,23 @@ class _ListingsScreenState extends State<ListingsScreen> {
     );
   }
 
+
+
   /// ✳️ Input Field with Icon
+
+
+
   Widget _buildDialogTextField(String label, TextEditingController controller,
       IconData icon,
-      {TextInputType keyboardType = TextInputType.text, int maxLines = 1}) {
+      {TextInputType keyboardType = TextInputType.text, int maxLines = 1,
+        List<TextInputFormatter>? inputFormatters,
+      }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      inputFormatters: inputFormatters, // ✅ add this line
+
       validator: (v) => v == null || v.trim().isEmpty ? 'Required field' : null,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: kPrimaryColor),
@@ -4514,3 +4532,28 @@ class _LocationSearchDialogState extends State<LocationSearchDialog> {
   }
 }
 
+class ThousandsSeparatorInputFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat.decimalPattern();
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Remove any commas before parsing
+    final cleaned = newValue.text.replaceAll(',', '');
+
+    if (double.tryParse(cleaned) == null) {
+      return oldValue; // invalid input (non-numeric)
+    }
+
+    final formatted = _formatter.format(double.parse(cleaned));
+
+    // Calculate cursor position from the end
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
