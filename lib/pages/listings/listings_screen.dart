@@ -1646,7 +1646,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
               ),
               const SizedBox(height: 18),
               Text(
-                "Change Property Status?",
+                "Change Listing Status?",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 20,
@@ -1656,7 +1656,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                "Do you want to change this property’s status to $newStatus?",
+                "Do you want to change this listing status to $newStatus?",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 14.5,

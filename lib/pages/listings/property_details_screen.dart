@@ -204,7 +204,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               _detailItem(
                   icon: Icons.chair_alt_outlined,
                   label: "Furnishing Status",
-                  value: propertyData['furnishedStatus'] ?? 'Unfurnished'),
+                  value: toSentenceCase(propertyData['furnishedStatus']) ?? 'Unfurnished'),
               _detailItem(
                   icon: Icons.square_foot,
                   label: "Size",

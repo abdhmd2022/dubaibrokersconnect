@@ -45,16 +45,13 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     super.dispose();
   }
 
-
   @override
   void initState() {
     super.initState();
 
-
     // Default selection based on broker verification
     final isApproved = widget.userData['broker']['approvalStatus'] == "APPROVED";
     activeSection = isApproved ? "Listings" : "Reviews";
-
 
     fetchBrokerById();
   }
@@ -88,12 +85,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
         error = true;
         loading = false;
       });
-    }
-  }
-
-  Future<void> _launch(String url) async {
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
   }
 
