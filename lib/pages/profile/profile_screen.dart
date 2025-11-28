@@ -39,6 +39,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String activeSection = "Listings";
   String hoveredSocial = '';
 
+
+  OverlayEntry? _activeTooltip;
+  bool _tooltipVisible = false;
   @override
   void initState() {
     super.initState();
@@ -50,7 +53,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     fetchBrokerById();
   }
+  void _hideTooltip() {
+    _activeTooltip?.remove();
+    _activeTooltip = null;
+    _tooltipVisible = false;
+  }
 
+  @override
+  void dispose() {
+    _hideTooltip();
+    super.dispose();
+  }
   Widget _statusTag({
     required IconData icon,
     required String label,
@@ -1825,144 +1838,142 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? Colors.green
         : (label == "Email" ? Colors.orange.shade700 : kPrimaryColor);
 
-    return Builder(
-      builder: (context) {
-        OverlayEntry? tooltipEntry;
-        bool isVisible = false;
+    final buttonKey = GlobalKey();
 
-        void toggleTooltip(BuildContext context, String number) {
-          if (isVisible) {
-            tooltipEntry?.remove();
-            tooltipEntry = null;
-            isVisible = false;
-            return;
-          }
+    return SizedBox(
+      width: 180,
+      child: ElevatedButton.icon(
+        key: buttonKey,
+        onPressed: () async {
+          // ✅ For Flutter Web: only show tooltip
+          if (label == "Call" && phone != null && phone.isNotEmpty) {
+            _hideTooltip();
 
-          final renderBox = context.findRenderObject() as RenderBox;
-          final position = renderBox.localToGlobal(Offset.zero);
-          final size = renderBox.size;
-          final overlaySize = MediaQuery.of(context).size;
+            // Wait for frame to build (ensure context is attached)
+            await Future.delayed(Duration(milliseconds: 20));
 
-          // 🧭 Decide where to show (above or below)
-          final showAbove = position.dy > overlaySize.height / 2;
+            final renderBox = buttonKey.currentContext?.findRenderObject() as RenderBox?;
+            if (renderBox == null) return; // nothing to show if button not visible
 
-          tooltipEntry = OverlayEntry(
-            builder: (context) => Positioned(
-              left: position.dx - 70,
-              top: showAbove
-                  ? position.dy - 85
-                  : position.dy + size.height + 10,
-              child: Material(
-                color: Colors.transparent,
-                child: AnimatedOpacity(
-                  opacity: 1,
-                  duration: const Duration(milliseconds: 200),
-                  child: Container(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.95),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: kPrimaryColor.withOpacity(0.3),
-                        width: 0.8,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+            final position = renderBox.localToGlobal(Offset.zero);
+            final size = renderBox.size;
+            final overlay = Navigator.of(context).overlay;
+            if (overlay == null) return;
+
+            final overlaySize = MediaQuery.of(context).size;
+            final showAbove = position.dy > overlaySize.height / 2;
+
+            _activeTooltip = OverlayEntry(
+              builder: (context) => Positioned(
+                left: position.dx - 70,
+                top: showAbove
+                    ? position.dy - 85
+                    : position.dy + size.height + 10,
+                child: FadeTransition(
+                  opacity: CurvedAnimation(
+                    parent: AnimationController(
+                      vsync: Navigator.of(context),
+                      duration: Duration(milliseconds: 300),
+                    )..forward(),
+                    curve: Curves.easeIn,
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: kPrimaryColor.withOpacity(0.3),
+                          width: 0.8,
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: kPrimaryColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(Icons.phone,
-                                  color: kPrimaryColor, size: 16),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              "Broker Contact",
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                                fontSize: 13.8,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          number,
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87,
-                            fontSize: 15,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
-                        ),
-
-                      ],
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: kPrimaryColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(Icons.phone,
+                                    color: kPrimaryColor, size: 16),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Broker Contact",
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                  fontSize: 13.8,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            phone,
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black87,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          );
+            );
 
-          // Auto remove after 3 seconds or tap outside
-          /* Future.delayed(const Duration(seconds: 3)).then((_) {
-            tooltipEntry?.remove();
-            tooltipEntry = null;
-          });*/
-          Overlay.of(context).insert(tooltipEntry!);
-          isVisible = true;
-        }
+            overlay.insert(_activeTooltip!);
+            _tooltipVisible = true;
 
-        return SizedBox(
-          width: 180,
-          child: ElevatedButton.icon(
-            onPressed: () async {
-              if (label == "Call" && phone != null && phone.isNotEmpty) {
-                toggleTooltip(context, phone); // ✅ Tooltip only — no dialing
-              } else if (label != "Call") {
-                // ✅ WhatsApp & Email only
-                if (await canLaunchUrl(Uri.parse(url))) {
-                  await launchUrl(Uri.parse(url),
-                      mode: LaunchMode.externalApplication);
-                }
-              }
-            },
-            icon: Icon(icon, size: 16, color: Colors.white),
-            label: Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: Colors.white,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: baseColor,
-              shadowColor: baseColor.withOpacity(0.25),
-              elevation: 3,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
+            // Auto dismiss after 3s
+            Future.delayed(const Duration(seconds: 6)).then((_) {
+              if (mounted) _hideTooltip();
+            });
+            return;
+          }
+
+          // ✅ Handle WhatsApp and Email for Web
+          if (await canLaunchUrl(Uri.parse(url))) {
+            await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+          }
+        },
+        icon: Icon(icon, size: 16, color: Colors.white),
+        label: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: Colors.white,
           ),
-        );
-      },
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: baseColor,
+          shadowColor: baseColor.withOpacity(0.25),
+          elevation: 3,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ),
     );
   }
 
