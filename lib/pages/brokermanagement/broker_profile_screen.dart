@@ -7,12 +7,10 @@ import 'package:intl/intl.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import '../../widgets/animated_logo_loader.dart';
 
 class BrokerProfileScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
-
 
   final String brokerId;
   const BrokerProfileScreen({super.key, required this.brokerId,
@@ -704,6 +702,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       ),
     );
   }
+
   Widget _buildSegmentButton(String label, {int count = 0}) {
     final bool isActive = activeSection == label;
     final bool isVerified = widget.userData['broker']['isVerified'] == true;
@@ -791,7 +790,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     );
   }
 
-  // --- UI Components ---
   Widget _statCard(String title, String value, IconData icon) {
     // 🎨 Dynamic gradient colors for each type
     LinearGradient gradient;
@@ -896,7 +894,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       ),
     );
   }
-
 
   Widget _buildListings(List data) {
     if (data.isEmpty) return _emptyMessage("No listings available.");
@@ -1056,7 +1053,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       }).toList(),
     );
   }
-
 
   Widget _buildRequirements(List data) {
     if (data.isEmpty) return _emptyMessage("No requirements found.");
@@ -1288,7 +1284,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
-
   Widget _emptyMessage(String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 40),
@@ -1299,7 +1294,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       ),
     );
   }
-
 
   Widget _contactButton(IconData icon, String label, String url, {String? phone}) {
     final Color baseColor = label == "WhatsApp"
@@ -1444,7 +1438,5 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       ),
     );
   }
-
-
 
 }
