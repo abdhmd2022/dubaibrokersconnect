@@ -129,14 +129,14 @@ class _LoginPageState extends State<LoginPage> {
         url,
         headers: {
           'x-jwt-secret' : xjwtsecret,
-          'Content-Type': 'application/json'},
+          'Content-Type': 'application/json'
+        },
         body: jsonEncode(body),
       );
 
       final data = jsonDecode(res.body);
 
       if (res.statusCode == 200 && data['success'] == true) {
-
 
         final userData = data['data']['user'];
         final accessToken = data['data']['accessToken'];
@@ -148,7 +148,6 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('refresh_token', refreshToken);
         await prefs.setString('user_id', userData['id'].toString());
         await prefs.setBool('isVerified',isVerified );
-
 
         if (_rememberMe) {
           await prefs.setString('email', _emailController.text.trim());
@@ -214,7 +213,7 @@ class _LoginPageState extends State<LoginPage> {
       if (res.statusCode == 201 && data['success'] == true) {
 
         print('registration response -> ${data}');
-        final userData = data['data']['user'];
+        // final userData = data['data']['user'];
         //final accessToken = data['data']['accessToken'];
         // Save user & token for next screen
         //final prefs = await SharedPreferences.getInstance();

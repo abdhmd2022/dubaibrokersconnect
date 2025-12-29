@@ -27,7 +27,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   String activeSection = "Listings";
   String hoveredSocial = '';
 
-
   OverlayEntry? _activeTooltip;
   bool _tooltipVisible = false;
 
