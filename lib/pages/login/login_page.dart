@@ -368,17 +368,16 @@ class _LoginPageState extends State<LoginPage> {
 
       if (res.statusCode == 200 && data['success'] == true) {
         if(data['data'] == null)
-          {
+        {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(data['message']),
                 backgroundColor: Colors.green,
               ),
             );
-
-          }
+        }
         else
-          {
+        {
             final resetOtp = data['data']?['resetOtp'];
 
             print('data -> $data');
@@ -386,9 +385,7 @@ class _LoginPageState extends State<LoginPage> {
             if (resetOtp == null) {
               _showError("OTP not received from server");
               return;
-
             }
-
 
             _resetOtp = resetOtp;
             _resetEmail = _emailController.text.trim();
