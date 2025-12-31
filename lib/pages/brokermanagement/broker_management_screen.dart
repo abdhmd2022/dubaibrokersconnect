@@ -733,20 +733,17 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                         avatarUrl = '$baseURL/$avatarUrl';
 
                         return CircleAvatar(
-                          radius: 32,
-                          backgroundColor: kPrimaryColor.withOpacity(0.1),
-                          backgroundImage:
-                          (avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
-                          child: avatarUrl.isEmpty
-                              ? Text(
-                            displayName[0].toUpperCase(),
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: kPrimaryColor,
-                            ),
-                          )
-                              : null,
+                          radius: 45,
+                          backgroundColor: kPrimaryColor.withOpacity(0.08),
+                          child: ClipOval(
+                              child: Image.network(
+                                avatarUrl,
+                                width: 90,
+                                height: 90,
+                                fit: BoxFit.cover,
+
+                              )
+                          ),
                         );
                       },
                     ),

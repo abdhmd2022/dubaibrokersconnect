@@ -168,28 +168,13 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                   radius: 30,
                   backgroundColor: Colors.white,
                   child: ClipOval(
-                    child: avatar != null && avatar.isNotEmpty
-                        ? Image.network(
+                    child: Image.network(
                       '$baseURL/$avatar',
                       fit: BoxFit.cover,
                       width: 60,
                       height: 60,
-                      errorBuilder: (context, error, stackTrace) {
-                        // 🧩 Fallback if image fails to load
-                        return Image.asset(
-                          'assets/collabrix_logo.png', // your app logo
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.contain,
-                        );
-                      },
+
                     )
-                        : Image.asset(
-                      'assets/collabrix_logo.png', // fallback if avatar null or empty
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.contain,
-                    ),
                   ),
                 ),
 

@@ -3193,7 +3193,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 🖼 Thumbnail
-                  ClipRRect(
+                  /*ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       width: 100,
@@ -3204,7 +3204,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
                         fit: BoxFit.contain,
                       ),
                     ),
-                  ),
+                  ),*/
+
+
                   const SizedBox(width: 14),
 
                   // 🏠 Property Details

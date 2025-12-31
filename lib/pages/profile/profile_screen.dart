@@ -607,6 +607,164 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget buildSocialLinksBody() {
+    if (broker!['socialLinks'].entries
+        .where((entry) =>
+    entry.value != null &&
+        entry.value.toString().trim().isNotEmpty)
+        .isNotEmpty) {
+
+
+      return Wrap(
+        spacing: 14,
+        runSpacing: 12,
+        children: broker!['socialLinks'].entries.map<Widget>((entry) {
+          final platform = entry.key.toLowerCase();
+          final link = entry.value.toString().trim();
+
+          IconData icon;
+          Gradient? gradient;
+          Color solidColor;
+
+          switch (platform) {
+            case 'linkedin':
+              icon = FontAwesomeIcons.linkedinIn;
+              gradient = const LinearGradient(
+                colors: [Color(0xFF0077B5), Color(0xFF0E6791)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              );
+              solidColor = const Color(0xFF0077B5);
+              break;
+            case 'instagram':
+              icon = FontAwesomeIcons.instagram;
+              gradient = const LinearGradient(
+                colors: [
+                  Color(0xFFF58529),
+                  Color(0xFFDD2A7B),
+                  Color(0xFF8134AF)
+                ],
+                begin: Alignment.bottomLeft,
+                end: Alignment.topRight,
+              );
+              solidColor = const Color(0xFFE1306C);
+              break;
+            case 'facebook':
+              icon = FontAwesomeIcons.facebookF;
+              gradient = const LinearGradient(
+                colors: [Color(0xFF1877F2), Color(0xFF145DBF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              );
+              solidColor = const Color(0xFF1877F2);
+              break;
+            case 'twitter':
+            case 'x':
+              icon = FontAwesomeIcons.xTwitter;
+              gradient = const LinearGradient(
+                colors: [Color(0xFF000000), Color(0xFF333333)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              );
+              solidColor = Colors.black87;
+              break;
+            default:
+              icon = FontAwesomeIcons.globe;
+              gradient = const LinearGradient(
+                colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              );
+              solidColor = kPrimaryColor;
+          }
+
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => setState(() => hoveredSocial = platform),
+            onExit: (_) => setState(() => hoveredSocial = ''),
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 200),
+              scale: hoveredSocial == platform ? 1.08 : 1.0,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () async {
+                  final url = link.startsWith("http")
+                      ? link
+                      : "https://${link.replaceAll('@', '')}";
+                  if (await canLaunchUrl(Uri.parse(url))) {
+                    await launchUrl(Uri.parse(url),
+                        mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: hoveredSocial == platform
+                            ? solidColor.withOpacity(0.25)
+                            : Colors.black12.withOpacity(0.05),
+                        blurRadius: hoveredSocial == platform ? 10 : 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: hoveredSocial == platform
+                          ? solidColor.withOpacity(0.5)
+                          : Colors.grey.shade200,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ShaderMask(
+                        shaderCallback: (rect) =>
+                            gradient!.createShader(rect),
+                        child:
+                        Icon(icon, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        platform[0].toUpperCase() + platform.substring(1),
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+
+
+    }
+    else
+    {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 0),
+        child: Text(
+          "No social links found",
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+
+    }
+
+
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -686,27 +844,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             radius: 45,
                             backgroundColor: kPrimaryColor.withOpacity(0.08),
                             child: ClipOval(
-                              child: avatar != null && avatar.isNotEmpty
-                                  ? Image.network(
+                              child: Image.network(
                                 '$baseURL/$avatar',
-                                width: 90,
-                                height: 90,
+                                width: 290,
+                                height: 290,
+
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Image.asset(
-                                    'assets/collabrix_logo.png',
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.contain,
-                                  );
-                                },
+
                               )
-                                  : Image.asset(
-                                'assets/collabrix_logo.png',
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.contain,
-                              ),
                             ),
                           ),
 
@@ -1012,134 +1157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         ),
                                         const SizedBox(height: 12),
 
-                                        Wrap(
-                                          spacing: 14,
-                                          runSpacing: 12,
-                                          children: broker!['socialLinks'].entries.map<Widget>((entry) {
-                                            final platform = entry.key.toLowerCase();
-                                            final link = entry.value.toString().trim();
-
-                                            IconData icon;
-                                            Gradient? gradient;
-                                            Color solidColor;
-
-                                            switch (platform) {
-                                              case 'linkedin':
-                                                icon = FontAwesomeIcons.linkedinIn;
-                                                gradient = const LinearGradient(
-                                                  colors: [Color(0xFF0077B5), Color(0xFF0E6791)],
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                );
-                                                solidColor = const Color(0xFF0077B5);
-                                                break;
-                                              case 'instagram':
-                                                icon = FontAwesomeIcons.instagram;
-                                                gradient = const LinearGradient(
-                                                  colors: [
-                                                    Color(0xFFF58529),
-                                                    Color(0xFFDD2A7B),
-                                                    Color(0xFF8134AF)
-                                                  ],
-                                                  begin: Alignment.bottomLeft,
-                                                  end: Alignment.topRight,
-                                                );
-                                                solidColor = const Color(0xFFE1306C);
-                                                break;
-                                              case 'facebook':
-                                                icon = FontAwesomeIcons.facebookF;
-                                                gradient = const LinearGradient(
-                                                  colors: [Color(0xFF1877F2), Color(0xFF145DBF)],
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                );
-                                                solidColor = const Color(0xFF1877F2);
-                                                break;
-                                              case 'twitter':
-                                              case 'x':
-                                                icon = FontAwesomeIcons.xTwitter;
-                                                gradient = const LinearGradient(
-                                                  colors: [Color(0xFF000000), Color(0xFF333333)],
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                );
-                                                solidColor = Colors.black87;
-                                                break;
-                                              default:
-                                                icon = FontAwesomeIcons.globe;
-                                                gradient = const LinearGradient(
-                                                  colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                );
-                                                solidColor = kPrimaryColor;
-                                            }
-
-                                            return MouseRegion(
-                                              cursor: SystemMouseCursors.click,
-                                              onEnter: (_) => setState(() => hoveredSocial = platform),
-                                              onExit: (_) => setState(() => hoveredSocial = ''),
-                                              child: AnimatedScale(
-                                                duration: const Duration(milliseconds: 200),
-                                                scale: hoveredSocial == platform ? 1.08 : 1.0,
-                                                child: InkWell(
-                                                  borderRadius: BorderRadius.circular(14),
-                                                  onTap: () async {
-                                                    final url = link.startsWith("http")
-                                                        ? link
-                                                        : "https://${link.replaceAll('@', '')}";
-                                                    if (await canLaunchUrl(Uri.parse(url))) {
-                                                      await launchUrl(Uri.parse(url),
-                                                          mode: LaunchMode.externalApplication);
-                                                    }
-                                                  },
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(
-                                                        horizontal: 16, vertical: 10),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white,
-                                                      borderRadius: BorderRadius.circular(14),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: hoveredSocial == platform
-                                                              ? solidColor.withOpacity(0.25)
-                                                              : Colors.black12.withOpacity(0.05),
-                                                          blurRadius: hoveredSocial == platform ? 10 : 6,
-                                                          offset: const Offset(0, 3),
-                                                        ),
-                                                      ],
-                                                      border: Border.all(
-                                                        color: hoveredSocial == platform
-                                                            ? solidColor.withOpacity(0.5)
-                                                            : Colors.grey.shade200,
-                                                      ),
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        ShaderMask(
-                                                          shaderCallback: (rect) =>
-                                                              gradient!.createShader(rect),
-                                                          child:
-                                                          Icon(icon, color: Colors.white, size: 18),
-                                                        ),
-                                                        const SizedBox(width: 8),
-                                                        Text(
-                                                          platform[0].toUpperCase() + platform.substring(1),
-                                                          style: GoogleFonts.poppins(
-                                                            fontSize: 14,
-                                                            fontWeight: FontWeight.w600,
-                                                            color: Colors.black87,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
+                                        buildSocialLinksBody()
                                       ],
                                     ],
                                   )
@@ -1432,6 +1450,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (data.isEmpty) return _emptyMessage("No listings available.");
 
     return Column(
+
       children: data.map((p) {
         final title = p['title'] ?? "Untitled Property";
         final price = double.tryParse(p['price'] ?? '0') ?? 0;
@@ -1457,6 +1476,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
 
         return Container(
+          padding: const EdgeInsets.only(left: 22,right:22, top: 0,bottom:0),
+
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -1464,35 +1485,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             border: Border.all(color: Colors.grey.shade200.withOpacity(0.4)),
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+
             children: [
-              // 🏙️ Image section
+             /* // 🏙️ Image section
               if (image != null)
+
                 ClipRRect(
                   borderRadius:
                   const BorderRadius.horizontal(left: Radius.circular(16)),
-                  child: image != null && image.isNotEmpty
-                      ? Image.network(
+                  child: Image.network(
                     image,
                     height: 140,
                     width: 180,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      // 🧩 fallback to app logo if image fails to load
-                      return Image.asset(
-                        'assets/collabrix_logo.png', // your app logo
-                        height: 140,
-                        width: 180,
-                        fit: BoxFit.contain,
-                      );
-                    },
+
                   )
-                      : Image.asset(
-                    'assets/collabrix_logo.png', // fallback if no image key
-                    height: 140,
-                    width: 180,
-                    fit: BoxFit.contain,
-                  ),
                 )
 
               else
@@ -1506,8 +1514,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   child: Icon(Icons.image_not_supported_outlined,
                       size: 40, color: Colors.grey.shade400),
-                ),
+                ),*/
 
+              Container(
+                width: 50,
+                height: 50,
+
+                decoration: BoxDecoration(
+
+                  gradient: const LinearGradient(
+                    colors: [Colors.deepPurple, Color(0xFF0072FF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepPurple.withOpacity(0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.apartment,
+                    color: Colors.white, size: 22),
+              ),
+
+              const SizedBox(width: 16),
               // 📄 Info section
               Expanded(
                 child: Padding(
@@ -1974,6 +2007,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
 
 
 }

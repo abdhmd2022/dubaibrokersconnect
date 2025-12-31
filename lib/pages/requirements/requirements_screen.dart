@@ -1640,7 +1640,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 🖼 Thumbnail
-              ClipRRect(
+              /*ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   width: 100,
@@ -1649,7 +1649,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                   child: Image.asset('assets/collabrix_logo.png',
                       fit: BoxFit.contain),
                 ),
-              ),
+              ),*/
+
               const SizedBox(width: 14),
 
               // 🔹 Content
