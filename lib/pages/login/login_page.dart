@@ -367,22 +367,48 @@ class _LoginPageState extends State<LoginPage> {
       final data = jsonDecode(res.body);
 
       if (res.statusCode == 200 && data['success'] == true) {
-        _resetOtp = data['data']['resetOtp'];
-        _resetEmail = _emailController.text.trim();
+        if(data['data'] == null)
+          {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(data['message']),
+                backgroundColor: Colors.green,
+              ),
+            );
 
-        setState(() {
-          forgotStep = 2; // Move to OTP screen
-        });
+          }
+        else
+          {
+            final resetOtp = data['data']?['resetOtp'];
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("OTP sent to your email"),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
+            print('data -> $data');
+
+            if (resetOtp == null) {
+              _showError("OTP not received from server");
+              return;
+
+            }
+
+
+            _resetOtp = resetOtp;
+            _resetEmail = _emailController.text.trim();
+
+            setState(() {
+              forgotStep = 2; // Move to OTP screen
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("OTP sent to your email"),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+          }
+      else {
         _showError(data['message'] ?? "Failed to send OTP");
       }
+
     } catch (e) {
       _showError("Error: $e");
     }
