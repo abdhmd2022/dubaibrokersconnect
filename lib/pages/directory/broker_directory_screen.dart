@@ -8,6 +8,7 @@ import '../../services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../widgets/animated_logo_loader.dart';
+import '../../widgets/web_image_widget.dart';
 import '../brokermanagement/broker_profile_screen.dart';
 
 class BrokerDirectoryScreen extends StatefulWidget {
@@ -168,13 +169,26 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                   radius: 30,
                   backgroundColor: Colors.white,
                   child: ClipOval(
-                    child: Image.network(
-                      '$baseURL/$avatar',
-                      fit: BoxFit.cover,
+                    child: avatar != null && avatar.isNotEmpty
+                        ? WebCompatibleImage(
+                      imageUrl: (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
+                          ? avatar.toString()
+                          : '$baseURL/$avatar',
                       width: 60,
                       height: 60,
-
+                      fallback: Image.asset(
+                        'assets/collabrix_logo.png',
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.contain,
+                      ),
                     )
+                        : Image.asset(
+                      'assets/collabrix_logo.png', // fallback if avatar null or empty
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
 

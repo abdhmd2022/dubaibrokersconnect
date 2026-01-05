@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants.dart';
+import '../../widgets/web_image_widget.dart';
 import '../login/login_page.dart';
 import 'broker_shell.dart';
 
@@ -235,6 +236,13 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final avatar = widget.userData['broker']?['avatar'];
 
     print('avatarrr -> $avatar');
+    // Determine the full image URL - handle both absolute and relative paths
+
+    final String? imageUrl = (avatar != null && avatar.toString().isNotEmpty)
+        ? (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
+        ? avatar.toString()
+        : '$baseURL/$avatar'
+        : null;
     return Column(
       children: [
         // --- Segmented Role Toggle ---
@@ -292,9 +300,27 @@ class _ProfileSectionState extends State<_ProfileSection> {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundImage: avatar.isNotEmpty
-                    ? NetworkImage('$baseURL/$avatar')
-                    : const AssetImage('assets/collabrix_logo.png') as ImageProvider,
+                backgroundColor: Colors.grey.shade200,
+                child: imageUrl != null
+                    ? ClipOval(
+                  child: WebCompatibleImage(
+                    imageUrl: imageUrl,
+                    width: 44,
+                    height: 44,
+                    fallback: Image.asset(
+                      'assets/collabrix_logo.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                )
+                    : Image.asset(
+                  'assets/collabrix_logo.png',
+                  width: 44,
+                  height: 44,
+                  fit: BoxFit.cover,
+                ),
               ),
               const SizedBox(width: 12),
 

@@ -8,6 +8,7 @@ import '../../constants.dart';
 import '../../services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/animated_logo_loader.dart';
+import '../../widgets/web_image_widget.dart';
 
 class BrokerProfileScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -339,19 +340,34 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // 👤 Avatar
+
                 CircleAvatar(
                   radius: 45,
                   backgroundColor: kPrimaryColor.withOpacity(0.08),
                   child: ClipOval(
-                    child: Image.network(
-                      '$baseURL/$avatar',
+                    child: (avatar != null && avatar.toString().isNotEmpty)
+                        ? WebCompatibleImage(
+                      imageUrl: (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
+                          ? avatar.toString()
+                          : '$baseURL/$avatar',
                       width: 90,
                       height: 90,
-                      fit: BoxFit.cover,
-
+                      fallback: Image.asset(
+                        'assets/collabrix_logo.png',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.contain,
+                      ),
                     )
+                        : Image.asset(
+                      'assets/collabrix_logo.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
+
 
                 const SizedBox(width: 24),
 
@@ -969,33 +985,30 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
               // 🏙️ Image section
               if (image != null)
                 ClipRRect(
-                borderRadius:
-                const BorderRadius.horizontal(left: Radius.circular(16)),
-                child: image != null && image.isNotEmpty
-                ? Image.network(
-                image,
-                height: 140,
-                width: 180,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                // 🧩 fallback to app logo if image fails to load
-                return Image.asset(
-                'assets/collabrix_logo.png', // your app logo
-                height: 140,
-                width: 180,
-                fit: BoxFit.contain,
-                );
-                },
-                )
-                    : Image.asset(
-                'assets/collabrix_logo.png', // fallback if no image key
-                height: 140,
-                width: 180,
-                fit: BoxFit.contain,
-                ),
+                  borderRadius:
+                  const BorderRadius.horizontal(left: Radius.circular(16)),
+                  child: image != null && image.isNotEmpty
+                      ? WebCompatibleImage(
+                    imageUrl: image,
+                    height: 140,
+                    width: 180,
+                    fallback: Image.asset(
+                      'assets/collabrix_logo.png', // your app logo
+                      height: 140,
+                      width: 180,
+
+                      fit: BoxFit.contain,
+                    ),
+                  )
+                      : Image.asset(
+                    'assets/collabrix_logo.png', // fallback if no image key
+                    height: 140,
+                    width: 180,
+                    fit: BoxFit.contain,
+                  ),
                 )
 
-            else
+              else
                 Container(
                   height: 140,
                   width: 180,

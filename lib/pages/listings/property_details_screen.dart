@@ -5,6 +5,7 @@ import 'package:url_launcher_web/url_launcher_web.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/animated_logo_loader.dart';
+import '../../widgets/web_image_widget.dart';
 import '../brokermanagement/broker_profile_screen.dart'; // 👈 import your profile screen
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
@@ -684,19 +685,29 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                               children: [
                                 CircleAvatar(
                                   radius: 40,
-                                  backgroundImage: user['avatar'] != null
-                                      ? NetworkImage(user['avatar'])
-                                      : null,
                                   backgroundColor: Colors.white.withOpacity(0.2),
-                                  child: user['avatar'] == null
-                                      ? Text(
+                                  child: user['avatar'] != null && user['avatar'].toString().isNotEmpty
+                                      ? ClipOval(
+                                    child: WebCompatibleImage(
+                                      imageUrl: user['avatar'],
+                                      width: 80,
+                                      height: 80,
+                                      fallback: Text(
+                                        (data['displayName'] ?? 'A')[0].toUpperCase(),
+                                        style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 24,
+                                            color: Colors.white),
+                                      ),
+                                    ),
+                                  )
+                                      : Text(
                                     (data['displayName'] ?? 'A')[0].toUpperCase(),
                                     style: GoogleFonts.poppins(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 24,
                                         color: Colors.white),
-                                  )
-                                      : null,
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
                                 Text(

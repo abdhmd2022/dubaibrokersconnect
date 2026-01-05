@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/animated_logo_loader.dart';
+import '../../widgets/web_image_widget.dart';
 
 class RequirementsScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -3037,10 +3038,24 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                         children: [
                           CircleAvatar(
                             radius: 28,
-                            backgroundImage: NetworkImage(
-                              broker['user']?['avatar'] ??
-                                  'https://via.placeholder.com/100',
-                            ),
+                            backgroundColor: Colors.grey.shade200,
+                            child: () {
+                              final avatar = broker['avatar'];
+                              final hasAvatar = avatar != null && avatar.toString().isNotEmpty;
+                               // debugPrint("broker value: $broker");
+                               // debugPrint("Has avatar: $hasAvatar");
+                              return hasAvatar
+                                  ? ClipOval(
+                                child: WebCompatibleImage(
+                                  imageUrl: avatar.toString(),
+                                  width: 56,
+                                  height: 56,
+                                  fallback: Icon(Icons.person, size: 28, color: Colors.grey),
+                                ),
+                              )
+                                  : Icon(Icons.person, size: 28, color: Colors.grey);
+                            }(),
+
                           ),
                           const SizedBox(width: 14),
                           Expanded(

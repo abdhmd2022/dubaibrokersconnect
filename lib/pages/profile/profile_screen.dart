@@ -16,6 +16,8 @@ import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/browser_client.dart';
 
+import '../../widgets/web_image_widget.dart';
+
 class ProfileScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
@@ -839,19 +841,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+
                           // 👤 Avatar
                           CircleAvatar(
                             radius: 45,
                             backgroundColor: kPrimaryColor.withOpacity(0.08),
                             child: ClipOval(
-                              child: Image.network(
-                                '$baseURL/$avatar',
-                                width: 290,
-                                height: 290,
+                              child: avatar != null && avatar.isNotEmpty
 
-                                fit: BoxFit.cover,
-
+                                  ? WebCompatibleImage(
+                                imageUrl: (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
+                                    ? avatar.toString()
+                                    : '$baseURL/$avatar',
+                                width: 90,
+                                height: 90,
+                                fallback: Image.asset(
+                                  'assets/collabrix_logo.png',
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.contain,
+                                ),
                               )
+                                  : Image.asset(
+                                'assets/collabrix_logo.png',
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
 

@@ -13,6 +13,8 @@ import 'package:flutter/animation.dart';
 import '../../widgets/animated_logo_loader.dart';
 import 'package:vector_math/vector_math_64.dart' show Matrix4;
 
+import '../../widgets/web_image_widget.dart';
+
 
 
 class ListingsScreen extends StatefulWidget {
@@ -2740,7 +2742,20 @@ class _ListingsScreenState extends State<ListingsScreen> {
                           height: 130,
                           width: double.infinity,
                           color: Colors.grey.shade100,
-                          child: Image.asset(
+                          child: e['image'] != null && e['image'].toString().isNotEmpty
+                              ? WebCompatibleImage(
+                            imageUrl: (e['image'].toString().startsWith('http://') || e['image'].toString().startsWith('https://'))
+                                ? e['image'].toString()
+                                : '$baseURL/${e['image']}',
+                            width: double.infinity,
+                            height: 130,
+                            fallback: Image.asset(
+
+                              'assets/collabrix_logo.png',
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                              : Image.asset(
                             'assets/collabrix_logo.png',
                             fit: BoxFit.cover,
                           ),

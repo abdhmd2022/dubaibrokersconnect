@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants.dart';
+import '../../widgets/web_image_widget.dart';
 import '../login/login_page.dart';
 import 'admin_shell.dart';
 
@@ -187,6 +188,13 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final avatar = widget.userData['broker']?['avatar'];
     print('avatar r -> $avatar');
 
+    // Determine the full image URL - handle both absolute and relative paths
+    final String? imageUrl = (avatar != null && avatar.toString().isNotEmpty)
+        ? (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
+        ? avatar.toString()
+        : '$baseURL/$avatar'
+        : null;
+
     final name = fullName.isNotEmpty ? fullName : {widget.userData['broker']['displayName']}.isNotEmpty ? '${widget.userData['broker']['displayName']}':  "";
     final email = widget.userData['broker']['email'] ?? '';
     final bool isVerified = widget.userData['broker']['isVerified'] == true;
@@ -261,9 +269,27 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundImage: avatar.isNotEmpty
-                        ? NetworkImage('$baseURL/$avatar')
-                        : const AssetImage('assets/collabrix_logo.png') as ImageProvider,
+                    backgroundColor: Colors.grey.shade200,
+                    child: imageUrl != null
+                        ? ClipOval(
+                      child: WebCompatibleImage(
+                        imageUrl: imageUrl,
+                        width: 40,
+                        height: 40,
+                        fallback: Image.asset(
+                          'assets/collabrix_logo.png',
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    )
+                        : Image.asset(
+                      'assets/collabrix_logo.png',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   if (isVerified)
                     Positioned(
@@ -355,6 +381,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
             ],
           ),
         ),
+
 
 
 

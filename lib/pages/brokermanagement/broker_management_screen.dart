@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/web_image_widget.dart';
 
 class BrokerManagementScreen extends StatefulWidget {
 
@@ -730,19 +731,39 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                             user['broker']?['displayName'] ??
                             'B';
 
-                        avatarUrl = '$baseURL/$avatarUrl';
+                        // Determine the full image URL - handle both absolute and relative paths
+                        final String? imageUrl = (avatarUrl != null && avatarUrl.toString().isNotEmpty)
+                            ? (avatarUrl.toString().startsWith('http://') || avatarUrl.toString().startsWith('https://'))
+                            ? avatarUrl.toString()
+                            : '$baseURL/$avatarUrl'
+                            : null;
 
                         return CircleAvatar(
                           radius: 45,
                           backgroundColor: kPrimaryColor.withOpacity(0.08),
-                          child: ClipOval(
-                              child: Image.network(
-                                avatarUrl,
-                                width: 90,
-                                height: 90,
-                                fit: BoxFit.cover,
-
-                              )
+                          child: imageUrl != null
+                              ? ClipOval(
+                            child: WebCompatibleImage(
+                              imageUrl: imageUrl,
+                              width: 64,
+                              height: 64,
+                              fallback: Text(
+                                displayName[0].toUpperCase(),
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: kPrimaryColor,
+                                ),
+                              ),
+                            ),
+                          )
+                              : Text(
+                            displayName[0].toUpperCase(),
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: kPrimaryColor,
+                            ),
                           ),
                         );
                       },
@@ -1152,16 +1173,21 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                                   else
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
-
-                                      child: Image.network(
-                                        brnAttachment,
-                                        fit: BoxFit.cover,
-                                        height: 160,
+                                      child: WebCompatibleImage(
+                                        imageUrl: brnAttachment,
                                         width: double.infinity,
-                                        errorBuilder: (context, error, stack) {
-                                          print('❌ Image load error: $error');
-                                          return Text("Failed to load image", style: TextStyle(color: Colors.red));
-                                        },
+                                        height: 160,
+                                        fallback: Container(
+                                          height: 160,
+                                          width: double.infinity,
+                                          color: Colors.grey.shade200,
+                                          child: Center(
+                                            child: Text(
+                                              "Failed to load image",
+                                              style: TextStyle(color: Colors.red),
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                 ],
