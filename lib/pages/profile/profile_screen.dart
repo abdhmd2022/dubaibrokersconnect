@@ -790,7 +790,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final avatar = broker?['avatar'];
 
-
     print('avatarr -> $baseURL/$avatar');
     final email = broker!['email'];
     final phone = broker!['mobile'];
@@ -817,7 +816,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header Card
-
 
                 Container(
                   padding: const EdgeInsets.all(24),
