@@ -57,6 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _activeTooltip?.remove();
     _activeTooltip = null;
     _tooltipVisible = false;
+
   }
 
   @override
@@ -551,8 +552,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   "whatsappno": fullWhatsappNumber,
                                 };
 
-
-
                                 // 3️⃣ Send to API
                                 await updateBrokerField( payload);
 
@@ -562,7 +561,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 // 5️⃣ Refresh profile
                                 await fetchBrokerById();
                               },
-
 
                               icon: isSaving? SizedBox(
                               width: 18,   // smaller size
@@ -579,10 +577,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white),
                                   ):
-
-
-                                                  Text(
-                                                  "Save Changes",
+                                   Text("Save Changes",
                                 style: GoogleFonts.poppins(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -793,7 +788,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final approvalStatus = (broker!['approvalStatus'] ?? '').toString().toUpperCase();
     final isAdmin = widget.userData['role'] == 'ADMIN';
 
-    final avatar = widget.userData['broker']?['avatar'];
+    final avatar = broker?['avatar'];
 
     print('avatarr -> $baseURL/$avatar');
     final email = broker!['email'];
