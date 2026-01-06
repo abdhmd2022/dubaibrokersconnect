@@ -11,10 +11,10 @@ import 'package:shimmer/shimmer.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/animated_logo_loader.dart';
-import 'dart:io';
+// import 'dart:io';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
-import 'package:printing/printing.dart';
+// import 'package:printing/printing.dart';
 import 'dart:html' as html; // for web
 import 'dart:typed_data';
 
@@ -24,8 +24,8 @@ class A2AFormsScreen extends StatefulWidget {
   const A2AFormsScreen({
     super.key,
     required this.userData,
-
   });
+
   @override
   State<A2AFormsScreen> createState() => _A2AFormsScreenState();
 }
@@ -38,13 +38,13 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
   int _totalPages = 1;
   final int _limit = 9;
 
-
   @override
   void initState() {
     super.initState();
 
     fetchA2AForms(page: 1);
   }
+
   Future<Map<String, dynamic>?> fetchSingleA2AForm(String id) async {
     try {
       final token = await AuthService.getToken();
