@@ -231,8 +231,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
 
     final email = widget.userData['email'] ?? '';
     final isAdmin = widget.userData['role'] == 'ADMIN';
-// If Admin → get from user directly
-// If Broker → get from broker.avatar
+    // If Admin → get from user directly
+    // If Broker → get from broker.avatar
     final avatar = widget.userData['broker']?['avatar'];
 
     print('avatarrr -> $avatar');
