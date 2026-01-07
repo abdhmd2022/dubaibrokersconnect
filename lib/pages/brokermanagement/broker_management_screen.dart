@@ -972,8 +972,6 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     );
   }
 
-
-
   void _showBrokerDetailsDialog(BuildContext context, Map<String, dynamic> broker) {
     final user = broker['user'] ?? {};
     final company = broker['companyName'];
