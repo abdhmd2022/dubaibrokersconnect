@@ -109,8 +109,42 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
   /// ------------------------------
   /// API CALL: Create Broker Profile
   /// ------------------------------
+
+  void _showSnack(String message, {Color? color}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color ?? Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+
   Future<void> _createBrokerProfile() async {
+    if (selectedSpecs.isEmpty) {
+      _showSnack("Please select at least one specialization");
+      return;
+    }
+    if (selectedLangs.isEmpty) {
+      _showSnack("Please select at least one language");
+      return;
+    }
+
+    if (selectedCategories.isEmpty) {
+      _showSnack("Please select at least one category");
+      return;
+    }
+
+    if (brnIssueDate != null && brnExpiryDate != null) {
+      if (brnExpiryDate!.isBefore(brnIssueDate!)) {
+        _showSnack("BRN expiry date must be after issue date");
+        return;
+      }
+    }
+
     if (!_formKey.currentState!.validate()) return;
+
 
     setState(() => isLoading = true);
 
@@ -671,8 +705,6 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                           )
                               : const SizedBox.shrink(),
                         ),
-
-
 
                         /// ---------- SOCIAL LINKS ----------
                         _buildCard([

@@ -30,9 +30,21 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin{
   Map<String, dynamic>? broker;
   bool loading = true;
+  late final AnimationController _tooltipController;
+  final List<String> categories = ["RESIDENTIAL", "COMMERCIAL"];
+  bool isFreelancer = false;
+
+  final List<String> specializations = [
+    "Luxury Properties",
+    "Dubai Marina",
+    "Downtown Dubai",
+    "Commercial Properties",
+    "Residential Sales"
+  ];
+  final List<String> languages = ["English", "Arabic", "Hindi", "Urdu"];
 
   bool error = false;
   String activeSection = "Listings";
@@ -45,7 +57,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
 
-
+    _tooltipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
     // Default selection based on broker verification
     final isVerified = widget.userData['broker']['isVerified'] == true;
     activeSection = isVerified ? "Listings" : "Reviews";
@@ -62,6 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
+    _tooltipController.dispose();
     _hideTooltip();
     super.dispose();
   }
@@ -113,6 +129,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           broker = jsonData['data'];
 
+          // print('broker ----> $broker');
+
           loading = false;
         });
       } else {
@@ -153,15 +171,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (response.statusCode == 200) {
         print("Field updated: ${response.body}");
       } else {
+        final decoded = jsonDecode(response.body);
+
+        final String message =
+            decoded['message'] ??
+                decoded['error'] ??
+                'Something went wrong';
+
+        _showSnack(message);
         print("Update failed: ${response.body}");
       }
     } catch (e) {
       print("Error updating broker: $e");
     }
   }
-
+  void _showSnack(String message, {Color? color}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color ?? Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
   void _openEditProfileDialog() {
     bool isSaving = false;
+    final displayNameC = TextEditingController(text: broker!['displayName'] ?? '');
+    final profileTitleC = TextEditingController(text: broker!['brokerTitle'] ?? '');
+    final bioC = TextEditingController(text: broker!['bio'] ?? '');
+    final websiteC = TextEditingController(text: broker!['website'] ?? '');
+
+    final addressC = TextEditingController(text: broker!['address'] ?? '');
+    final cityC = TextEditingController(text: broker!['city'] ?? '');
+    final stateC = TextEditingController(text: broker!['state'] ?? '');
+    final countryC = TextEditingController(text: broker!['country'] ?? 'UAE');
+    final postalCodeC = TextEditingController(text: broker!['postalCode'] ?? '');
+
+    final companyC = TextEditingController(text: broker!['companyName'] ?? '');
+    final licenseC = TextEditingController(text: broker!['licenseNumber'] ?? '');
+    final reraC = TextEditingController(text: broker!['reraNumber'] ?? '');
+
+    final linkedinC = TextEditingController(text: broker!['socialLinks']?['linkedin'] ?? '');
+    final twitterC = TextEditingController(text: broker!['socialLinks']?['twitter'] ?? '');
+    final facebookC = TextEditingController(text: broker!['socialLinks']?['facebook'] ?? '');
+
+    List<String> selectedCategories =
+    List<String>.from(broker!['categories'] ?? []);
+
+    List<String> selectedLangs =
+    List<String>.from(broker!['languages'] ?? []);
+
+    List<String> selectedSpecs =
+    List<String>.from(broker!['specializations'] ?? []);
+
+    bool isFreelancer = broker!['companyName'] == null;
+    bool hasBRN = broker!['brnNumber'] != null;
+
+    final brnNumberC = TextEditingController(text: broker!['brnNumber'] ?? '');
+
+    DateTime? brnIssueDate = broker!['brnIssueDate'] != null
+        ? DateTime.parse(broker!['brnIssueDate'])
+        : null;
+
+    DateTime? brnExpiryDate = broker!['brnExpiryDate'] != null
+        ? DateTime.parse(broker!['brnExpiryDate'])
+        : null;
+
 
     Uint8List? selectedImageBytes;
     String? selectedImageName;
@@ -180,16 +255,378 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     bool sameAsMobile = broker!['mobile'] == broker!['whatsappno'];
 
+
+    Widget _buildTextField(
+        TextEditingController controller,
+        String label, {
+          bool required = false,
+          TextInputType keyboardType = TextInputType.text,
+          IconData? icon,
+        }) {
+      final focusNode = FocusNode();
+
+      return StatefulBuilder(
+        builder: (context, setInnerState) {
+          focusNode.addListener(() => setInnerState(() {}));
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: focusNode.hasFocus
+                      ? kPrimaryColor.withOpacity(0.08)
+                      : Colors.black12.withOpacity(0.04),
+                  blurRadius: focusNode.hasFocus ? 12 : 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              keyboardType: keyboardType,
+              style: GoogleFonts.poppins(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+              validator: required
+                  ? (v) => v == null || v.trim().isEmpty
+                  ? 'Please enter $label'
+                  : null
+                  : null,
+              decoration: InputDecoration(
+                labelText: label,
+                labelStyle: GoogleFonts.poppins(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+                floatingLabelStyle: GoogleFonts.poppins(
+                  color: kPrimaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                prefixIcon: icon != null
+                    ? Padding(
+                  padding: const EdgeInsets.only(left: 10, right: 6),
+                  child: Icon(
+                      icon,
+                      size: 20,
+                      color: focusNode.hasFocus
+                          ? kPrimaryColor
+                          : kPrimaryColor
+                  ),
+                )
+                    : null,
+                prefixIconConstraints:
+                const BoxConstraints(minWidth: 40, maxHeight: 26),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: Colors.grey.shade300,
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: kPrimaryColor.withOpacity(0.9),
+                    width: 1.6,
+                  ),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide:
+                  const BorderSide(color: Colors.redAccent, width: 1.5),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: Colors.redAccent),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+
+
+    Widget _buildMultilineField(
+        TextEditingController controller,
+        String label, {
+          bool required = true,
+          IconData? icon,
+        }) {
+      final focusNode = FocusNode();
+
+      return StatefulBuilder(
+        builder: (context, setInnerState) {
+          focusNode.addListener(() => setInnerState(() {}));
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: focusNode.hasFocus
+                      ? kPrimaryColor.withOpacity(0.08)
+                      : Colors.black12.withOpacity(0.04),
+                  blurRadius: focusNode.hasFocus ? 12 : 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              minLines: 3,
+              maxLines: 8,
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
+              style: GoogleFonts.poppins(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+              validator: required
+                  ? (v) =>
+              v == null || v.trim().isEmpty ? 'Please enter $label' : null
+                  : null,
+              decoration: InputDecoration(
+                labelText: label,
+                alignLabelWithHint: true,
+                labelStyle: GoogleFonts.poppins(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+                floatingLabelStyle: GoogleFonts.poppins(
+                  color: kPrimaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
+                prefixIcon: icon != null
+                    ? Padding(
+                  padding: const EdgeInsets.only(left: 10, right: 6),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: focusNode.hasFocus
+                        ? kPrimaryColor
+                        : Colors.grey.shade500,
+                  ),
+                )
+                    : null,
+                prefixIconConstraints:
+                const BoxConstraints(minWidth: 40, maxHeight: 26),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: Colors.grey.shade300,
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: kPrimaryColor.withOpacity(0.9),
+                    width: 1.6,
+                  ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: Colors.redAccent),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    Widget _buildMultiSelect(
+        String label,
+        List<String> options,
+        List<String> selectedList,
+        ) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Label
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+                fontSize: 15,
+              ),
+            ),
+          ),
+
+          // Chip Group
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: options.map((option) {
+              final isSelected = selectedList.contains(option);
+
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 0),
+                curve: Curves.easeOut,
+                decoration: BoxDecoration(
+                  gradient: isSelected
+                      ? LinearGradient(
+                    colors: [kPrimaryColor, kPrimaryColor],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                      : null,
+                  color: isSelected
+                      ? null
+                      : Colors.white.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isSelected
+                        ? kPrimaryColor.withOpacity(0.8)
+                        : Colors.grey.shade300,
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    if (isSelected)
+                      BoxShadow(
+                        color: kPrimaryColor.withOpacity(0.25),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                  ],
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        selectedList.remove(option);
+                      } else {
+                        selectedList.add(option);
+                      }
+                    });
+                  },
+                  child: Padding(
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isSelected)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        Text(
+                          option,
+                          style: GoogleFonts.poppins(
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.black87.withOpacity(0.8),
+                            fontSize: 13.8,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      );
+    }
+    Widget _buildSwitch(String text, bool value, Function(bool) onChanged) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(text, style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+          Switch(activeColor: kPrimaryColor, value: value, onChanged: onChanged),
+        ],
+      );
+    }
+
+    Future<void> _pickDate(bool isIssue) async {
+      final picked = await showDatePicker(
+        context: context,
+        firstDate: DateTime(2015),
+        lastDate: DateTime(2035),
+        initialDate: DateTime.now(),
+      );
+      if (picked != null) {
+        setState(() {
+          if (isIssue) {
+            brnIssueDate = picked;
+          } else {
+            brnExpiryDate = picked;
+          }
+        });
+      }
+    }
+
+    Widget _buildDateField(String label, DateTime? value, bool isIssue) {
+      return GestureDetector(
+        onTap: () => _pickDate(isIssue),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          decoration: BoxDecoration(
+            color: kFieldBackgroundColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                value == null
+                    ? "Select $label"
+                    : "$label: ${DateFormat('dd-MMM-yyyy').format(value)}",
+
+                style: GoogleFonts.poppins(color: Colors.black87, fontSize: 14),
+              ),
+              const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.grey),
+            ],
+          ),
+        ),
+      );
+    }
+
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (ctx) {
-        final TextEditingController nameCtrl =
-        TextEditingController(text: broker!['displayName']);
-        final TextEditingController mobileCtrl =
-        TextEditingController(text: broker!['mobile']);
-        final TextEditingController whatsappCtrl =
-        TextEditingController(text: broker!['whatsappno'] ?? '');
+        displayNameC.text = broker!['displayName'];
+        mobileC.text = broker!['mobile'];
+        whatsappC.text = broker!['whatsappno'];
         bool copyWhatsapp = false;
         String selectedCode = "+971";
 
@@ -345,21 +782,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                           const SizedBox(height: 28),
 
-                          // DISPLAY NAME FIELD
-                          Text("Display Name *",
+                          // ================= PERSONAL INFORMATION =================
+                          Text("Personal Information",
+                              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 16),
+
+                          // UPLOAD PICTURE
+                          Text("Upload Picture",
                               style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 6),
-                          TextField(
-                            controller: nameCtrl,
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.grey.shade50,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                          const SizedBox(height: 10),
+
+                          Row(
+                            children: [
+                              OutlinedButton(
+                                onPressed: pickImage,
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                                  side: BorderSide(color: Colors.grey.shade400, width: 1),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.upload, size: 18, color: Colors.black54),
+                                    const SizedBox(width: 10),
+                                    Text("Choose File",
+                                        style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w500)),
+                                  ],
+                                ),
                               ),
-                            ),
+
+                              const SizedBox(width: 20),
+
+                              // IMAGE PREVIEW
+                              if (selectedImageBytes != null)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.memory(
+                                    selectedImageBytes!,
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                            ],
                           ),
+                          const SizedBox(height: 24),
+
+                          _buildTextField(displayNameC, "Display Name", required: true),
+                          const SizedBox(height: 14),
+
+                          // _buildTextField(profileTitleC, "Profile Title"),
+                          // const SizedBox(height: 14),
+
+                          _buildMultilineField(bioC, "Bio"),
+
 
                           const SizedBox(height: 22),
 
@@ -485,49 +963,104 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
 
 
+
+
+// ================= SPECIALIZATION & LANGUAGES =================
+                          const SizedBox(height: 10),
+
+                          Text("Professional Details",
+                              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 16),
+
+                          _buildMultiSelect("Specializations", specializations, selectedSpecs),
+                          const SizedBox(height: 16),
+
+                          _buildMultiSelect("Languages", languages, selectedLangs),
+                          const SizedBox(height: 16),
+
+                          _buildMultiSelect("Categories", categories, selectedCategories),
+// ================= ADDRESS =================
                           const SizedBox(height: 24),
 
-                          // UPLOAD PICTURE
-                          Text("Upload Picture",
-                              style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
 
-                          Row(
-                            children: [
-                              OutlinedButton(
-                                onPressed: pickImage,
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                                  side: BorderSide(color: Colors.grey.shade400, width: 1),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.upload, size: 18, color: Colors.black54),
-                                    const SizedBox(width: 10),
-                                    Text("Choose File",
-                                        style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w500)),
-                                  ],
-                                ),
-                              ),
+                          Text("Address Details",
+                              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 16),
 
-                              const SizedBox(width: 20),
+                          _buildTextField(addressC, "Address"),
+                          const SizedBox(height: 14),
 
-                              // IMAGE PREVIEW
-                              if (selectedImageBytes != null)
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.memory(
-                                    selectedImageBytes!,
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
+                          _buildTextField(cityC, "City"),
+                          const SizedBox(height: 14),
+
+                          _buildTextField(stateC, "State"),
+                          const SizedBox(height: 14),
+
+                          _buildTextField(countryC, "Country"),
+                          const SizedBox(height: 14),
+
+                          _buildTextField(postalCodeC, "Postal Code",
+                              keyboardType: TextInputType.number),
+// ================= COMPANY INFO =================
+                          const SizedBox(height: 24),
+
+                          Text("Company Information",
+                              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 10),
+
+                          _buildSwitch("I am a Freelancer", isFreelancer, (v) {
+                            setStateDialog(() => isFreelancer = v);
+                          }),
+
+                          if (!isFreelancer) ...[
+                            const SizedBox(height: 16),
+                            _buildTextField(companyC, "Company Name"),
+                            const SizedBox(height: 14),
+                            _buildTextField(licenseC, "License Number"),
+                            const SizedBox(height: 14),
+                            _buildTextField(reraC, "RERA Number (ORN)"),
+                          ],
+
+                          if(!isFreelancer)...[
+                            // ================= BRN INFO =================
+                            const SizedBox(height: 24),
+
+                            Text("BRN Information",
+                                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 16),
+
+                            _buildSwitch("I have a BRN", hasBRN, (v) {
+                              setStateDialog(() => hasBRN = v);
+                            }),
+
+                            if (hasBRN) ...[
+                              const SizedBox(height: 16),
+                              _buildTextField(brnNumberC, "BRN Number"),
+                              const SizedBox(height: 14),
+                              _buildDateField("Issue Date", brnIssueDate, true),
+                              const SizedBox(height: 14),
+                              _buildDateField("Expiry Date", brnExpiryDate, false),
                             ],
-                          ),
+
+                          ],
+
+// ================= ONLINE PRESENCE =================
+                          const SizedBox(height: 24),
+
+                          Text("Online Presence",
+                              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 16),
+
+                          _buildTextField(websiteC, "Website"),
+                          const SizedBox(height: 14),
+
+                          _buildTextField(linkedinC, "LinkedIn"),
+                          const SizedBox(height: 14),
+
+                          _buildTextField(twitterC, "Twitter"),
+                          const SizedBox(height: 14),
+
+                          _buildTextField(facebookC, "Facebook"),
 
 
                           const SizedBox(height: 32),
@@ -547,9 +1080,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                                 // 2️⃣ Prepare data to update
                                 Map<String, dynamic> payload = {
-                                  "display_name": nameCtrl.text.trim(),
+                                  "display_name": displayNameC.text.trim(),
+
+                                  "bio": bioC.text.trim(),
+                                  "website": websiteC.text.trim(),
+                                  "address": addressC.text.trim(),
+                                  "city": cityC.text.trim(),
+                                  "state": stateC.text.trim(),
+                                  "country": countryC.text.trim(),
+                                  "postal_code": postalCodeC.text.trim(),
+
+
                                   "mobile": fullMobileNumber,
                                   "whatsappno": fullWhatsappNumber,
+
+                                  "categories": selectedCategories,
+                                  "languages": selectedLangs,
+                                  "specializations": selectedSpecs,
+
+                                  "company_name": isFreelancer ? null : companyC.text.trim(),
+                                  "license_number": isFreelancer ? null : licenseC.text.trim(),
+                                  "rera_number": isFreelancer ? null : reraC.text.trim(),
+
+                                  "brn_number": isFreelancer ? null : hasBRN ? brnNumberC.text.trim() : null,
+                                  "brn_issues_date":isFreelancer ? null : brnIssueDate != null
+                                      ? DateFormat('yyyy-MM-dd').format(brnIssueDate!)
+                                      : null,
+                                  "brn_expiry_date": isFreelancer ? null : brnExpiryDate != null
+                                      ? DateFormat('yyyy-MM-dd').format(brnExpiryDate!)
+                                      : null,
+
+                                  "social_links": {
+                                    "linkedin": linkedinC.text.trim(),
+                                    "twitter": twitterC.text.trim(),
+                                    "facebook": facebookC.text.trim(),
+                                  },
+
                                 };
 
                                 // 3️⃣ Send to API
@@ -602,6 +1168,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       },
     );
+
+
   }
 
   Widget buildSocialLinksBody() {
@@ -1912,17 +2480,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     : position.dy + size.height + 10,
                 child: FadeTransition(
                   opacity: CurvedAnimation(
-                    parent: AnimationController(
-                      vsync: Navigator.of(context),
-                      duration: Duration(milliseconds: 300),
-                    )..forward(),
+                    parent: _tooltipController..forward(from: 0),
                     curve: Curves.easeIn,
                   ),
                   child: Material(
                     color: Colors.transparent,
                     child: Container(
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.95),
                         borderRadius: BorderRadius.circular(14),
@@ -2017,7 +2581,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
 
 
 }
