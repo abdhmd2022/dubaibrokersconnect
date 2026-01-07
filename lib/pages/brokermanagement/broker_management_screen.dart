@@ -349,7 +349,6 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     );
   }
 
-
   @override
   void dispose() {
     _scrollController.dispose();
@@ -962,8 +961,6 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                 // ✅ Approve / Reject Buttons (hide if disabled)
                 if (!isDisabled) _buildActionButtons(b, status),
 
-
-
               ],
             ),
           ),
@@ -1266,11 +1263,9 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
     );
   }
 
-
   Widget _statusChip(String status, {bool isVerified = false, bool isActive = true}) {
     status = status.toUpperCase();
     if (!isActive) status = 'DISABLED';
-
 
     // 🔹 Helper to build your existing chip style
     Widget buildChip(String text, Color color, IconData icon) {
