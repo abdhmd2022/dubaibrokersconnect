@@ -976,7 +976,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
 
   void _showBrokerDetailsDialog(BuildContext context, Map<String, dynamic> broker) {
     final user = broker['user'] ?? {};
-    final company = user['companyName'];
+    final company = broker['companyName'];
     final brnNumber = broker['brnNumber'];
     final brnIssueDate = broker['brnIssuesDate'];
     final brnExpiryDate = broker['brnExpiryDate'];
@@ -988,8 +988,6 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
         : null;
 
     print('✅ brnAttachment URL: $brnAttachment');
-
-
 
     final hasDetails = (company != null && company.toString().trim().isNotEmpty) ||
         (brnNumber != null && brnNumber.toString().trim().isNotEmpty) ||
