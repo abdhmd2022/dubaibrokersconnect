@@ -41,7 +41,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
   final displayNameC = TextEditingController();
   final profileTitleC = TextEditingController();
   final bioC = TextEditingController();
-  final emailC = TextEditingController();
+  // final emailC = TextEditingController();
   final phoneC = TextEditingController();
   final mobileC = TextEditingController();
   final whatsappC = TextEditingController();
@@ -75,6 +75,8 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
   bool hasBRN = false;
   bool isPrivileged = false;
   bool isLoading = false;
+
+
 
   @override
   void initState() {
@@ -116,6 +118,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
     final token = prefs.getString('access_token') ?? '';
     final userId = widget.userData['id'];
 
+      String? emailtoapi =   prefs.getString('email');
     final body = {
       "display_name": displayNameC.text.trim(),
       "broker_title": profileTitleC.text.trim(),
@@ -132,7 +135,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       "phone": fullMobileNumber ?? '',
       "mobile": fullMobileNumber ?? '',
       "whatsappno": fullWhatsappNumber ?? '',
-      "email": emailC.text.trim(),
+       "email": emailtoapi,
       "categories": selectedCategories,
       "website": websiteC.text.trim(),
       "social_links": {
@@ -392,13 +395,13 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                           _buildSectionHeader(Icons.call_outlined, "Contact Information"),
                           const SizedBox(height: 14),
 
-                          _buildTextField(
+                          /*_buildTextField(
                             emailC,
                             "Email",
                             required: true,
                             keyboardType: TextInputType.emailAddress,
                             icon: Icons.email_outlined,
-                          ),
+                          ),*/
                           /* const SizedBox(height: 14),
                             _buildTextField(
                               phoneC,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -33,6 +34,8 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
   String selectedCategory = "All";
   int totalBrokers = 0;
 
+  OverlayEntry? _activeTooltip;
+  bool _tooltipVisible = false;
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -113,6 +116,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
     final verified = b['isVerified'] == true;
     final approved = b['approvalStatus'] == "APPROVED";
 
+    // print('broker ->? $b');
     final rating = b['rating']?.toString() ?? 'N/A';
     final email = b['email'];
     final phone = b['mobile'];
@@ -384,7 +388,6 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                     phone: phone,
                   ),
 
-
                   _roundIconButton(FontAwesomeIcons.whatsapp,
                       "https://wa.me/${phone.toString().replaceAll('+', '')}",
                       Colors.green.shade600, Colors.white),
@@ -398,23 +401,43 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
       ),
     );
   }
+  @override
+  void dispose() {
+    _hideTooltip();
+    super.dispose();
+  }
+
+  void _hideTooltip() {
+    _activeTooltip?.remove();
+    _activeTooltip = null;
+    _tooltipVisible = false;
+
+  }
   Widget _roundIconButton(
       IconData icon,
       String url,
       Color bg,
+
       Color iconColor, {
         String? phone,
       }) {
+
     return Builder(
       builder: (context) {
-        OverlayEntry? tooltipEntry;
-        bool isVisible = false;
+        Timer? _tooltipTimer;
+
+        void _closeTooltip() {
+          _tooltipTimer?.cancel();
+          _tooltipTimer = null;
+
+          _activeTooltip?.remove();
+          _activeTooltip = null;
+          _tooltipVisible = false;
+        }
 
         void toggleTooltip(BuildContext context, String number) {
-          if (isVisible) {
-            tooltipEntry?.remove();
-            tooltipEntry = null;
-            isVisible = false;
+          if (_tooltipVisible) {
+            _closeTooltip();
             return;
           }
 
@@ -423,10 +446,9 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
           final size = renderBox.size;
           final overlaySize = MediaQuery.of(context).size;
 
-          // 🧭 Decide where to show (above or below)
           final showAbove = position.dy > overlaySize.height / 2;
 
-          tooltipEntry = OverlayEntry(
+          _activeTooltip = OverlayEntry(
             builder: (context) => Positioned(
               left: position.dx - 70,
               top: showAbove
@@ -438,8 +460,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                   opacity: 1,
                   duration: const Duration(milliseconds: 200),
                   child: Container(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.95),
                       borderRadius: BorderRadius.circular(14),
@@ -475,7 +496,6 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                               "Broker Contact",
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black87,
                                 fontSize: 13.8,
                               ),
                             ),
@@ -486,11 +506,9 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                           number,
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.w700,
-                            color: Colors.black87,
                             fontSize: 15,
                           ),
                         ),
-
                       ],
                     ),
                   ),
@@ -499,13 +517,12 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
             ),
           );
 
-          // Auto remove after 3 seconds or tap outside
-         /* Future.delayed(const Duration(seconds: 3)).then((_) {
-            tooltipEntry?.remove();
-            tooltipEntry = null;
-          });*/
-          Overlay.of(context).insert(tooltipEntry!);
-          isVisible = true;
+          Overlay.of(context).insert(_activeTooltip!);
+          _tooltipVisible = true;
+
+          // ⏱️ Auto close after 2 seconds
+          _tooltipTimer?.cancel();
+          _tooltipTimer = Timer(const Duration(seconds: 2), _closeTooltip);
         }
 
         return InkWell(
