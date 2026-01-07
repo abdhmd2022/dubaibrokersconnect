@@ -880,7 +880,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             },
                           ),
 
-// 🟩 Checkbox: SAME AS MOBILE
+                          // 🟩 Checkbox: SAME AS MOBILE
                           Row(
                             children: [
                               Transform.scale(
@@ -916,7 +916,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
                           const SizedBox(height: 14),
 
-// 🌍 WHATSAPP FIELD — HIDE IF SAME AS MOBILE
+                          // 🌍 WHATSAPP FIELD — HIDE IF SAME AS MOBILE
                           if (!sameAsMobile)
                             IntlPhoneField(
                               key: ValueKey("whatsapp_field_${sameAsMobile}") , // IMPORTANT: forces rebuild
