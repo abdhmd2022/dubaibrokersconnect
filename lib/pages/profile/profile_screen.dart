@@ -15,12 +15,10 @@ import '../../widgets/animated_logo_loader.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/browser_client.dart';
-
 import '../../widgets/web_image_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
-
 
   final String brokerId;
   const ProfileScreen({super.key, required this.brokerId,
@@ -44,6 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     "Commercial Properties",
     "Residential Sales"
   ];
+
   final List<String> languages = ["English", "Arabic", "Hindi", "Urdu"];
 
   bool error = false;
@@ -147,11 +146,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     }
   }
 
-  Future<void> _launch(String url) async {
+  /*Future<void> _launch(String url) async {
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
-  }
+  }*/
 
   Future<void> updateBrokerField(Map<String, dynamic> payload) async {
 
@@ -185,6 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       print("Error updating broker: $e");
     }
   }
+
   void _showSnack(String message, {Color? color}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -194,6 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       ),
     );
   }
+
   void _openEditProfileDialog() {
     bool isSaving = false;
     String? dialogError;
@@ -1286,8 +1287,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
       },
     );
-
-
   }
 
   Widget buildSocialLinksBody() {
@@ -1442,10 +1441,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           ),
         ),
       );
-
     }
-
-
   }
 
   @override
@@ -1472,7 +1468,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final company = broker!['companyName'] ?? '';
     final verified = broker!['isVerified'] == true;
     final approvalStatus = (broker!['approvalStatus'] ?? '').toString().toUpperCase();
-    final isAdmin = widget.userData['role'] == 'ADMIN';
+    // final isAdmin = widget.userData['role'] == 'ADMIN';
 
     final avatar = broker?['avatar'];
 
@@ -1502,7 +1498,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header Card
-
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -1528,7 +1523,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             backgroundColor: kPrimaryColor.withOpacity(0.08),
                             child: ClipOval(
                               child: avatar != null && avatar.isNotEmpty
-
                                   ? WebCompatibleImage(
                                 imageUrl: (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
                                     ? avatar.toString()
@@ -1747,13 +1741,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           ),
                         ],
                       ),
-
-
                     ],
                   ),
                 ),
-
-
 
                 const SizedBox(height: 30),
 
@@ -1948,30 +1938,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               ),
                             ),
                           ),
-
                         ],
                       );
-
-
                   },
                 ),
-
-
-
-
-
-
               ],
             ),
-          ),),)
-
-    );
+          ),),));
   }
 
   Widget _buildSegmentButton(String label, {int count = 0}) {
     final bool isActive = activeSection == label;
     final bool isVerified = widget.userData['broker']['isVerified'] == true;
-    final approved = broker!['approvalStatus'] == true;
+    // final approved = broker!['approvalStatus'] == true;
 
     return Expanded(
       child: InkWell(
@@ -2162,7 +2141,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
-
   Widget _buildListings(List data) {
     if (data.isEmpty) return _emptyMessage("No listings available.");
 
@@ -2336,7 +2314,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       }).toList(),
     );
   }
-
 
   Widget _buildRequirements(List data) {
     if (data.isEmpty) return _emptyMessage("No requirements found.");
@@ -2568,7 +2545,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
-
   Widget _emptyMessage(String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 40),
@@ -2579,7 +2555,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       ),
     );
   }
-
 
   Widget _contactButton(IconData icon, String label, String url, {String? phone}) {
     final Color baseColor = label == "WhatsApp"
@@ -2720,6 +2695,5 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       ),
     );
   }
-
 
 }
