@@ -169,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       );
 
       if (response.statusCode == 200) {
-        print("Field updated: ${response.body}");
+        print("Field updated");
       } else {
         final decoded = jsonDecode(response.body);
 
@@ -196,6 +196,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   }
   void _openEditProfileDialog() {
     bool isSaving = false;
+    String? dialogError;
+
+    print('broker ---> $broker');
     final displayNameC = TextEditingController(text: broker!['displayName'] ?? '');
     final profileTitleC = TextEditingController(text: broker!['brokerTitle'] ?? '');
     final bioC = TextEditingController(text: broker!['bio'] ?? '');
@@ -218,6 +221,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     List<String> selectedCategories =
     List<String>.from(broker!['categories'] ?? []);
 
+
+
     List<String> selectedLangs =
     List<String>.from(broker!['languages'] ?? []);
 
@@ -229,9 +234,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
     final brnNumberC = TextEditingController(text: broker!['brnNumber'] ?? '');
 
-    DateTime? brnIssueDate = broker!['brnIssueDate'] != null
-        ? DateTime.parse(broker!['brnIssueDate'])
+    DateTime? brnIssueDate = broker!['brnIssuesDate'] != null
+        ? DateTime.parse(broker!['brnIssuesDate'])
         : null;
+
 
     DateTime? brnExpiryDate = broker!['brnExpiryDate'] != null
         ? DateTime.parse(broker!['brnExpiryDate'])
@@ -463,6 +469,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         String label,
         List<String> options,
         List<String> selectedList,
+        void Function(VoidCallback) setStateDialog,
+
         ) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -520,7 +528,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 child: InkWell(
                   borderRadius: BorderRadius.circular(24),
                   onTap: () {
-                    setState(() {
+                    setStateDialog(() {
                       if (isSelected) {
                         selectedList.remove(option);
                       } else {
@@ -575,17 +583,38 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       );
     }
 
-    Future<void> _pickDate(bool isIssue) async {
+    Future<void> _pickDate(
+        bool isIssue,
+        void Function(VoidCallback) setStateDialog,
+        ) async {
       final picked = await showDatePicker(
         context: context,
-        firstDate: DateTime(2015),
+
+        // 🔴 If expiry date → cannot be before issue date
+        firstDate: isIssue
+            ? DateTime(2015)
+            : (brnIssueDate ?? DateTime.now()),
+
         lastDate: DateTime(2035),
-        initialDate: DateTime.now(),
+
+        // 🔴 Initial date logic
+        initialDate: isIssue
+            ? (brnIssueDate ?? DateTime.now())
+            : (brnExpiryDate ??
+            brnIssueDate ??
+            DateTime.now()),
       );
+
       if (picked != null) {
-        setState(() {
+        setStateDialog(() {
           if (isIssue) {
             brnIssueDate = picked;
+
+            // 🔴 Auto-fix expiry if it becomes invalid
+            if (brnExpiryDate != null &&
+                brnExpiryDate!.isBefore(brnIssueDate!)) {
+              brnExpiryDate = null;
+            }
           } else {
             brnExpiryDate = picked;
           }
@@ -593,10 +622,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       }
     }
 
-    Widget _buildDateField(String label, DateTime? value, bool isIssue) {
+
+
+    Widget _buildDateField(String label, DateTime? value, bool isIssue,  void Function(VoidCallback) setStateDialog,
+        ) {
       return GestureDetector(
-        onTap: () => _pickDate(isIssue),
+        onTap: () => _pickDate(isIssue,  setStateDialog,
+        ),
         child: Container(
+          key: ValueKey(value?.toIso8601String() ?? 'empty'),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
           decoration: BoxDecoration(
             color: kFieldBackgroundColor,
@@ -629,7 +663,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         whatsappC.text = broker!['whatsappno'];
         bool copyWhatsapp = false;
         String selectedCode = "+971";
-
 
         return StatefulBuilder(
           builder: (context, setStateDialog) {
@@ -711,6 +744,55 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               }
             }
 
+            bool _validateCompanyAndBRN() {
+              void showError(String msg) {
+                setStateDialog(() {
+                  dialogError = msg;
+                });
+              }
+
+              // 🏢 Company checks
+              if (!isFreelancer) {
+                if (companyC.text.trim().isEmpty) {
+                  showError("Company name is required");
+                  return false;
+                }
+                if (licenseC.text.trim().isEmpty) {
+                  showError("License number is required");
+                  return false;
+                }
+                if (reraC.text.trim().isEmpty) {
+                  showError("RERA number is required");
+                  return false;
+                }
+              }
+
+              // 🆔 BRN checks
+              if (!isFreelancer && hasBRN) {
+                if (brnNumberC.text.trim().isEmpty) {
+                  showError("BRN number is required");
+                  return false;
+                }
+                if (brnIssueDate == null) {
+                  showError("BRN issue date is required");
+                  return false;
+                }
+                if (brnExpiryDate == null) {
+                  showError("BRN expiry date is required");
+                  return false;
+                }
+                // 🔴 NEW: expiry must be after issue
+                if (brnExpiryDate!.isBefore(brnIssueDate!)) {
+                  showError("BRN expiry date must be after issue date");
+                  return false;
+                }
+              }
+
+              // ✅ Clear error if everything is fine
+              setStateDialog(() => dialogError = null);
+              return true;
+            }
+
             return Dialog(
               backgroundColor: Colors.transparent,
               insetPadding: const EdgeInsets.symmetric(horizontal: 80),
@@ -737,7 +819,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           Row(
                             children: [
                               IconButton(
-                                icon: Icon(Icons.arrow_back_ios_new, size: 16),
+                                icon: const Icon(Icons.arrow_back_ios_new, size: 16),
                                 onPressed: () => Navigator.pop(context),
                               ),
                               const SizedBox(width: 8),
@@ -748,23 +830,18 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-
-                              if(widget.userData['role'] == "ADMIN")...[
-                                const Spacer(),
+                              const Spacer(),
+                              if (widget.userData['role'] == "ADMIN") ...[
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: Colors.orange.shade50,
                                     borderRadius: BorderRadius.circular(12),
-                                    border:
-                                    Border.all(color: Colors.orange.shade200),
+                                    border: Border.all(color: Colors.orange.shade200),
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.workspace_premium,
-                                          size: 16,
-                                          color: Colors.orange.shade700),
+                                      Icon(Icons.workspace_premium, size: 16, color: Colors.orange.shade700),
                                       const SizedBox(width: 6),
                                       Text(
                                         "Admin",
@@ -779,6 +856,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               ]
                             ],
                           ),
+
+
+
 
                           const SizedBox(height: 28),
 
@@ -972,13 +1052,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 16),
 
-                          _buildMultiSelect("Specializations", specializations, selectedSpecs),
+                          _buildMultiSelect("Specializations", specializations, selectedSpecs,  setStateDialog,
+                          ),
                           const SizedBox(height: 16),
 
-                          _buildMultiSelect("Languages", languages, selectedLangs),
+                          _buildMultiSelect("Languages", languages, selectedLangs,  setStateDialog,
+                          ),
                           const SizedBox(height: 16),
 
-                          _buildMultiSelect("Categories", categories, selectedCategories),
+                          _buildMultiSelect("Categories", categories, selectedCategories,  setStateDialog,
+                          ),
 // ================= ADDRESS =================
                           const SizedBox(height: 24),
 
@@ -1037,9 +1120,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               const SizedBox(height: 16),
                               _buildTextField(brnNumberC, "BRN Number"),
                               const SizedBox(height: 14),
-                              _buildDateField("Issue Date", brnIssueDate, true),
+                              _buildDateField("Issue Date", brnIssueDate, true,setStateDialog),
                               const SizedBox(height: 14),
-                              _buildDateField("Expiry Date", brnExpiryDate, false),
+                              _buildDateField("Expiry Date", brnExpiryDate, false,setStateDialog),
                             ],
 
                           ],
@@ -1062,6 +1145,35 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
                           _buildTextField(facebookC, "Facebook"),
 
+                          // ✅ ERROR MESSAGE MUST BE HERE
+                          if (dialogError != null) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.red.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      dialogError!,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13.5,
+                                        color: Colors.red.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
 
                           const SizedBox(height: 32),
 
@@ -1071,6 +1183,12 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               onPressed: isSaving
                                   ? null
                                   : () async {
+
+                                // 🔴 VALIDATION FIRST
+                                if (!_validateCompanyAndBRN()) return;
+
+
+
                                 setStateDialog(() => isSaving = true);
                                 // 1️⃣ Upload image if selected
                                 if (selectedImageBytes != null) {
@@ -1098,11 +1216,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                   "languages": selectedLangs,
                                   "specializations": selectedSpecs,
 
-                                  "company_name": isFreelancer ? null : companyC.text.trim(),
-                                  "license_number": isFreelancer ? null : licenseC.text.trim(),
-                                  "rera_number": isFreelancer ? null : reraC.text.trim(),
+                                  "companyName": isFreelancer ? null : companyC.text.trim(),
+                                  "licenseNumber": isFreelancer ? null : licenseC.text.trim(),
+                                  "reraNumber": isFreelancer ? null : reraC.text.trim(),
 
-                                  "brn_number": isFreelancer ? null : hasBRN ? brnNumberC.text.trim() : null,
+                                  "brnNumber": isFreelancer ? null : hasBRN ? brnNumberC.text.trim() : null,
                                   "brn_issues_date":isFreelancer ? null : brnIssueDate != null
                                       ? DateFormat('yyyy-MM-dd').format(brnIssueDate!)
                                       : null,
@@ -1361,7 +1479,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     print('avatarr -> $baseURL/$avatar');
     final email = broker!['email'];
     final phone = broker!['mobile'];
-    final whatsapp = broker!['user']['whatsappno'] ?? broker!['mobile'] ?? "0";
+    final whatsapp = broker!['whatsappno'] ?? broker!['mobile'] ?? "0";
 
     final bio = broker!['bio'] ?? '';
     final rating = broker!['rating'] ?? 'N/A';
@@ -1537,7 +1655,28 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                       ),
                                     ],
                                   ),
-                                ],
+                                ]
+                                else...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.business_outlined,
+                                          color: Colors.black54, size: 16),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          "Freelancer",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 15,
+                                            color: Colors.black54,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+    ],
+
 
                                 // 🏷️ Categories
                                 if (categories.isNotEmpty) ...[
@@ -2549,7 +2688,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             _tooltipVisible = true;
 
             // Auto dismiss after 3s
-            Future.delayed(const Duration(seconds: 6)).then((_) {
+            Future.delayed(const Duration(seconds: 2)).then((_) {
               if (mounted) _hideTooltip();
             });
             return;
