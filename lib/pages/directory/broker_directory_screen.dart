@@ -155,8 +155,8 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
 
               // 👤 Avatar with gradient ring
               Container(
-                width: 60,
-                height: 60,
+                width: 70,
+                height: 70,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -168,7 +168,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                padding: const EdgeInsets.all(2.5),
+                padding: const EdgeInsets.all(0),
                 child: CircleAvatar(
                   radius: 30,
                   backgroundColor: Colors.white,
@@ -178,8 +178,9 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                       imageUrl: (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
                           ? avatar.toString()
                           : '$baseURL/$avatar',
-                      width: 60,
-                      height: 60,
+                      width: 70,
+                      height: 70,
+
                       fallback: Image.asset(
                         'assets/collabrix_logo.png',
                         width: 60,
