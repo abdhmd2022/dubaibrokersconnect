@@ -814,19 +814,23 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
 
                         ],
                       ),
-                      const SizedBox(height: 6),
 
-                      // Role and Category Badges
-                      Row(
-                        children: [
-                          Text(role,
-                              style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.grey.shade600)),
+                      if(role.toString().isNotEmpty)...[
+                        const SizedBox(height: 6),
 
-                        ],
-                      ),
+                        // Role and Category Badges
+                        Row(
+                          children: [
+                            Text(role,
+                                style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey.shade600)),
+
+                          ],
+                        ),
+                      ],
+
 
                       const SizedBox(height: 8),
                       Wrap(
@@ -866,7 +870,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                           // Divider Dot
                           Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey)),
 
-                          // 📞 Phone
+
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
