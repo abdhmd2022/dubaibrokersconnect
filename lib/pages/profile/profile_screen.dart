@@ -1290,158 +1290,155 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   }
 
   Widget buildSocialLinksBody() {
-    if (broker!['socialLinks'].entries
-        .where((entry) =>
-    entry.value != null &&
-        entry.value.toString().trim().isNotEmpty)
-        .isNotEmpty) {
+    final socialLinks = broker?['socialLinks'];
 
+    if (socialLinks == null || socialLinks is! Map) {
+      return _noSocialLinksText();
+    }
 
-      return Wrap(
-        spacing: 14,
-        runSpacing: 12,
-        children: broker!['socialLinks'].entries.map<Widget>((entry) {
-          final platform = entry.key.toLowerCase();
-          final link = entry.value.toString().trim();
+    // ✅ filter valid links only
+    final validLinks = socialLinks.entries.where((entry) {
+      final value = entry.value;
+      return value != null && value.toString().trim().isNotEmpty;
+    }).toList();
 
-          IconData icon;
-          Gradient? gradient;
-          Color solidColor;
+    if (validLinks.isEmpty) {
+      return _noSocialLinksText();
+    }
 
-          switch (platform) {
-            case 'linkedin':
-              icon = FontAwesomeIcons.linkedinIn;
-              gradient = const LinearGradient(
-                colors: [Color(0xFF0077B5), Color(0xFF0E6791)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              );
-              solidColor = const Color(0xFF0077B5);
-              break;
-            case 'instagram':
-              icon = FontAwesomeIcons.instagram;
-              gradient = const LinearGradient(
-                colors: [
-                  Color(0xFFF58529),
-                  Color(0xFFDD2A7B),
-                  Color(0xFF8134AF)
-                ],
-                begin: Alignment.bottomLeft,
-                end: Alignment.topRight,
-              );
-              solidColor = const Color(0xFFE1306C);
-              break;
-            case 'facebook':
-              icon = FontAwesomeIcons.facebookF;
-              gradient = const LinearGradient(
-                colors: [Color(0xFF1877F2), Color(0xFF145DBF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              );
-              solidColor = const Color(0xFF1877F2);
-              break;
-            case 'twitter':
-            case 'x':
-              icon = FontAwesomeIcons.xTwitter;
-              gradient = const LinearGradient(
-                colors: [Color(0xFF000000), Color(0xFF333333)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              );
-              solidColor = Colors.black87;
-              break;
-            default:
-              icon = FontAwesomeIcons.globe;
-              gradient = const LinearGradient(
-                colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              );
-              solidColor = kPrimaryColor;
-          }
+    return Wrap(
+      spacing: 14,
+      runSpacing: 12,
+      children: validLinks.map<Widget>((entry) {
+        final platform = entry.key.toLowerCase();
+        final link = entry.value.toString().trim();
 
-          return MouseRegion(
-            cursor: SystemMouseCursors.click,
-            onEnter: (_) => setState(() => hoveredSocial = platform),
-            onExit: (_) => setState(() => hoveredSocial = ''),
-            child: AnimatedScale(
-              duration: const Duration(milliseconds: 200),
-              scale: hoveredSocial == platform ? 1.08 : 1.0,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () async {
-                  final url = link.startsWith("http")
-                      ? link
-                      : "https://${link.replaceAll('@', '')}";
-                  if (await canLaunchUrl(Uri.parse(url))) {
-                    await launchUrl(Uri.parse(url),
-                        mode: LaunchMode.externalApplication);
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: hoveredSocial == platform
-                            ? solidColor.withOpacity(0.25)
-                            : Colors.black12.withOpacity(0.05),
-                        blurRadius: hoveredSocial == platform ? 10 : 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                    border: Border.all(
+        IconData icon;
+        Gradient gradient;
+        Color solidColor;
+
+        switch (platform) {
+          case 'linkedin':
+            icon = FontAwesomeIcons.linkedinIn;
+            gradient = const LinearGradient(
+              colors: [Color(0xFF0077B5), Color(0xFF0E6791)],
+            );
+            solidColor = const Color(0xFF0077B5);
+            break;
+
+          case 'instagram':
+            icon = FontAwesomeIcons.instagram;
+            gradient = const LinearGradient(
+              colors: [
+                Color(0xFFF58529),
+                Color(0xFFDD2A7B),
+                Color(0xFF8134AF),
+              ],
+            );
+            solidColor = const Color(0xFFE1306C);
+            break;
+
+          case 'facebook':
+            icon = FontAwesomeIcons.facebookF;
+            gradient = const LinearGradient(
+              colors: [Color(0xFF1877F2), Color(0xFF145DBF)],
+            );
+            solidColor = const Color(0xFF1877F2);
+            break;
+
+          case 'twitter':
+          case 'x':
+            icon = FontAwesomeIcons.xTwitter;
+            gradient = const LinearGradient(
+              colors: [Color(0xFF000000), Color(0xFF333333)],
+            );
+            solidColor = Colors.black87;
+            break;
+
+          default:
+            icon = FontAwesomeIcons.globe;
+            gradient = const LinearGradient(
+              colors: [Color(0xFF43CEA2), Color(0xFF185A9D)],
+            );
+            solidColor = kPrimaryColor;
+        }
+
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => hoveredSocial = platform),
+          onExit: (_) => setState(() => hoveredSocial = ''),
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 200),
+            scale: hoveredSocial == platform ? 1.08 : 1.0,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () async {
+                final url = link.startsWith('http')
+                    ? link
+                    : 'https://${link.replaceAll('@', '')}';
+
+                if (await canLaunchUrl(Uri.parse(url))) {
+                  await launchUrl(
+                    Uri.parse(url),
+                    mode: LaunchMode.externalApplication,
+                  );
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: hoveredSocial == platform
+                        ? solidColor.withOpacity(0.5)
+                        : Colors.grey.shade200,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
                       color: hoveredSocial == platform
-                          ? solidColor.withOpacity(0.5)
-                          : Colors.grey.shade200,
+                          ? solidColor.withOpacity(0.25)
+                          : Colors.black12.withOpacity(0.05),
+                      blurRadius: hoveredSocial == platform ? 10 : 6,
+                      offset: const Offset(0, 3),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ShaderMask(
-                        shaderCallback: (rect) =>
-                            gradient!.createShader(rect),
-                        child:
-                        Icon(icon, color: Colors.white, size: 18),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ShaderMask(
+                      shaderCallback: gradient.createShader,
+                      child: Icon(icon, color: Colors.white, size: 18),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      platform[0].toUpperCase() + platform.substring(1),
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        platform[0].toUpperCase() + platform.substring(1),
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          );
-        }).toList(),
-      );
-
-
-    }
-    else
-    {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 0),
-        child: Text(
-          "No social links found",
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            color: Colors.grey,
-            fontWeight: FontWeight.w500,
           ),
-        ),
-      );
-    }
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _noSocialLinksText() {
+    return Text(
+      "No social links found",
+      style: GoogleFonts.poppins(
+        fontSize: 14,
+        color: Colors.grey,
+        fontWeight: FontWeight.w500,
+      ),
+    );
   }
 
   @override
