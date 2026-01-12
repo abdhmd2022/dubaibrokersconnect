@@ -3502,6 +3502,22 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                         ..sort((a, b) =>
                             (a['sortOrder'] ?? 0).compareTo(b['sortOrder'] ?? 0));
 
+                      final List<String> availableRooms = (() {
+                        if (category != 'RESIDENTIAL') return <String>[];
+
+                        final selectedType = filteredPropertyTypes.firstWhere(
+                              (pt) => pt['id'] == propertyTypeId,
+                          orElse: () => <String, dynamic>{},
+                        );
+
+                        final slug = selectedType['slug'];
+
+                        if (slug == 'apartment') {
+                          return ['Studio', '1', '2', '3', '4', '5+'];
+                        }
+
+                        return ['1', '2', '3', '4', '5+'];
+                      })();
 
                       return ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 900),
@@ -3606,11 +3622,13 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                       onChanged: (v) {
                                         setDialogState(() {
                                           category = v!;
-                                          propertyTypeId = null; // 🔥 reset
+                                          propertyTypeId = null;
                                           rooms = null;
                                           furnishedStatus = null;
                                         });
                                       },
+
+
                                     ),
                                   ),
                                   SizedBox(
@@ -3628,13 +3646,42 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                             child: Text(item['name']),
                                           ))
                                           .toList(),
-                                      onChanged: (val) =>
-                                          setDialogState(() => propertyTypeId = val),
+                                      onChanged: (val) {
+                                        setDialogState(() {
+                                          propertyTypeId = val;
+                                          rooms = null; // IMPORTANT
+                                        });
+                                      },
+
                                       validator: (v) =>
                                       v == null ? "Select property type" : null,
                                     ),
                                   ),
-                                  SizedBox(
+
+                                      if (category == 'RESIDENTIAL')
+                                        SizedBox(
+                                          width: isWide ? 400 : double.infinity,
+                                          child: DropdownButtonFormField<String>(
+                                            value: rooms,
+                                            decoration: modernInputDecoration(
+                                              label: "Rooms",
+                                              icon: Icons.meeting_room_outlined,
+                                            ),
+                                            items: availableRooms
+                                                .map(
+                                                  (r) => DropdownMenuItem<String>(
+                                                value: r,
+                                                child: Text(r),
+                                              ),
+                                            )
+                                                .toList(),
+                                            onChanged: availableRooms.isEmpty
+                                                ? null
+                                                : (v) => setDialogState(() => rooms = v),
+                                          ),
+                                        ),
+
+                                     /* SizedBox(
                                     width: isWide ? 400 : double.infinity,
                                     child: DropdownButtonFormField<String>(
                                       value: rooms,
@@ -3656,7 +3703,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                       onChanged: (v) =>
                                           setDialogState(() => rooms = v),
                                     ),
-                                  ),
+                                  ),*/
                                   SizedBox(
                                     width: isWide ? 400 : double.infinity,
                                     child: DropdownButtonFormField<String>(

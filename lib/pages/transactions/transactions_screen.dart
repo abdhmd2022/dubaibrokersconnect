@@ -33,8 +33,8 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
   final int _limit = 10; // or whatever your API default is
   bool _loadingMore = false;
 
-   List<Map<String, dynamic>> pendingMyConfirmations = [];
-   List<Map<String, dynamic>> completedTransactions = [
+  List<Map<String, dynamic>> pendingMyConfirmations = [];
+  List<Map<String, dynamic>> completedTransactions = [
   ];
 
   @override
@@ -52,6 +52,7 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
     _tabController.dispose();
     super.dispose();
   }
+
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200 &&
@@ -147,7 +148,6 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
       });
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
