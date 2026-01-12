@@ -167,6 +167,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
       if (propRes.statusCode == 200) {
         propertyTypes = json.decode(propRes.body)['data'] ?? [];
+        print('property type -> ${propertyTypes}');
       }
       if (locRes.statusCode == 200) {
         final jsonBody = json.decode(locRes.body);
@@ -3415,6 +3416,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       );
     }
 
+
     await showDialog(
         context: context,
         barrierDismissible: true,
@@ -3429,6 +3431,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
                 return StatefulBuilder(
                     builder: (context, setDialogState) {
+
                       Future<void> submit() async {
                         if (!formKey.currentState!.validate()) return;
                         setDialogState(() => isSubmitting = true);
@@ -3490,6 +3493,15 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                           setDialogState(() => isSubmitting = false);
                         }
                       }
+                      final List<Map<String, dynamic>> filteredPropertyTypes = propertyTypes
+                          .where((pt) =>
+                      pt['category'] == category &&
+                          pt['isActive'] == true)
+                          .cast<Map<String, dynamic>>() // ✅ IMPORTANT
+                          .toList()
+                        ..sort((a, b) =>
+                            (a['sortOrder'] ?? 0).compareTo(b['sortOrder'] ?? 0));
+
 
                       return ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 900),
@@ -3591,8 +3603,16 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                             value: "COMMERCIAL",
                                             child: Text("Commercial")),
                                       ],
-                                      onChanged: (v) =>
-                                          setDialogState(() => category = v!),
+                                      onChanged: (v) {
+                                        setDialogState(() {
+                                          category = v!;
+                                          propertyTypeId = null; // 🔥 reset
+                                          rooms = null;
+                                          furnishedStatus = null;
+                                        });
+                                      },
+
+
                                     ),
                                   ),
                                   SizedBox(
@@ -3603,7 +3623,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                         icon: Icons.apartment_rounded,
                                       ),
                                       value: propertyTypeId,
-                                      items: propertyTypes
+                                      items: filteredPropertyTypes
                                           .map<DropdownMenuItem<String>>((item) =>
                                           DropdownMenuItem(
                                             value: item['id'],
@@ -4050,6 +4070,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     }
 
     final propertyType = e['propertyType']?['name'] ?? 'N/A';
+
+
     final location = (e['locations'] != null && e['locations'].isNotEmpty)
         ? e['locations'][0]['completeAddress']
         : 'N/A';
