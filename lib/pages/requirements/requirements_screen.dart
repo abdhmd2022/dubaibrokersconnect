@@ -3611,8 +3611,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                           furnishedStatus = null;
                                         });
                                       },
-
-
                                     ),
                                   ),
                                   SizedBox(
