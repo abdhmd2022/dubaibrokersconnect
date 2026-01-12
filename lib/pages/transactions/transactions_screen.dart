@@ -34,9 +34,7 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
   bool _loadingMore = false;
 
    List<Map<String, dynamic>> pendingMyConfirmations = [];
-
    List<Map<String, dynamic>> completedTransactions = [
-
   ];
 
   @override
