@@ -1,21 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants.dart';
+import '../../services/session_service.dart';
 import '../../widgets/web_image_widget.dart';
 import '../login/login_page.dart';
-import 'admin_shell.dart';
 
 class BrokerSidebar extends StatelessWidget {
   final Map<String, dynamic> userData;
-  final int selectedIndex;
-  final Function(int) onItemSelected;
 
   const BrokerSidebar({
     super.key,
     required this.userData,
-    required this.selectedIndex,
-    required this.onItemSelected,
   });
 
   @override
@@ -29,17 +26,19 @@ class BrokerSidebar extends StatelessWidget {
       {'icon': Icons.assignment, 'label': 'Requirements'},
       {'icon': Icons.people, 'label': 'Broker Directory'},
       {'icon': Icons.person, 'label': 'Profile'},
-      // {'icon': Icons.swap_horiz, 'label': 'My Transactions'},
       {'icon': Icons.assignment_outlined, 'label': 'A2A Forms'},
-      /*{
-        'icon': Icons.cloud_download_outlined,
-        'label': 'Import from Bayut',
-      },
-      {
-        'icon': Icons.cloud_download_outlined,
-        'label': 'Import from Property Finder',
-      },*/
     ];
+
+    final routes = [
+      '/broker/dashboard',
+      '/broker/listings',
+      '/broker/requirements',
+      '/broker/brokers',
+      '/broker/profile',
+      '/broker/forms',
+    ];
+
+    final location = GoRouterState.of(context).uri.toString();
 
     return Container(
       width: 250,
@@ -50,28 +49,26 @@ class BrokerSidebar extends StatelessWidget {
           Image.asset('assets/collabrix_logo.png', height: 60),
           const SizedBox(height: 30),
 
-          /// -------- SCROLLABLE MENU --------
+          /// -------- MENU --------
           Expanded(
             child: ListView.builder(
               itemCount: items.length,
               itemBuilder: (context, i) {
-                final active = i == selectedIndex;
-                final item = items[i];
                 final bool restrictedByApproval =
-                    !isApproved && (i == 1 || i == 2 || i == 5 || i == 6 || i == 7 || i == 8);
+                    !isApproved && (i == 1 || i == 2 || i == 5);
 
-                final bool restrictedByVerification = (!isVerified && i == 5);
+                final bool restrictedByVerification =
+                (!isVerified && i == 5);
 
-                final bool isRestricted = restrictedByApproval || restrictedByVerification;
-
-                if (isRestricted) {
+                if (restrictedByApproval || restrictedByVerification) {
                   return const SizedBox.shrink();
                 }
 
+                final active = location.startsWith(routes[i]);
+                final item = items[i];
 
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 0),
-                  curve: Curves.easeInOut,
                   margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
                   decoration: BoxDecoration(
                     color: active ? Colors.white.withOpacity(0.7) : Colors.transparent,
@@ -94,7 +91,7 @@ class BrokerSidebar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     splashColor: kAccentColor.withOpacity(0.1),
                     hoverColor: kPrimaryColor.withOpacity(0.05),
-                    onTap: () => onItemSelected(i),
+                    onTap: () => context.go(routes[i], extra: userData),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                       child: Row(
@@ -115,6 +112,7 @@ class BrokerSidebar extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
+
                           Container(
                             width: 26,
                             height: 26,
@@ -123,8 +121,6 @@ class BrokerSidebar extends StatelessWidget {
                                 colors: active
                                     ? [kPrimaryColor, kAccentColor]
                                     : [Colors.grey.shade500, Colors.grey.shade400],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
                               ),
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -135,13 +131,13 @@ class BrokerSidebar extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 14),
+
                           Expanded(
                             child: Text(
                               item['label'] as String,
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
-                                color:
-                                active ? kPrimaryColor : Colors.grey.shade800,
+                                color: active ? kPrimaryColor : Colors.grey.shade800,
                                 fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                                 letterSpacing: 0.2,
                               ),
@@ -152,7 +148,6 @@ class BrokerSidebar extends StatelessWidget {
                     ),
                   ),
                 );
-
               },
             ),
           ),
@@ -166,7 +161,6 @@ class BrokerSidebar extends StatelessWidget {
     );
   }
 }
-
 
 /// ---------- PROFILE SECTION ----------
 class _ProfileSection extends StatefulWidget {
@@ -182,21 +176,9 @@ class _ProfileSectionState extends State<_ProfileSection> {
 
   @override
   Widget build(BuildContext context) {
-    final fullName = '${widget.userData['broker']['displayName'] ?? ''}'.trim();
-    final isAdmin = widget.userData['role'] == 'ADMIN';
-
-    final avatar = widget.userData['broker']?['avatar'];
-    print('avatar r -> $avatar');
-
-    // Determine the full image URL - handle both absolute and relative paths
-    final String? imageUrl = (avatar != null && avatar.toString().isNotEmpty)
-        ? (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
-        ? avatar.toString()
-        : '$baseURL/$avatar'
-        : null;
-
-    final name = fullName.isNotEmpty ? fullName : {widget.userData['broker']['displayName']}.isNotEmpty ? '${widget.userData['broker']['displayName']}':  "";
+    final fullName = widget.userData['broker']['displayName'] ?? '';
     final email = widget.userData['broker']['email'] ?? '';
+    final role = widget.userData['role']?.toString().toUpperCase() ?? 'BROKER';
     final bool isVerified = widget.userData['broker']['isVerified'] == true;
     final bool isApproved = widget.userData['broker']['approvalStatus'] == "APPROVED";
     String finalStatus = "";
@@ -209,14 +191,16 @@ class _ProfileSectionState extends State<_ProfileSection> {
       finalStatus = "Not Approved";
     }
 
-    final String role = widget.userData['role']?.toString().toUpperCase() ?? 'BROKER';
-
+    final avatar = widget.userData['broker']?['avatar'];
+    final imageUrl = avatar != null && avatar.toString().isNotEmpty
+        ? avatar.toString().startsWith('http')
+        ? avatar
+        : '$baseURL/$avatar'
+        : null;
 
     return Column(
       children: [
-
-
-        // Segmented role toggle (Broker ↔ Admin)
+        /// --- Role Toggle ---
         Container(
           padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
@@ -225,37 +209,27 @@ class _ProfileSectionState extends State<_ProfileSection> {
           ),
           child: Row(
             children: [
-
-              if (role == 'ADMIN') // 👈 only show toggle if admin
-              _buildToggleButton(
-                label: "Admin",
-                active: !isBrokerView,
-                color: Colors.orange,
-                onTap: () {
-                  if (isBrokerView) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AdminShell(userData: widget.userData),
-                      ),
-                    );
-                  }
-                },
-              ),
-
+              if (role == 'ADMIN')
+                _buildToggleButton(
+                  label: "Admin",
+                  active: !isBrokerView,
+                  color: Colors.orange,
+                  onTap: () {
+                    context.go('/admin/dashboard', extra: widget.userData);
+                  },
+                ),
               _buildToggleButton(
                 label: "Broker",
                 active: isBrokerView,
                 color: kPrimaryColor,
-                onTap: () => setState(() => isBrokerView = true),
+                onTap: () {},
               ),
             ],
           ),
         ),
         const SizedBox(height: 8),
 
-
-        // User profile info
+        /// --- User Card ---
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -291,36 +265,52 @@ class _ProfileSectionState extends State<_ProfileSection> {
                       fit: BoxFit.cover,
                     ),
                   ),
+
+                  /// ✅ VERIFIED / UNVERIFIED TICK
                   if (isVerified)
-                    Positioned(
-                      bottom: -2,
-                      right: -2,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.verified,
-                            size: 16, color: Colors.green),
+                  Positioned(
+                    bottom: -2,
+                    right: -2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
                       ),
+                      child: const Icon(Icons.verified,
+                          size: 16, color: Colors.green),
                     ),
+                  ),
                 ],
               ),
+
+
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name,
-                        style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                            color: Colors.black87),
-                        overflow: TextOverflow.ellipsis),
-                    Text(email,
-                        style: GoogleFonts.poppins(
-                            fontSize: 11, color: Colors.grey[600]),
-                        overflow: TextOverflow.ellipsis),
+                    Text(
+                      fullName,
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+
+                    const SizedBox(height: 2),
+
+                    Text(
+                      email,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+
+                    const SizedBox(height: 2),
+
+                    /// ✅ Instagram-style verification tick
+
                     Padding(
                       padding: const EdgeInsets.only(top: 5),
                       child: Container(
@@ -374,22 +364,20 @@ class _ProfileSectionState extends State<_ProfileSection> {
                       ),
                     )
 
-
                   ],
                 ),
               ),
+
             ],
           ),
         ),
 
-
-
-
         const SizedBox(height: 20),
 
-        // Logout button
+        /// --- Logout ---
         TextButton.icon(
-          onPressed: () => _showLogoutDialog(context),
+          onPressed: () => showLogoutConfirmation(context),
+
           icon: const Icon(Icons.logout, color: Colors.red),
           label: Text("Logout",
               style: GoogleFonts.poppins(color: Colors.red)),
@@ -397,6 +385,146 @@ class _ProfileSectionState extends State<_ProfileSection> {
       ],
     );
   }
+
+  Future<void> performLogout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    // 🔥 CRITICAL: clear cached user
+    SessionService.clearSession();
+
+    // 🔐 GoRouter-safe logout
+    context.go('/login');
+  }
+
+  Future<void> showLogoutConfirmation(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 420,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                /// ---------- HEADER ----------
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.logout_rounded,
+                        color: Colors.redAccent,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Text(
+                      "Confirm Logout",
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                /// ---------- MESSAGE ----------
+                Text(
+                  "Are you sure you want to logout from your account?",
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.5,
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                /// ---------- ACTIONS ----------
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          "Cancel",
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: Colors.redAccent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          "Logout",
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      await performLogout(context);
+    }
+  }
+
+
 
   Widget _buildToggleButton({
     required String label,
@@ -428,70 +556,4 @@ class _ProfileSectionState extends State<_ProfileSection> {
       ),
     );
   }
-}
-
-/// ---------- MODERN LOGOUT DIALOG ----------
-void _showLogoutDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (ctx) => Dialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 400),
-        child:  Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.logout, color: Colors.red, size: 38),
-              const SizedBox(height: 14),
-              Text("Confirm Logout",
-                  style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600, fontSize: 18)),
-              const SizedBox(height: 10),
-              Text("Are you sure you want to log out?",
-                  style: GoogleFonts.poppins(color: Colors.grey[600])),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[200],
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: Text("Cancel",
-                        style: GoogleFonts.poppins(color: Colors.black87)),
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      SharedPreferences prefs = await SharedPreferences.getInstance();
-                      prefs.clear();
-                      Navigator.pop(ctx);
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginPage()),
-                            (route) => false,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: Text("Logout",
-                        style: GoogleFonts.poppins(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-
-        ),
-    ),
-  );
 }

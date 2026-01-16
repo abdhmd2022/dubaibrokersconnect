@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
@@ -1078,7 +1079,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                               IconButton(
                                 icon: const Icon(Icons.close_rounded,
                                     color: Colors.black54, size: 22),
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: () => context.pop(),
                               ),
                             ],
                           ),

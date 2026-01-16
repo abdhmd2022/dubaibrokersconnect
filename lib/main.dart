@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
-import 'pages/login/login_page.dart';
+import 'router/app_router.dart';
+
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 void main() {
@@ -12,11 +13,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Dubai Brokers Connect',
-      navigatorObservers: [routeObserver],
-
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
+      title: 'Dubai Brokers Connect',
+      routerConfig: createRouter(),
+
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -37,22 +38,17 @@ class MyApp extends StatelessWidget {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.grey, width: 1),
+            borderSide: const BorderSide(color: Colors.grey, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: kPrimaryColor, width: 1.6),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 1.6),
           ),
         ),
-      ),
-
-      home: SelectableRegion(
-        focusNode: FocusNode(),
-        selectionControls: materialTextSelectionControls,
-        child: LoginPage(),   // 👈 text inside here becomes selectable
       ),
     );
   }

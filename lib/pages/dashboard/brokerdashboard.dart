@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -543,7 +544,10 @@ class BrokerDashboardContent extends StatelessWidget {
                     "Explore and connect with other verified brokers",
                     "View Directory",
                     Icons.apartment_rounded,
-                    onTap: onNavigateToBrokers,
+                    onTap: ()
+                      {
+                        context.go('/broker/brokers');
+                      }
                   ),
 
                   Container(
@@ -594,7 +598,9 @@ class BrokerDashboardContent extends StatelessWidget {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: onNavigateToProfile,
+                            onPressed: (){
+                              context.go('/broker/profile');
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white , // 👈 dynamic color
                               side: BorderSide(

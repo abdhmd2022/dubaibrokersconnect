@@ -11,7 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:intl_phone_field/country_picker_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../constants.dart';
-import '../dashboard/broker_shell.dart';
+import 'package:go_router/go_router.dart';
 import '../dashboard/brokerdashboard.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/phone_number.dart';
@@ -221,13 +221,8 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
         final dataUser = jsonDecode(meRes.body);
 
         print('data -> $dataUser');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                BrokerShell(userData: dataUser['data']['user']),
-          ),
-        );
+        context.go('/broker/dashboard');
+
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

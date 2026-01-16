@@ -1373,7 +1373,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
 
             _activeTooltip = OverlayEntry(
               builder: (context) => Positioned(
-                left: position.dx - 70,
+                left: position.dx - 210,
                 top: showAbove
                     ? position.dy - 85
                     : position.dy + size.height + 10,

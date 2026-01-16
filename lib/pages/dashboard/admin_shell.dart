@@ -16,64 +16,27 @@ import '../transactions/transactions_screen.dart';
 import '../a2aforms/a2aforms_screen.dart';
 import 'sidebar_admin.dart';
 
-class AdminShell extends StatefulWidget {
+class AdminShell extends StatelessWidget {
   final Map<String, dynamic> userData;
-  const AdminShell({super.key, required this.userData});
+  final Widget child;
 
-  @override
-  State<AdminShell> createState() => _AdminShellState();
-}
-
-class _AdminShellState extends State<AdminShell> {
-  int _selectedIndex = 0;
-
+  const AdminShell({
+    super.key,
+    required this.userData,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final userData = widget.userData;
-    final List<Widget> _pages = [
-      AdminDashboardContent(
-        userData: userData,
-        onNavigateToBrokers: () {
-          setState(() => _selectedIndex = 3); // 👈 opens Broker Directory
-        },
-        onNavigateToBrokerManagement: () {
-          setState(() => _selectedIndex = 8); // 👈 opens Broker Directory
-        },
-
-      ),
-      ListingsScreen(userData: userData,),
-      RequirementsScreen(userData: userData,),
-      BrokerDirectoryScreen(userData: userData,),
-      ProfileScreen(brokerId: userData['broker']['id'], userData: userData),
-      // MyTransactionsScreen(userData: userData,),
-      A2AFormsScreen(userData: userData,),
-      ImportFromBayutScreen(userData: userData,),
-      ImportFromPropertyFinderScreen(userData: userData),
-      BrokerManagementScreen(),
-      TagManagementScreen(),
-      PropertyTypesScreen(),
-      LocationManagementScreen(),
-
-    ];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
       body: Row(
         children: [
-          AdminSidebar(
-            userData: widget.userData,
-            selectedIndex: _selectedIndex,
-            onItemSelected: (i) => setState(() => _selectedIndex = i),
-          ),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: _pages[_selectedIndex],
-            ),
-          ),
+          AdminSidebar(userData: userData),
+          Expanded(child: child),
         ],
       ),
     );
   }
 }
+

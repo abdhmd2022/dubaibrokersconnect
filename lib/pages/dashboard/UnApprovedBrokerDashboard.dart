@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants.dart';
 
 class UnverifiedBrokerDashboard extends StatefulWidget {
   final Map<String, dynamic> userData;
-  final VoidCallback? onNavigateToBrokers; // ✅ same as admin
-  final VoidCallback? onNavigateToProfile; // ✅ same as admin
 
   const UnverifiedBrokerDashboard({
     super.key,
     required this.userData,
-    required this.onNavigateToBrokers,
-    required this.onNavigateToProfile
 
   });
   @override
@@ -192,7 +189,9 @@ class UnverifiedBrokerDashboardState extends State<UnverifiedBrokerDashboard> {
                       description: "Review your profile while waiting for approval",
                       buttonLabel: "View Profile",
                       color: kPrimaryColor,
-                      onPressed: widget.onNavigateToProfile,
+                      onPressed: () {
+                        context.go('/broker/profile');
+                      }
                     ),
                   ),
                   const SizedBox(width: 20),
@@ -204,7 +203,9 @@ class UnverifiedBrokerDashboardState extends State<UnverifiedBrokerDashboard> {
                       buttonLabel: "View Directory",
                       color: Colors.black87,
                       outlined: true,
-                      onPressed: widget.onNavigateToBrokers,
+                        onPressed: () {
+                          context.go('/broker/brokers');
+                        }
                     ),
                   ),
                 ],

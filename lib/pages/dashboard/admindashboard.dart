@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -8,13 +9,11 @@ import '../../widgets/animated_logo_loader.dart' show AnimatedLogoLoader;
 
 class AdminDashboardContent extends StatefulWidget {
   final Map<String, dynamic> userData;
-  final VoidCallback? onNavigateToBrokers; // 👈 added
-  final VoidCallback? onNavigateToBrokerManagement; // 👈 added
+
 
   const AdminDashboardContent({super.key,
     required this.userData,
-    this.onNavigateToBrokers,
-    this.onNavigateToBrokerManagement,
+
 
   });
 
@@ -181,7 +180,9 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
                         "Review and approve broker profiles",
                         "Open Admin Panel",
                         Icons.settings,
-                        onTap:  widget.onNavigateToBrokerManagement!,
+                        onTap: () {
+                          context.go('/admin/broker-management');
+                        },
                       ),
 
                       Container(
@@ -203,7 +204,6 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
 
                           children: [
                             // ---- Title with Icon ----
-
 
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,7 +243,10 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
-                                onPressed: widget.onNavigateToBrokers,
+                                onPressed: () {
+                                  context.go('/admin/brokers');
+                                },
+
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white , // 👈 dynamic color
                                   side: BorderSide(

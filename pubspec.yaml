@@ -39,6 +39,7 @@ dependencies:
   data_table_2:
   dropdown_button2: ^2.3.9
   intl:
+  go_router:
   cached_network_image:
   file_picker:
   flutter_typeahead:

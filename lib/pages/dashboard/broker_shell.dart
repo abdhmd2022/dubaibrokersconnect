@@ -1,79 +1,33 @@
 import 'package:flutter/material.dart';
 import '../../constants.dart';
-import '../brokermanagement/broker_profile_screen.dart';
-import '../import/import_from_bayut_screen.dart';
-import '../import/import_from_propertyfinder_screen.dart';
-import 'UnApprovedBrokerDashboard.dart';
-import 'brokerdashboard.dart';
-import '../listings/listings_screen.dart';
-import '../requirements/requirements_screen.dart';
-import '../directory/broker_directory_screen.dart';
-import '../profile/profile_screen.dart';
-import '../transactions/transactions_screen.dart';
-import '../a2aforms/a2aforms_screen.dart';
 import 'sidebar_broker.dart';
 
-class BrokerShell extends StatefulWidget {
+class BrokerShell extends StatelessWidget {
   final Map<String, dynamic> userData;
-  const BrokerShell({super.key, required this.userData});
+  final Widget child;
 
-  @override
-  State<BrokerShell> createState() => _BrokerShellState();
-}
-
-class _BrokerShellState extends State<BrokerShell> {
-  int _selectedIndex = 0;
-
-
+  const BrokerShell({
+    super.key,
+    required this.userData,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final userData = widget.userData;
-    final bool isApproved = userData['broker']['approvalStatus'] == "APPROVED";
-
-
-    final List<Widget> _pages = [
-      isApproved
-
-          ? BrokerDashboardContent(userData: userData,
-        onNavigateToListings: () => setState(() => _selectedIndex = 1),
-        onNavigateToRequirements: () => setState(() => _selectedIndex = 2),
-        onNavigateToMyTransactions: () => setState(() => _selectedIndex = 5),
-        onNavigateToBrokers: () => setState(() => _selectedIndex = 3),
-        onNavigateToProfile: () => setState(() => _selectedIndex = 4),
-        onNavigateToA2aForms: () => setState(() => _selectedIndex = 6),)
-          :  UnverifiedBrokerDashboard(userData: userData,
-        onNavigateToBrokers: () {
-          setState(() => _selectedIndex = 3);
-        },
-
-        onNavigateToProfile: () {
-          setState(() => _selectedIndex = 4);
-        },),
-      ListingsScreen(userData: userData,),
-      RequirementsScreen(userData: userData,),
-      BrokerDirectoryScreen(userData: userData,),
-      ProfileScreen(brokerId: userData['broker']['id'], userData: userData),
-      // MyTransactionsScreen(userData: userData,),
-      A2AFormsScreen(userData: userData,),
-      /*ImportFromBayutScreen(userData: userData,),
-      ImportFromPropertyFinderScreen(userData: userData),*/
-
-    ];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
       body: Row(
         children: [
+          /// -------- BROKER SIDEBAR --------
           BrokerSidebar(
-            userData: widget.userData,
-            selectedIndex: _selectedIndex,
-            onItemSelected: (i) => setState(() => _selectedIndex = i),
+            userData: userData,
           ),
+
+          /// -------- ROUTED CONTENT --------
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              child: _pages[_selectedIndex],
+              child: child, // 🔑 router controls this
             ),
           ),
         ],

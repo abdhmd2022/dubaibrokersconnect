@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:a2abrokerapp/constants.dart';
 import 'package:a2abrokerapp/pages/dashboard/admindashboard.dart';
 import 'package:a2abrokerapp/pages/dashboard/brokerdashboard.dart';
 
+import '../../services/session_service.dart';
 import '../brokermanagement/broker_setup_page.dart';
 import '../dashboard/admin_shell.dart';
 import '../dashboard/broker_shell.dart';
@@ -138,6 +140,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (res.statusCode == 200 && data['success'] == true) {
 
+
         final userData = data['data']['user'];
         final accessToken = data['data']['accessToken'];
         final refreshToken = data['data']['refreshToken'];
@@ -149,6 +152,16 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('user_id', userData['id'].toString());
         await prefs.setBool('isVerified',isVerified );
 
+
+        print('token ->>>> $accessToken');
+
+
+        await prefs.setString(
+          'user_data',
+          jsonEncode(userData),
+        );
+
+
         if (_rememberMe) {
           await prefs.setString('email', _emailController.text.trim());
           await prefs.setString('password', _passwordController.text.trim());
@@ -156,23 +169,15 @@ class _LoginPageState extends State<LoginPage> {
 
         // ✅ Role-based Navigation
         if (userData['role'] == 'ADMIN') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => AdminShell(userData: userData)),
-          );
+          context.go('/admin/dashboard');
+
         } else if (userData['role'] == 'BROKER') {
           if (userData['broker'] == null) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BrokerSetupPage(userData: userData),
-              ),
-            );
+            context.go('/broker/setup');
+
           } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => BrokerShell(userData: userData)),
-            );
+            context.go('/broker/dashboard', extra: userData);
+
           }
         }
       } else {
