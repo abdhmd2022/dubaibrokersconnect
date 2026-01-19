@@ -2029,7 +2029,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     );
   }
 
-
 // ------------------- SMALL HELPERS -------------------
   Widget _iconInfo(IconData icon, String text) {
     return Row(
@@ -2051,8 +2050,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       ],
     );
   }
-
-
 
   Widget _buildStatusChangeDialog(String newStatus) {
     return Dialog(
@@ -2173,8 +2170,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     }
   }
 
-
-
   Widget _buildTag(String text) {
     return Chip(
       label: Text(
@@ -2265,7 +2260,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       ),
     );
   }
-
 
   Future<void> _confirmBulkStatusChange() async {
     if (selectedRequirementIds.isEmpty) return;
@@ -2393,8 +2387,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       selectedRequirementIds.clear();
     });
   }
-
-
 
   // ============ PAGINATION ============
   Widget _buildPagination() {
@@ -2554,7 +2546,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
     setState(() => filteredRequirements = filtered);
   }
-
 
   // ================= RIGHT-SIDE DRAWER PANEL =================
 
@@ -2884,7 +2875,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       ),
     );
   }
-
 
   Widget buildRequirementDrawerPanel(BuildContext context, Map<String, dynamic> req, VoidCallback onClose) {
     final broker = req['broker'] ?? {};
@@ -3227,7 +3217,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     );
   }
 
-
   Widget _sectionHeader(IconData icon, String title) {
     return Row(
       children: [
@@ -3538,16 +3527,13 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                         style: GoogleFonts.poppins(
                                           fontSize: 22,
                                           fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
+                                        )),
                                       IconButton(
                                         icon: const Icon(Icons.close_rounded, size: 26),
                                         color: Colors.grey.shade700,
                                         onPressed: () => Navigator.pop(context),
                                         splashRadius: 22,
-                                      ),
-                                    ],
-                                  ),
+                                      )]),
                                   const SizedBox(height: 24),
 
                                   // All top fields
@@ -3567,8 +3553,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                       ),
                                       validator: (v) =>
                                       v!.isEmpty ? "Enter title" : null,
-                                    ),
-                                  ),
+                                    )),
                                   SizedBox(
                                     width: isWide ? 400 : double.infinity,
                                     child: TextFormField(
