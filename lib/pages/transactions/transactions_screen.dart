@@ -951,7 +951,6 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
     );
   }
 
-
   Widget _buildDropdownField({
     required String label,
     required String? value,
@@ -970,7 +969,6 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
     );
   }
 }
-
 
 class ConfirmTransactionDialog extends StatefulWidget {
   final String brokerName;
@@ -1086,8 +1084,7 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
                     onPressed: () => context.pop(),
-                  ),
-                ],
+                  )],
               ),
 
               const SizedBox(height: 10),
@@ -1099,7 +1096,7 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
 
               Text("Your Rating",
                   style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600, fontSize: 13)),
+                    fontWeight: FontWeight.w600, fontSize: 13)),
               const SizedBox(height: 6),
               Row(
                 children: List.generate(5, (index) {
@@ -1160,11 +1157,7 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
+                  )))]),
         ),
       ),
     );
