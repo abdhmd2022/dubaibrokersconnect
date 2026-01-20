@@ -1445,14 +1445,14 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
           actionsPadding: const EdgeInsets.only(right: 16, bottom: 10),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => context.pop(false),
               child: Text(
                 "Cancel",
                 style: GoogleFonts.poppins(color: Colors.grey.shade600),
               ),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => context.pop(true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
@@ -1526,7 +1526,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
 
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => context.pop(false),
               child: Text("Cancel", style: GoogleFonts.poppins(color: Colors.grey.shade600)),
             ),
             ElevatedButton(
@@ -1541,7 +1541,7 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
                   );
                   return;
                 }
-                Navigator.pop(context, true);
+                context.pop(true);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent,

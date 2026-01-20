@@ -4,6 +4,7 @@ import 'package:data_table_2/data_table_2.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -1037,7 +1038,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => context.pop(false),
                       child: Text(
                         "Cancel",
                         style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
@@ -1056,7 +1057,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      onPressed: () => Navigator.pop(context, true),
+                      onPressed: () => context.pop(true),
                       child: Text(
                         "Delete",
                         style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
@@ -2041,7 +2042,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
 
           if (res.statusCode == 200) {
         widget.onFormCreated?.call();
-        Navigator.pop(context);
+        context.pop(context);
       } else {
         final err = jsonDecode(res.body);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2387,7 +2388,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                         ),
                       ),
                       InkWell(
-                        onTap: () => Navigator.pop(context),
+                        onTap: () => context.pop(context),
                         borderRadius: BorderRadius.circular(20),
                         child: const Padding(
                           padding: EdgeInsets.all(4.0),
@@ -2419,7 +2420,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0D2851),
                         padding:
@@ -2547,7 +2548,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
       if (response.statusCode == 201 || response.statusCode == 200) {
         widget.onFormCreated?.call(); // 🔥 triggers refresh in parent
 
-        Navigator.pop(context); // close dialog
+        context.pop(context); // close dialog
 
       } else {
         final err = jsonDecode(response.body);
@@ -2608,7 +2609,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
 
                     IconButton(
                       icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(context),
                     ),
                   ],
                 ),
@@ -2767,7 +2768,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(context),
                       child: Text(
                         "Cancel",
                         style: GoogleFonts.poppins(

@@ -4,6 +4,7 @@ import 'package:a2abrokerapp/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 // import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -671,7 +672,7 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
                             fontSize: 17, fontWeight: FontWeight.w600)),
                     IconButton(
                       icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                     ),
                   ],
                 ),
@@ -1084,7 +1085,7 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                   ),
                 ],
               ),

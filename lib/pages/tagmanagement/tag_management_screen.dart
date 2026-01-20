@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -84,7 +85,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
         actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             style: TextButton.styleFrom(
               foregroundColor: Colors.grey.shade700,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -92,7 +93,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade600,
               foregroundColor: Colors.white,
@@ -179,7 +180,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => context.pop(false),
                       icon: const Icon(Icons.close_rounded, size: 18),
                       label: const Text("Cancel"),
                       style: ElevatedButton.styleFrom(
@@ -195,7 +196,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                     ),
                     const SizedBox(width: 14),
                     ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context, true),
+                      onPressed: () => context.pop(true),
                       icon: const Icon(Icons.delete_outline, size: 18),
                       label: const Text("Yes, Delete"),
                       style: ElevatedButton.styleFrom(
@@ -288,7 +289,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
           actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => context.pop(false),
               style: TextButton.styleFrom(
                 foregroundColor: Colors.grey.shade700,
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -296,7 +297,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => context.pop(true),
               style: ElevatedButton.styleFrom(
                 backgroundColor:
                 newStatus ? Colors.green.shade600 : Colors.red.shade600,
@@ -397,7 +398,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.close, color: Colors.grey),
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => context.pop(),
                         ),
                       ],
                     ),
@@ -476,7 +477,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                           });
 
                           setDialogState(() => isSubmitting = false);
-                          Navigator.pop(context);
+                          context.pop();
                         },
                         child: isSubmitting
                             ? const SizedBox(
@@ -1295,7 +1296,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => context.pop(false),
                       icon: const Icon(Icons.close_rounded, size: 18),
                       label: const Text("Cancel"),
                       style: ElevatedButton.styleFrom(
@@ -1311,7 +1312,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                     ),
                     const SizedBox(width: 14),
                     ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context, true),
+                      onPressed: () => context.pop(true),
                       icon: const Icon(Icons.check_circle_outline, size: 18),
                       label: const Text("Yes, Update"),
                       style: ElevatedButton.styleFrom(

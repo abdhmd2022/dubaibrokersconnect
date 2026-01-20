@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher_web/url_launcher_web.dart';
@@ -42,7 +43,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
               children: [
                 GestureDetector(
 
-                  onTap: () => Navigator.pop(context),
+                  onTap: () => context.pop(),
                   child: Row(
                     children: [
                       const Icon(Icons.arrow_back_ios_new_rounded,
@@ -1018,7 +1019,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: () => Navigator.pop(context),
+                              onPressed: () => context.pop(),
                               icon: const Icon(Icons.close, size: 18),
                               label: const Text("Close"),
                               style: ElevatedButton.styleFrom(

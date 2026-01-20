@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../constants.dart';
@@ -687,7 +688,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                               IconButton(
                                 icon: const Icon(Icons.close_rounded,
                                     color: Colors.black54, size: 24),
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: () => context.pop(),
+
                               ),
                             ],
                           ),
@@ -1303,7 +1305,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                   };
 
                                   await _createProperty(payload);
-                                  Navigator.pop(context);
+                                  context.pop();
                                 }
                               },
 
@@ -1680,7 +1682,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => context.pop(false),
                     icon: const Icon(Icons.close, size: 18, color: Colors.black54),
                     label: const Text("Cancel"),
                     style: OutlinedButton.styleFrom(
@@ -1691,7 +1693,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                   ),
                   const SizedBox(width: 14),
                   ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context, true),
+                    onPressed: () => context.pop(true),
                     icon: const Icon(Icons.check_circle_outline,
                         color: Colors.white, size: 18),
                     label: const Text("Yes, Change"),
@@ -1816,7 +1818,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     OutlinedButton(
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => context.pop(false),
+
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: Colors.grey.shade300),
                         shape: RoundedRectangleBorder(
@@ -1827,7 +1830,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
+                      onPressed: () => context.pop(true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kPrimaryColor,
                         foregroundColor: Colors.white,
@@ -3973,7 +3976,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                             ),
                             IconButton(
                               icon: const Icon(Icons.close_rounded, color: Colors.black54),
-                              onPressed: () => Navigator.pop(context),
+                              onPressed: () => context.pop(),
+
                             ),
                           ],
                         ),
@@ -4097,7 +4101,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
                                 if (response.statusCode == 200) {
                                   final data = jsonDecode(response.body);
                                   if (data['success'] == true) {
-                                    Navigator.pop(context);
+                                    context.pop();
+
                                     /*ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text('Property updated successfully!'),
@@ -4535,7 +4540,8 @@ class _LocationSearchDialogState extends State<LocationSearchDialog> {
                       dense: true,
                       title: highlightText(
                           loc['displayPath'], query, isSelected),
-                      onTap: () => Navigator.pop(context, loc),
+                      onTap: () => context.pop(loc),
+
                     ),
                   );
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -347,7 +348,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                     );
 
                     if (res.statusCode == 200) {
-                      Navigator.pop(context);
+                      context.pop();
                       _fetchRequirements();
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Requirement updated successfully!')),
@@ -387,7 +388,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                               IconButton(
                                 icon: const Icon(Icons.close_rounded, size: 26),
                                 color: Colors.grey.shade700,
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: () => context.pop(),
                                 splashRadius: 22,
                               ),
                             ],
@@ -2097,7 +2098,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => context.pop(false),
                     icon: const Icon(Icons.close, size: 18, color: Colors.black54),
                     label: const Text("Cancel"),
                     style: OutlinedButton.styleFrom(
@@ -2108,7 +2109,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                   ),
                   const SizedBox(width: 14),
                   ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context, true),
+                    onPressed: () => context.pop(true),
                     icon: const Icon(Icons.check_circle_outline,
                         color: Colors.white, size: 18),
                     label: const Text("Yes, Change"),
@@ -2229,7 +2230,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     OutlinedButton(
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => context.pop(false),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: Colors.grey.shade300),
                         shape: RoundedRectangleBorder(
@@ -2240,7 +2241,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
+                      onPressed: () => context.pop(true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kPrimaryColor,
                         foregroundColor: Colors.white,
@@ -3463,7 +3464,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                           );
 
                           if (res.statusCode == 200 || res.statusCode == 201) {
-                            Navigator.pop(context);
+                            context.pop();
                             _fetchRequirements();
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -3531,7 +3532,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                       IconButton(
                                         icon: const Icon(Icons.close_rounded, size: 26),
                                         color: Colors.grey.shade700,
-                                        onPressed: () => Navigator.pop(context),
+                                        onPressed: () => context.pop(),
                                         splashRadius: 22,
                                       )]),
                                   const SizedBox(height: 24),

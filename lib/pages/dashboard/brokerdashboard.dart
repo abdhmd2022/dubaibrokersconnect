@@ -351,7 +351,7 @@ class BrokerDashboardContent extends StatelessWidget {
         return Align(
           alignment: Alignment.centerRight,
           child: buildRequirementDrawerPanel(context, req, () {
-            Navigator.pop(context);
+            context.pop(context);
           }),
         );
       },

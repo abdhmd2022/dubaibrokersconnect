@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -821,7 +822,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.arrow_back_ios_new, size: 16),
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: () => context.pop(),
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -1241,7 +1242,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 await updateBrokerField( payload);
 
                                 // 4️⃣ Close dialog
-                                Navigator.pop(context);
+                                context.pop();
 
                                 // 5️⃣ Refresh profile
                                 await fetchBrokerById();

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../../constants.dart';
@@ -96,7 +97,7 @@ class _PropertyTypesScreenState extends State<PropertyTypesScreen>
           actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => context.pop(false),
               style: TextButton.styleFrom(
                 foregroundColor: Colors.grey.shade700,
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -104,7 +105,7 @@ class _PropertyTypesScreenState extends State<PropertyTypesScreen>
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => context.pop(true),
               style: ElevatedButton.styleFrom(
                 backgroundColor:
                 newStatus ? Colors.green.shade600 : Colors.red.shade600,
@@ -202,7 +203,7 @@ class _PropertyTypesScreenState extends State<PropertyTypesScreen>
         actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             style: TextButton.styleFrom(
               foregroundColor: Colors.grey.shade700,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -210,7 +211,7 @@ class _PropertyTypesScreenState extends State<PropertyTypesScreen>
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade600,
               foregroundColor: Colors.white,
@@ -380,7 +381,7 @@ class _PropertyTypesScreenState extends State<PropertyTypesScreen>
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                       child: const Text('Cancel'),
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.black,
@@ -444,7 +445,7 @@ class _PropertyTypesScreenState extends State<PropertyTypesScreen>
                         print('response -> ${response.body}');
                         if (response.statusCode == 200 ||
                             response.statusCode == 201) {
-                          Navigator.pop(context);
+                          context.pop();
                           fetchPropertyTypes();
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             content: Text(isEdit
