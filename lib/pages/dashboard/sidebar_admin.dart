@@ -25,7 +25,6 @@ class AdminSidebar extends StatelessWidget {
       {'icon': Icons.person, 'label': 'Profile'},
       {'icon': Icons.assignment_outlined, 'label': 'A2A Forms'},
       {'icon': Icons.handshake_outlined, 'label': 'My Transactions'},
-
       {'icon': Icons.cloud_download_outlined, 'label': 'Import from Bayut', 'badge': true},
       {'icon': Icons.cloud_download_outlined, 'label': 'Import from Property Finder', 'badge': true},
       {'icon': Icons.account_tree_outlined, 'label': 'Broker Management', 'badge': true},

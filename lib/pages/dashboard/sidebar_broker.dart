@@ -59,7 +59,7 @@ class BrokerSidebar extends StatelessWidget {
               itemCount: items.length,
               itemBuilder: (context, i) {
                 final bool restrictedByApproval =
-                    !isApproved && (i == 1 || i == 2 || i == 5);
+                    !isApproved && (i == 1 || i == 2 || i == 5 || i == 6);
 
                 final bool restrictedByVerification =
                 (!isVerified && i == 5);
