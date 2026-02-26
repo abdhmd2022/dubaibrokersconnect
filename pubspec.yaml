@@ -33,6 +33,7 @@ dependencies:
   google_fonts:
   http:
   shared_preferences:
+  syncfusion_flutter_pdf:
   url_launcher:
   font_awesome_flutter:
   url_launcher_web:

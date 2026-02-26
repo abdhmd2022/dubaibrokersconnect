@@ -3,7 +3,11 @@ import 'dart:io';
 import 'package:a2abrokerapp/services/auth_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'dart:typed_data';
 import 'package:flutter/services.dart';
+import 'dart:js_util' as js_util;
+import 'dart:html' as html;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
@@ -17,7 +21,8 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/phone_number.dart';
 import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'package:http_parser/http_parser.dart';
-
+import 'dart:html' as html;
+import '../../utils/rera_ocr_service.dart';
 
 class BrokerSetupPage extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -26,6 +31,9 @@ class BrokerSetupPage extends StatefulWidget {
   @override
   State<BrokerSetupPage> createState() => _BrokerSetupPageState();
 }
+
+
+
 
 class _BrokerSetupPageState extends State<BrokerSetupPage> {
   /// Form Key
@@ -76,6 +84,59 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
   bool isPrivileged = false;
   bool isLoading = false;
 
+  Future<String> readPdfText(Uint8List bytes) async {
+
+    final document = PdfDocument(inputBytes: bytes);
+    final extractor = PdfTextExtractor(document);
+    final text = extractor.extractText();
+
+    document.dispose();
+
+    return text;
+  }
+
+  void extractReraDetails(String text) {
+
+    final numberRegex = RegExp(
+        r'(Card\s*Number|رقم\s*البطاقة)[^\d]{0,5}(\d{4,7})',
+        caseSensitive: false);
+
+    final issueRegex = RegExp(
+        r'(Issue\s*Date|تاريخ\s*الاصدار)[^\d]{0,5}(\d{1,2}[/\-]\d{1,2}[/\-]\d{4})',
+        caseSensitive: false);
+
+    final expiryRegex = RegExp(
+        r'(Expiry\s*Date|تاريخ\s*انتهاء)[^\d]{0,5}(\d{1,2}[/\-]\d{1,2}[/\-]\d{4})',
+        caseSensitive: false);
+
+    final numberMatch = numberRegex.firstMatch(text);
+    final issueMatch = issueRegex.firstMatch(text);
+    final expiryMatch = expiryRegex.firstMatch(text);
+
+    if (numberMatch != null) {
+      brnNumberC.text = numberMatch.group(2)!;
+    }
+
+
+    if (issueMatch != null) {
+      brnIssueDate =
+          DateFormat('d/M/yyyy')
+              .parse(issueMatch.group(2)!);
+    }
+
+    if (expiryMatch != null) {
+      brnExpiryDate =
+          DateFormat('d/M/yyyy')
+              .parse(expiryMatch.group(2)!);
+    }
+
+    setState(() {});
+
+    _showSnack(
+      "RERA Card detected & BRN auto-filled. Please verify before submitting",
+      color: Colors.green,
+    );
+  }
 
 
   @override
@@ -83,8 +144,11 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
 
     super.initState();
 
+
+    print('userData -> ${widget.userData}');
     final firstName = widget.userData['firstName'] ?? '';
     final lastName = widget.userData['lastName'] ?? '';
+
 
     // Pre-fill display name if available
     if (firstName.isNotEmpty || lastName.isNotEmpty) {
@@ -313,12 +377,12 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
   /// ------------------------------
   /// DATE PICKER HANDLER
   /// ------------------------------
-  Future<void> _pickDate(bool isIssue) async {
+  Future<void> _pickDate(bool isIssue,DateTime? value) async {
     final picked = await showDatePicker(
       context: context,
       firstDate: DateTime(2015),
       lastDate: DateTime(2035),
-      initialDate: DateTime.now(),
+      initialDate: value
     );
     if (picked != null) {
       setState(() {
@@ -999,9 +1063,59 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
     );
   }
 
+  Future<html.File> compressImage(html.File file) async {
+
+    final reader = html.FileReader();
+    reader.readAsDataUrl(file);
+    await reader.onLoad.first;
+
+    final img = html.ImageElement();
+    img.src = reader.result as String;
+    await img.onLoad.first;
+
+    final canvas = html.CanvasElement(width: 600);
+    final ctx = canvas.context2D;
+
+    final ratio = img.height! / img.width!;
+    canvas.height = (600 * ratio).toInt();
+
+    ctx.drawImageScaled(img, 0, 0, 600, canvas.height!);
+
+    final blob = await canvas.toBlob('image/jpeg', 0.7);
+
+    return html.File([blob!], "compressed.jpg");
+  }
+
+  Future<String> readReraCardImage(html.File file) async {
+
+    final reader = html.FileReader();
+    reader.readAsDataUrl(file);
+    await reader.onLoad.first;
+
+    final imageData = reader.result;
+
+    final promise = js_util.callMethod(
+      js_util.getProperty(js_util.globalThis, 'Tesseract'),
+      'recognize',
+      [
+        imageData,
+        'eng+ara',
+      ],
+    );
+
+    final result = await js_util.promiseToFuture(promise);
+
+    final text = js_util.getProperty(
+        js_util.getProperty(result, 'data'),
+        'text'
+    );
+
+    return text;
+  }
+
   Widget _buildDateField(String label, DateTime? value, bool isIssue) {
     return GestureDetector(
-      onTap: () => _pickDate(isIssue),
+      onTap: () => _pickDate(isIssue,value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         decoration: BoxDecoration(
@@ -1150,8 +1264,105 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
               allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
             );
             if (result != null && result.files.isNotEmpty) {
-              setState(() {
+              setState(() async {
                 _brnAttachmentFile = result.files.first;
+
+                final ext = _brnAttachmentFile!.extension!.toLowerCase();
+
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+
+                String extractedText = "";
+
+                try {
+
+                  // 📄 PDF
+                  if (ext == "pdf") {
+
+                    extractedText =
+                    await readPdfText(_brnAttachmentFile!.bytes!);
+
+                  }
+
+                  // 🖼 IMAGE
+                  else if (ext == "jpg" || ext == "jpeg" || ext == "png") {
+
+                    final originalFile = html.File(
+                      [_brnAttachmentFile!.bytes!],
+                      _brnAttachmentFile!.name,
+                    );
+
+
+
+                    extractedText =
+                    await readReraCardImage(originalFile);
+
+                    print('extracted from photo -> $extractedText');
+                  }
+
+                  Navigator.pop(context);
+
+                  extractReraDetails(extractedText);
+
+                } catch (e) {
+
+                  Navigator.pop(context);
+
+                  _showSnack(
+                    "Unable to read RERA card. Please upload clear file.",
+                    color: Colors.red,
+                  );
+
+                  print("READ ERROR: $e");
+                }
+                /*if (kIsWeb && _brnAttachmentFile!.bytes != null) {
+
+
+
+                  final htmlFile = html.File(
+                    [_brnAttachmentFile!.bytes!],
+                    _brnAttachmentFile!.name,
+                  );
+
+                  try {
+
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+
+                    final extractedText =
+                    await readPdfText(_brnAttachmentFile!.bytes!);
+
+                    Navigator.pop(context);
+
+                    print("PDF TEXT:");
+                    print(extractedText);
+
+                    extractReraDetails(extractedText);
+
+                  } catch (e) {
+
+                    Navigator.pop(context);
+
+                    _showSnack(
+                      "Unable to read RERA card. Try clear image.",
+                      color: Colors.red,
+                    );
+
+                    print("OCR ERROR: $e");
+                  }
+
+
+                }*/
               });
             }
           },
@@ -1186,6 +1397,10 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
                     onPressed: () => setState(() {
                       _brnAttachmentFile = null;
                       _brnAttachmentUrl = null;
+                      brnExpiryDate = null;
+
+                      brnIssueDate = null;
+                      brnNumberC.clear();
                     }),
                   ),
               ],

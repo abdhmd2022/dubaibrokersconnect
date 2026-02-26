@@ -111,12 +111,14 @@ class _LoginPageState extends State<LoginPage> {
     if (savedEmail != null && savedPassword != null) {
       _emailController.text = savedEmail;
       _passwordController.text = savedPassword;
-      _rememberMe = true;
-      _login(autoLogin: true);
+      _rememberMe = false;
+      _login(autoLogin: false);
     }
   }
 
   Future<void> _login({bool autoLogin = false}) async {
+
+
     if (!autoLogin && !_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
@@ -173,9 +175,10 @@ class _LoginPageState extends State<LoginPage> {
 
         } else if (userData['role'] == 'BROKER') {
           if (userData['broker'] == null) {
-            context.go('/broker/setup');
+            context.go('/broker/setup', extra: userData);
 
           } else {
+            print('navigating to broker dashboard');
             context.go('/broker/dashboard', extra: userData);
 
           }
