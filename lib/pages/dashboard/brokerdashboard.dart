@@ -394,12 +394,12 @@ class BrokerDashboardContent extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   _roleChip("Broker", kPrimaryColor, Icons.badge_outlined),
-                  if (isApproved)
+                  /*if (isApproved)
                     Padding(
                       padding: const EdgeInsets.only(left: 6),
                       child:
                       _roleChip("Approved", Colors.orange, Icons.approval_rounded),
-                    ),
+                    ),*/
                   if (isVerified)
                     Padding(
                       padding: const EdgeInsets.only(left: 6),
