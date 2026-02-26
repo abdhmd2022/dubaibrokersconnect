@@ -54,9 +54,28 @@ GoRouter createRouter() {
 
       // 2️⃣ Logged in → block going back to login ONLY
       if (location == '/login') {
-        return user['role'] == 'ADMIN'
-            ? '/admin/dashboard'
-            : '/broker/dashboard';
+
+        if (user['role'] == 'ADMIN') {
+          return '/admin/dashboard';
+        }
+
+        if (user['role'] == 'BROKER') {
+
+          final broker = user['broker'];
+
+          final bool isBrokerMissing =
+              broker == null ||
+                  (broker is Map && broker.isEmpty) ||
+                  broker?['id'] == null;
+
+          if (isBrokerMissing) {
+            print("Redirect → Broker Setup");
+            return '/broker/setup';
+          } else {
+            print("Redirect → Broker Dashboard");
+            return '/broker/dashboard';
+          }
+        }
       }
 
       // 3️⃣ 🔑 CRITICAL: allow refresh on current route

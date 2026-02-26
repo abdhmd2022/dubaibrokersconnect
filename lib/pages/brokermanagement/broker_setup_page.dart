@@ -1099,7 +1099,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       'recognize',
       [
         imageData,
-        'eng+ara',
+        'eng',
       ],
     );
 
@@ -1261,7 +1261,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
               : () async {
             final result = await FilePicker.platform.pickFiles(
               type: FileType.custom,
-              allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+              allowedExtensions: ['pdf'],
             );
             if (result != null && result.files.isNotEmpty) {
               setState(() async {
@@ -1286,6 +1286,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
 
                     extractedText =
                     await readPdfText(_brnAttachmentFile!.bytes!);
+                    print('extracted from pdf -> $extractedText');
 
                   }
 
@@ -1408,34 +1409,28 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
           ),
         ),
 
-        if (_brnAttachmentFile != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: _brnAttachmentFile!.extension!.toLowerCase() == 'pdf'
-                ? Row(
-              children: const [
-                Icon(Icons.picture_as_pdf, color: Colors.redAccent),
-                SizedBox(width: 8),
-                Text("PDF selected"),
-              ],
-            )
-                : ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: kIsWeb
-                  ? Image.memory(
-                _brnAttachmentFile!.bytes!,
-                height: 130,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              )
-                  : Image.file(
-                File(_brnAttachmentFile!.path!),
-                height: 130,
-                width: double.infinity,
-                fit: BoxFit.cover,
+        const SizedBox(height: 6),
+
+        Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 14,
+              color: Colors.grey.shade500,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              "Accepted file type: .pdf",
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.w400,
               ),
             ),
-          ),
+          ],
+        ),
+
+
 
 
 

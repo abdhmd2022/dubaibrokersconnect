@@ -111,8 +111,8 @@ class _LoginPageState extends State<LoginPage> {
     if (savedEmail != null && savedPassword != null) {
       _emailController.text = savedEmail;
       _passwordController.text = savedPassword;
-      _rememberMe = false;
-      _login(autoLogin: false);
+      _rememberMe = true;
+      _login(autoLogin: true);
     }
   }
 
@@ -174,13 +174,26 @@ class _LoginPageState extends State<LoginPage> {
           context.go('/admin/dashboard');
 
         } else if (userData['role'] == 'BROKER') {
-          if (userData['broker'] == null) {
+
+          final broker = userData['broker'];
+
+          // Broker setup incomplete cases:
+          // 1. broker == null
+          // 2. broker = {}
+          // 3. broker.id == null
+          // 4. broker.isVerified == false
+
+          final bool isBrokerMissing =
+              broker == null ||
+                  (broker is Map && broker.isEmpty) ||
+                  broker?['id'] == null;
+
+          if (isBrokerMissing) {
+            print('Broker is NULL / EMPTY → Navigating to setup');
             context.go('/broker/setup', extra: userData);
-
           } else {
-            print('navigating to broker dashboard');
+            print('Broker exists → Navigating to dashboard');
             context.go('/broker/dashboard', extra: userData);
-
           }
         }
       } else {
