@@ -1261,7 +1261,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
               : () async {
             final result = await FilePicker.platform.pickFiles(
               type: FileType.custom,
-              allowedExtensions: ['pdf'],
+              allowedExtensions: ['pdf','jpg', 'jpeg', 'png'],
             );
             if (result != null && result.files.isNotEmpty) {
               setState(() async {
@@ -1420,7 +1420,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
             ),
             const SizedBox(width: 6),
             Text(
-              "Accepted file type: .pdf",
+              "Accepted file types: .pdf, .jpg, .jpeg, .png",
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: Colors.grey.shade500,
@@ -1430,34 +1430,55 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
           ],
         ),
 
-
         if (_brnAttachmentFile != null)
           Padding(
             padding: const EdgeInsets.only(top: 12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _brnAttachmentFile!.name,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
+            child: _brnAttachmentFile!.extension!.toLowerCase() == 'pdf'
+                ?
+    Padding(
+    padding: const EdgeInsets.only(top: 12),
+    child: Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    decoration: BoxDecoration(
+    color: Colors.red.withOpacity(0.05),
+    borderRadius: BorderRadius.circular(10),
+    border: Border.all(color: Colors.red.withOpacity(0.2)),
+    ),
+    child: Row(
+    children: [
+    const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+    const SizedBox(width: 8),
+    Expanded(
+    child: Text(
+    _brnAttachmentFile!.name,
+    style: GoogleFonts.poppins(
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    ),
+    ),
+    ),
+    ],
+    ),
+    ),
+    )
+                : ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: kIsWeb
+                  ? Image.memory(
+                _brnAttachmentFile!.bytes!,
+                height: 130,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              )
+                  : Image.file(
+                File(_brnAttachmentFile!.path!),
+                height: 130,
+                width: double.infinity,
+                fit: BoxFit.cover,
               ),
             ),
           ),
+
 
 
       ],
