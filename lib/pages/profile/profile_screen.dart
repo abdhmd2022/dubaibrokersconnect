@@ -1561,10 +1561,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                         color: Colors.black87,
                                       ),
                                     ),
-                                    const SizedBox(width: 10),
+
 
                                     // APPROVAL TAGS
-                                    if (approvalStatus == "APPROVED")
+                                    /*if (approvalStatus == "APPROVED")
                                       _statusTag(
                                         icon: Icons.approval_rounded,
                                         label: "Approved",
@@ -1572,7 +1572,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                         bg: Colors.orange.shade50,
                                         border: Colors.orange.shade300,
                                       )
-                                    else if (approvalStatus == "PENDING")
+                                    else */if (approvalStatus == "PENDING")...[
+                                       const SizedBox(width: 10),
                                       _statusTag(
                                         icon: Icons.hourglass_empty_outlined,
                                         label: "Not Approved",
@@ -1580,14 +1581,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                         bg: Colors.blue.shade50,
                                         border: Colors.blue.shade300,
                                       )
-                                    else
-                                      _statusTag(
-                                        icon: Icons.cancel_outlined,
-                                        label: "Not Approved",
-                                        color: Colors.red.shade700,
-                                        bg: Colors.red.shade50,
-                                        border: Colors.red.shade300,
-                                      ),
+            ]
+
+                                    else if (approvalStatus == "NOT APPROVED")...[
+                                        const SizedBox(width: 10),
+                                        _statusTag(
+                                          icon: Icons.cancel_outlined,
+                                          label: "Not Approved",
+                                          color: Colors.red.shade700,
+                                          bg: Colors.red.shade50,
+                                          border: Colors.red.shade300,
+                                        ),
+                                      ],
+
 
                                     const SizedBox(width: 8),
 

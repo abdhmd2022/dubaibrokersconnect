@@ -1628,6 +1628,32 @@ class _BrokerManagementScreenState extends State<BrokerManagementScreen> {
           },
         );
       }
+      else
+        {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                ],
+              ),
+              content: Text(
+                "This broker is approved but not verified due to missing BRN details.",
+                style: TextStyle(fontSize: 14),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text("OK"),
+                ),
+              ],
+            ),
+          );
+        }
 
       // 3️⃣ Refresh list
       _fetchBrokers(refresh: true);

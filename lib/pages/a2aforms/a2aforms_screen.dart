@@ -632,7 +632,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                                       builder: (context, constraints) {
                                         final sellerBox = _partyBox(
                                           title: 'A) THE AGENT / BROKER (SELLER\'S AGENT)',
-                                          establishment: _safe(data['a2aCompanyName']),
+                                          establishment: _safe(data['sellerAgentEstablishment']),
                                           address: _safe(data['sellerAgentAddress']),
                                           phone: _safe(data['sellerAgentPhone']),
                                           fax: _safe(data['sellerAgentFax']),
@@ -2071,7 +2071,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
 
     // 🧩 Safely map values to text fields
     buyerAgentNameC.text = broker?['displayName'] ?? '${user['firstName']} ${user['lastName']}';
-    buyerEstablishmentNameC.text = user['companyName'] ?? broker?['user']?['companyName'] ?? 'Freelancer';
+    buyerEstablishmentNameC.text = user['companyName'] ?? broker?['companyName'] ?? 'Freelancer';
     buyerOfficeAddressC.text = broker?['address'] ?? '';
     buyerPhoneC.text = broker?['phone'] ?? broker['mobile'] ?? '';
     buyerFaxC.text = '';
@@ -2721,7 +2721,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   isExpanded: true,
-                                  value: widget.userData["companyName"]?? 'Freelancer',
+                                  value: widget.userData["broker"]?["companyName"]?? 'Freelancer',
                                   icon: const Icon(Icons.keyboard_arrow_down_rounded,
                                       color: Colors.black54),
                                   style: GoogleFonts.poppins(
@@ -2730,9 +2730,9 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                                   ),
                                   items: [
                                     DropdownMenuItem<String>(
-                                      value: widget.userData["companyName"]?? 'Freelancer',
+                                      value: widget.userData["broker"]?["companyName"]?? 'Freelancer',
                                       child: Text(
-                                          '${widget.userData["companyName"]?? 'Freelancer'} (ORN: ${widget.userData['broker']["reraNumber"]})' ?? "No Company Found",
+                                          '${widget.userData["broker"]?["companyName"]?? 'Freelancer'} (ORN: ${widget.userData['broker']["reraNumber"]})' ?? "No Company Found",
                                         style: GoogleFonts.poppins(fontSize: 13),
                                       ),
                                     ),
@@ -3334,17 +3334,31 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
             // ✅ Include verified brokers only + Manual option
             items: [
               ..._brokers
-                  .where((b) =>
-              b['isVerified'] == true &&
-                  b['id'] != widget.userData['broker']['id']) // exclude current broker
+                  .where((b) {
+                final isApproved = b['approvalStatus'] == 'APPROVED';
+                final isVerified = b['isVerified'] == true;
+                final isNotSelf = b['id'] != widget.userData['broker']['id'];
+
+                final hasCompany = b['companyName'] != null &&
+                    b['companyName'].toString().trim().isNotEmpty;
+
+                final hasBRN = b['brnNumber'] != null &&
+                    b['brnNumber'].toString().trim().isNotEmpty;
+
+                return isApproved &&
+                    isVerified &&
+                    isNotSelf &&
+                    hasCompany &&
+                    hasBRN;
+              })
                   .map((b) => DropdownMenuItem<String>(
                 value: b["id"],
                 child: Text(
-                  "${b["displayName"] ?? 'Unnamed Broker'} - ${b["user"]?["companyName"] ?? 'Freelancer'}",
+                  "${b["displayName"]} - ${b["companyName"]} (BRN: ${b["brnNumber"]})",
                   style: GoogleFonts.poppins(fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
                 ),
               )),
-
             ],
 
             // ✅ On change logic
@@ -3375,7 +3389,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
 
 
                   sellerAgentC.text = broker["displayName"] ?? '';
-                  sellerEstablishmentC.text = broker["user"]?["companyName"] ?? 'Freelancer';
+                  sellerEstablishmentC.text = broker["companyName"] ?? 'Freelancer';
                   sellerOrnC.text = broker["reraNumber"] ?? '';
                   sellerBrnC.text = broker["brnNumber"] ?? '';
                   sellerMobileC.text = broker["mobile"] ?? '';

@@ -27,6 +27,8 @@ class BrokerSidebar extends StatelessWidget {
       {'icon': Icons.people, 'label': 'Broker Directory'},
       {'icon': Icons.person, 'label': 'Profile'},
       {'icon': Icons.assignment_outlined, 'label': 'A2A Forms'},
+      {'icon': Icons.handshake_outlined, 'label': 'My Transactions'},
+
     ];
 
     final routes = [
@@ -36,6 +38,8 @@ class BrokerSidebar extends StatelessWidget {
       '/broker/brokers',
       '/broker/profile',
       '/broker/forms',
+      '/broker/mytransactions',
+
     ];
 
     final location = GoRouterState.of(context).uri.toString();

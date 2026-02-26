@@ -4,13 +4,16 @@ import 'package:a2abrokerapp/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 // import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/animated_logo_loader.dart';
+import '../../widgets/web_image_widget.dart';
 
 class MyTransactionsScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -92,22 +95,27 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
         final List<Map<String, dynamic>> txList =
         data.map((e) => Map<String, dynamic>.from(e)).toList();
 
-        // 🟢 Pending My Confirmation → transactions I created
+        // 🟢 Pending My Confirmation → transactions created by OTHER broker, but assigned to ME
         final myPending = txList.where((tx) {
-          final status = tx["status"]?.toString().toUpperCase();
+          final status = (tx["status"] ?? "").toString().toUpperCase();
           final createdBy = tx["createdByBrokerId"];
-          return status == "PENDING" && createdBy == currentBrokerId;
-        }).toList();
+          final brokerId = tx["brokerId"]; // the broker who needs to confirm / transaction belongs to
 
-        // 🟣 Pending Others → transactions others created for me
-        final othersPending = txList.where((tx) {
-          final status = tx["status"]?.toString().toUpperCase();
-          final brokerId =
-              tx["brokerId"] ?? (tx["broker"] is Map ? tx["broker"]["id"] : null);
-          final createdBy = tx["createdByBrokerId"];
           return status == "PENDING" &&
               brokerId == currentBrokerId &&
               createdBy != currentBrokerId;
+        }).toList();
+
+        // 🟣 Pending Others Confirmation → created by ME, waiting for OTHER broker
+        final othersPending = txList.where((tx) {
+          final status = (tx["status"] ?? "").toString().toUpperCase();
+          final createdBy = tx["createdByBrokerId"];
+          final brokerId =
+              tx["brokerId"] ?? (tx["broker"] is Map ? tx["broker"]["id"] : null);
+
+          return status == "PENDING" &&
+              createdBy == currentBrokerId &&
+              brokerId != currentBrokerId;
         }).toList();
 
         // 🟢 Completed Transactions — mine or assigned to me
@@ -152,6 +160,7 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final currentBrokerId = widget.userData["broker"]["id"];
     return Scaffold(
       backgroundColor: backgroundColor,
       floatingActionButton: FloatingActionButton(
@@ -238,9 +247,11 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildTransactionList(pendingMyConfirmations, true),
-                    _buildTransactionList(pendingOthersList, false),
-                    _buildTransactionList(completedTransactions, false, completed: true),
+
+
+                _buildTransactionList(pendingMyConfirmations, true, currentBrokerId: currentBrokerId),
+                _buildTransactionList(pendingOthersList, false, currentBrokerId: currentBrokerId),
+                _buildTransactionList(completedTransactions, false, completed: true, currentBrokerId: currentBrokerId),
 
                   ],
                 ),
@@ -254,10 +265,761 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
     );
   }
 
+  void _showInitiatorDetailsDialog(Map<String, dynamic>? user) {
+    if (user == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                /// 🔹 Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Initiator Details",
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => context.pop(),
+                    )
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                _infoTile("Name", user["display_name"]),
+                _infoTile("Email", user["email"]),
+                _infoTile("Phone", user["phone"]),
+                _infoTile("Company", user["company_name"]),
+                _infoTile("Role", user["role"]),
+                _infoTile("Broker ID", user["broker_id"]),
+
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _infoTile(String title, dynamic value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Text(
+            "$title: ",
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value?.toString() ?? "-",
+              style: GoogleFonts.poppins(fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> _fetchBrokerById(String brokerId) async {
+    final token = await AuthService.getToken();
+
+    final res = await http.get(
+      Uri.parse("$baseURL/api/brokers/$brokerId"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body)["data"] ?? {};
+    } else {
+      throw Exception("Broker fetch failed");
+    }
+  }
+
+  Future<void> _handleContactTap(BuildContext context, String label,
+      Map<String, dynamic> brokerData) async {
+    final phone = brokerData['phone'] ?? '';
+    final email = brokerData['email'] ?? '';
+    final name = brokerData['displayName'] ?? 'Broker';
+
+    try {
+      if (label.contains("Call")) {
+        final Uri callUri = Uri(scheme: 'tel', path: phone);
+        await launchUrl(callUri, mode: LaunchMode.externalApplication);
+      }  else if (label.contains("WhatsApp")) {
+        final whatsapp = brokerData['user']?['whatsappno'] ?? '';
+
+        if (whatsapp.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("WhatsApp number not available")),
+          );
+          return;
+        }
+
+        final Uri whatsappUri = Uri.parse("https://wa.me/$whatsapp?text=Hello%20$name!");
+
+        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+      }
+      else if (label.contains("Email")) {
+        final Uri emailUri = Uri(
+          scheme: 'mailto',
+          path: email,
+          query: Uri.encodeFull('subject=Property Inquiry&body=Hello $name,'),
+        );
+        await launchUrl(emailUri);
+      } else if (label.contains("Profile")) {
+        _showBrokerProfilePopup(context, brokerData['id']);
+      }
+
+    } catch (e) {
+      debugPrint('Error launching contact action: $e');
+    }
+  }
+  Future<Map<String, dynamic>> _fetchBrokerProfile(dynamic brokerId) async {
+    final token = await AuthService.getToken();
+    final url = Uri.parse("$baseURL/api/brokers/$brokerId"); // 👈 replace with actual endpoint
+    final response = await http.get(url, headers: {
+      'Authorization': 'Bearer $token', // add if required
+      'Content-Type': 'application/json',
+    });
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      return json['data'] ?? {};
+    } else {
+      throw Exception('Failed to load broker profile');
+    }
+  }
+
+  /// 🔹 Section title with small accent line
+  Widget _sectionHeader(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 6, top: 4),
+    child: Row(
+      children: [
+        Container(width: 3, height: 18, color: Colors.blueAccent),
+        const SizedBox(width: 8),
+        Text(text,
+            style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w700, fontSize: 15)),
+      ],
+    ),
+  );
+
+  /// 🔹 Error display
+  Widget _errorDialog(String message) => Container(
+    width: 300,
+    height: 160,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+            color: Colors.black12.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 6))
+      ],
+    ),
+    child: Center(
+      child: Text(message,
+          style: GoogleFonts.poppins(
+              color: Colors.redAccent, fontWeight: FontWeight.w600)),
+    ),
+  );
+
+  /// 🔹 Helper to get correct social icon
+  Map<String, dynamic> _getSocialIcon(String key) {
+    switch (key.toLowerCase()) {
+      case 'facebook':
+        return {
+          'icon': FontAwesomeIcons.facebookF,
+          'color': const Color(0xFF1877F2),
+        };
+      case 'instagram':
+        return {
+          'icon': FontAwesomeIcons.instagram,
+          'color': const Color(0xFFE1306C),
+        };
+      case 'linkedin':
+        return {
+          'icon': FontAwesomeIcons.linkedinIn,
+          'color': const Color(0xFF0A66C2),
+        };
+      case 'twitter':
+      case 'x':
+        return {
+          'icon': FontAwesomeIcons.xTwitter,
+          'color': Colors.black,
+        };
+      case 'youtube':
+        return {
+          'icon': FontAwesomeIcons.youtube,
+          'color': const Color(0xFFFF0000),
+        };
+      case 'tiktok':
+        return {
+          'icon': FontAwesomeIcons.tiktok,
+          'color': const Color(0xFF010101),
+        };
+      case 'whatsapp':
+        return {
+          'icon': FontAwesomeIcons.whatsapp,
+          'color': const Color(0xFF25D366),
+        };
+      default:
+        return {
+          'icon': FontAwesomeIcons.globe,
+          'color': Colors.grey.shade600,
+        };
+    }
+  }
+
+
+  Widget _actionChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 16),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: GoogleFonts.poppins(
+                  color: color,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showBrokerProfilePopup(BuildContext context, dynamic brokerId) async {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 120,  // 👈 smaller padding from edges
+            vertical: 100,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 500,   // 👈 limits popup width
+                maxHeight: 650,  // 👈 limits popup height
+              ),
+              child: FutureBuilder<Map<String, dynamic>>(
+                future: _fetchBrokerProfile(brokerId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 80),
+                          AnimatedLogoLoader(assetPath: 'assets/collabrix_logo.png'),
+                        ],
+                      ),
+                    );
+                  } else if (snapshot.hasError) {
+
+                    return _errorDialog("Failed to load profile");
+                  }
+
+                  final data = snapshot.data ?? {};
+                  final user = data['user'] ?? {};
+                  final properties = data['properties'] ?? [];
+                  final reviews = data['reviews'] ?? [];
+                  dynamic avatarUrl = data['avatar'];
+
+                  // Determine the full image URL - handle both absolute and relative paths
+                  final String? imageUrl = (avatarUrl != null && avatarUrl.toString().isNotEmpty)
+                      ? (avatarUrl.toString().startsWith('http://') || avatarUrl.toString().startsWith('https://'))
+                      ? avatarUrl.toString()
+                      : '$baseURL/$avatarUrl'
+                      : null;
+
+                  return Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 25,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(22),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 🔹 Gradient Header
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  kPrimaryColor.withOpacity(0.85),
+                                  Colors.teal.shade400.withOpacity(0.85)
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircleAvatar(
+                                  radius: 40,
+                                  backgroundColor: Colors.white.withOpacity(0.2),
+                                  child: imageUrl != null
+
+                                      ? ClipOval(
+                                    child: WebCompatibleImage(
+                                      imageUrl: imageUrl,
+                                      width: 80,
+                                      height: 80,
+                                      fallback: Text(
+                                        (data['displayName'] ?? 'A')[0].toUpperCase(),
+                                        style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 24,
+                                            color: Colors.white),
+                                      ),
+                                    ),
+                                  )
+                                      : Text(
+                                    (data['displayName'] ?? 'A')[0].toUpperCase(),
+                                    style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 24,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  data['displayName'] ?? 'Broker Name',
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18),
+                                ),
+                                Text(
+                                  data['companyName'] ?? '',
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.white70, fontSize: 13),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _badge("Verified", Colors.greenAccent, Icons.verified),
+                                    const SizedBox(width: 6),
+                                    _badge("${data['rating'] ?? '4.8'} ★",
+                                        Colors.amberAccent, Icons.star_rounded),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+                          _sectionHeader("Contact Details"),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              if (data['phone'] != null)
+                                _actionChip(
+                                  icon: Icons.phone,
+                                  label: data['phone'],
+                                  color: Colors.blue.shade700,
+                                  onTap: () async {
+                                    final Uri callUri = Uri(scheme: 'tel', path: data['phone']);
+                                    if (await canLaunchUrl(callUri)) {
+                                      await launchUrl(callUri, mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                ),
+
+                              if (data['email'] != null)
+                                _actionChip(
+                                  icon: Icons.email_outlined,
+                                  label: data['email'],
+                                  color: Colors.orange.shade700,
+                                  onTap: () async {
+                                    final Uri emailUri = Uri(
+                                      scheme: 'mailto',
+                                      path: data['email'],
+                                      query: Uri.encodeFull('subject=Property Inquiry&body=Hello ${data['displayName'] ?? ''},'),
+                                    );
+                                    if (await canLaunchUrl(emailUri)) {
+                                      await launchUrl(emailUri, mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                ),
+
+                              if (data['website'] != null)
+                                _actionChip(
+                                  icon: Icons.language,
+                                  label: data['website']
+                                      .toString()
+                                      .replaceAll(RegExp(r'https?://'), ''), // remove protocol
+                                  color: Colors.teal.shade700,
+                                  onTap: () async {
+                                    final Uri webUri = Uri.parse(data['website']);
+                                    if (await canLaunchUrl(webUri)) {
+                                      await launchUrl(webUri, mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                ),
+                            ],
+                          ),
+
+
+                          const SizedBox(height: 18),
+                          _sectionHeader("About"),
+                          Text(
+                            data['bio'] ??
+                                "Experienced agent with a strong portfolio in UAE’s luxury property market.",
+                            textAlign: TextAlign.start,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13.5,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+
+                          const SizedBox(height: 18),
+                          if (data['specializations'] != null &&
+                              (data['specializations'] as List).isNotEmpty)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionHeader("Specializations"),
+                                const SizedBox(height: 6),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: (data['specializations'] as List)
+                                      .map((s) => _modernChip(s, Colors.blue.shade700))
+                                      .toList(),
+                                ),
+                              ],
+                            ),
+
+                          const SizedBox(height: 16),
+                          if (data['languages'] != null &&
+                              (data['languages'] as List).isNotEmpty)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionHeader("Languages"),
+                                const SizedBox(height: 6),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  alignment: WrapAlignment.start,
+                                  children: (data['languages'] as List)
+                                      .map((lang) => _modernChip(lang, Colors.teal.shade700))
+                                      .toList(),
+                                ),
+                              ],
+                            ),
+
+                          const SizedBox(height: 20),
+                          if (data['socialLinks'] != null &&
+                              (data['socialLinks'] as Map).isNotEmpty) ...[
+                            _sectionHeader("Social Links"),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 12,
+                              children: [
+                                for (final entry
+                                in (data['socialLinks'] as Map<String, dynamic>).entries)
+                                  if (entry.value != null &&
+                                      entry.value.toString().isNotEmpty)
+                                    Builder(builder: (_) {
+                                      final social = _getSocialIcon(entry.key);
+                                      return InkWell(
+                                        onTap: () async {
+                                          final url = entry.value.toString().startsWith('@')
+                                              ? "https://instagram.com/${entry.value.toString().replaceAll('@', '')}"
+                                              : entry.value.toString();
+                                          final uri = Uri.parse(url);
+                                          if (await canLaunchUrl(uri)) {
+                                            await launchUrl(uri,
+                                                mode: LaunchMode.externalApplication);
+                                          }
+                                        },
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: CircleAvatar(
+                                          backgroundColor:
+                                          social['color'].withOpacity(0.1),
+                                          radius: 18,
+                                          child: Icon(social['icon'],
+                                              color: social['color'], size: 18),
+                                        ),
+                                      );
+                                    }),
+                              ],
+                            ),
+                          ],
+
+                          /* const SizedBox(height: 22),
+
+                          if (properties.isNotEmpty) ...[
+                            _sectionHeader("Recent Listings"),
+                            const SizedBox(height: 10),
+
+                            SizedBox(
+                              height: 220,
+                              child: ListView.separated(
+                                scrollDirection: Axis.vertical,
+                                physics: const BouncingScrollPhysics(),
+                                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                                itemCount: properties.length,
+                                itemBuilder: (context, index) {
+                                  final property = properties[index];
+                                  final imageList = (property['images'] ?? []) as List;
+                                  final imageUrl = imageList.isNotEmpty
+                                      ? "$baseURL/${imageList.first}"
+                                      : 'https://via.placeholder.com/300';
+                                  final price = property['price'] != null
+                                      ? "AED ${property['price']}"
+                                      : 'Price not available';
+                                  final category = property['category'] ?? '';
+                                  final type = property['transactionType'] ?? '';
+                                  final createdAt = property['createdAt'] != null
+                                      ? DateTime.tryParse(property['createdAt'])
+                                      : null;
+
+                                  return AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    width: 230,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black12.withOpacity(0.08),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        /// Property image
+                                        ClipRRect(
+                                          borderRadius:
+                                          const BorderRadius.vertical(top: Radius.circular(16)),
+                                          child:  Image.asset(
+                                            'assets/collabrix_logo.png',
+                                            fit: BoxFit.cover,
+                                          ),*//*Image.network(
+                                            imageUrl,
+                                            height: 120,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => Container(
+                                              height: 120,
+                                              color: Colors.grey.shade100,
+                                              child: const Icon(Icons.image_not_supported_outlined,
+                                                  color: Colors.grey),
+                                            ),
+                                          ),*//*
+                                        ),
+
+                                        /// Property info
+                                        Padding(
+                                          padding:
+                                          const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              /// Title
+                                              Text(
+                                                property['title'] ?? 'Untitled Property',
+                                                softWrap: true,
+                                                overflow: TextOverflow.visible,
+                                                style: GoogleFonts.poppins(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 13.5,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+
+                                              /// Price
+                                              Row(
+                                                children: [
+                                                  const Icon(Icons.currency_exchange_rounded,
+                                                      size: 14, color: Colors.green),
+                                                  const SizedBox(width: 4),
+                                                  Flexible(
+                                                    child: Text(
+                                                      price,
+                                                      style: GoogleFonts.poppins(
+                                                        fontSize: 12.5,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: Colors.green.shade700,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+
+                                              /// Category + Type
+                                              Row(
+                                                children: [
+                                                  const Icon(Icons.home_work_outlined,
+                                                      size: 14, color: Colors.blueGrey),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    "$category • $type",
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 12,
+                                                      color: Colors.blueGrey.shade600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+
+
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],*/
+
+
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () => context.pop(),
+                              icon: const Icon(Icons.close, size: 18),
+                              label: const Text("Close"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kPrimaryColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 🔹 Compact badge
+  Widget _badge(String text, Color color, IconData icon) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.2),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 4),
+        Text(text,
+            style: GoogleFonts.poppins(
+                color: color, fontWeight: FontWeight.w600, fontSize: 12)),
+      ],
+    ),
+  );
+
+  /// 🔹 Modern minimal chip
+  Widget _modernChip(String text, Color color) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.08),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(text,
+        style: GoogleFonts.poppins(
+            color: color, fontWeight: FontWeight.w600, fontSize: 12)),
+  );
+
+
   Widget _buildTransactionList(
       List<Map<String, dynamic>> items,
       bool showConfirmButton, {
         bool completed = false,
+        required String currentBrokerId,
+
       }) {
     if (_loading) {
       return Center(
@@ -475,13 +1237,17 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
                               ),
                             ],
                           ),
-                          if (!completed && !showConfirmButton) ...[
-                            const SizedBox(height: 6),
+                          const SizedBox(height: 6),
+
+                          /// ================= PENDING MY CONFIRMATION =================
+                          /// Others initiated → You confirm
+                          if (showConfirmButton) ...[
                             Row(
                               children: [
                                 Icon(Icons.account_circle_outlined,
                                     size: 15, color: Colors.grey.shade600),
                                 const SizedBox(width: 4),
+
                                 Text(
                                   "Initiated by: ${tx["created_by"]?["display_name"] ?? "Unknown"}",
                                   style: GoogleFonts.poppins(
@@ -490,9 +1256,147 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
                                     fontStyle: FontStyle.italic,
                                   ),
                                 ),
+
+                                SizedBox(width: 8,),
+
+                                if (tx["createdByBrokerId"] != currentBrokerId)
+                                  InkWell(
+                                    onTap: () {
+                                      _showBrokerProfilePopup(
+                                        context,
+                                        tx["createdByBrokerId"],
+                                      );
+                                    },
+                                    child: const Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 16,
+                                      color: Colors.blueAccent,
+                                    ),
+                                  ),
                               ],
                             ),
                           ],
+
+                          /// ================= PENDING OTHERS =================
+                          /// You initiated → Others confirm
+                          if (!showConfirmButton && !completed) ...[
+                            const SizedBox(height: 4),
+
+                            Row(
+                              children: [
+                                Icon(Icons.hourglass_top_rounded,
+                                    size: 15, color: Colors.orange),
+                                const SizedBox(width: 4),
+
+                                Text(
+                                  "Pending with: ${
+                                      tx["broker"] is Map
+                                          ? (tx["broker"]["displayName"] ?? "Unknown")
+                                          : (tx["broker"]?.toString() ?? "Unknown")
+                                  }",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.5,
+                                    color: Colors.orange.shade700,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                                SizedBox(width: 8,),
+                                if (tx["brokerId"] != currentBrokerId)
+                                  InkWell(
+                                    onTap: () {
+                                      _showBrokerProfilePopup(
+                                        context,
+                                        tx["brokerId"],
+                                      );
+                                    },
+                                    child: const Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 16,
+                                      color: Colors.blueAccent,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+
+                          /// ================= COMPLETED =================
+                          if (completed) ...[
+                            const SizedBox(height: 4),
+
+                            /// Initiator
+                            Row(
+                              children: [
+                                Icon(Icons.account_circle_outlined,
+                                    size: 15, color: Colors.grey.shade600),
+                                const SizedBox(width: 4),
+
+                                Text(
+                                  "Initiated by: ${tx["created_by"]?["display_name"] ?? "Unknown"}",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.5,
+                                    color: Colors.grey.shade700,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                                SizedBox(width: 8,),
+                                if (tx["createdByBrokerId"] != currentBrokerId)
+                                  InkWell(
+                                    onTap: () {
+                                      _showBrokerProfilePopup(
+                                        context,
+                                        tx["createdByBrokerId"],
+                                      );
+                                    },
+                                    child: const Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 16,
+                                      color: Colors.blueAccent,
+                                    ),
+                                  ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 4),
+
+                            /// Confirmee
+                            Row(
+                              children: [
+                                Icon(Icons.verified_user_outlined,
+                                    size: 15, color: Colors.green),
+                                const SizedBox(width: 4),
+
+                                Text(
+                                  "Confirmed by: ${
+                                      tx["broker"] is Map
+                                          ? (tx["broker"]["displayName"] ?? "Unknown")
+                                          : (tx["broker"]?.toString() ?? "Unknown")
+                                  }",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.5,
+                                    color: Colors.green.shade700,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                                SizedBox(width: 8,),
+                                if (tx["brokerId"] != currentBrokerId)
+                                  InkWell(
+                                    onTap: () {
+                                      _showBrokerProfilePopup(
+                                        context,
+                                        tx["brokerId"],
+                                      );
+                                    },
+                                    child: const Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 16,
+                                      color: Colors.blueAccent,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+
+
                         ],
                       ),
 
@@ -546,10 +1450,26 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
 
 
   void _openNewTransactionDialog() async {
+    final TextEditingController _amountController = TextEditingController();
     final result = await showDialog(
       context: context,
       builder: (_) => RecordTransactionDialog(userData: widget.userData),
     );
+    void _formatAmount(String value) {
+      if (value.isEmpty) return;
+
+      String newValue = value.replaceAll(',', '');
+
+      final number = int.tryParse(newValue);
+      if (number == null) return;
+
+      final formatted = NumberFormat('#,###').format(number);
+
+      _amountController.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
 
     // ✅ When dialog closes with success, refresh list
     if (result == true) {
@@ -608,6 +1528,13 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
   @override
   void initState() {
     super.initState();
+    // ✅ AUTO SELECT CURRENT DATE
+    _selectedDate = DateTime.now();
+
+    // ✅ SHOW IT IN FIELD
+    _dateC.text = DateFormat('dd-MMM-yyyy')
+        .format(_selectedDate!);
+
     _fetchVerifiedBrokers();
   }
 
@@ -617,32 +1544,45 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
       final token = await AuthService.getToken();
       final currentBrokerId = widget.userData["broker"]["id"];
 
-      final response = await http.get(
-        Uri.parse("$baseURL/api/brokers"),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-      );
+      int page = 1;
+      int totalPages = 1;
+      List<dynamic> allBrokers = [];
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        final List allBrokers = json["data"] ?? [];
+      do {
+        final response = await http.get(
+          Uri.parse("$baseURL/api/brokers?page=$page&limit=50"),
+          headers: {
+            "Authorization": "Bearer $token",
+            "Content-Type": "application/json",
+          },
+        );
 
-        final filtered = allBrokers.where((b) {
-          final isVerified = b["isVerified"] == true;
-          final isApproved = b["approvalStatus"] == "APPROVED";
-          final isNotSelf = b["id"] != currentBrokerId;
-          return isVerified && isApproved && isNotSelf;
-        }).toList();
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body);
+          final List brokers = json["data"] ?? [];
+          final pagination = json["pagination"] ?? {};
 
-        setState(() {
-          _brokers = filtered;
-          _fetchingBrokers = false;
-        });
-      } else {
-        setState(() => _fetchingBrokers = false);
-      }
+          totalPages = pagination["totalPages"] ?? 1;
+
+          allBrokers.addAll(brokers);
+          page++;
+        } else {
+          break;
+        }
+      } while (page <= totalPages);
+
+      // 🔹 Now Apply Filter AFTER fetching ALL pages
+      final filtered = allBrokers.where((b) {
+        final isVerified = b["isVerified"] == true;
+        final isApproved = b["approvalStatus"] == "APPROVED";
+        final isNotSelf = b["id"] != currentBrokerId;
+        return isVerified && isApproved && isNotSelf;
+      }).toList();
+
+      setState(() {
+        _brokers = filtered;
+        _fetchingBrokers = false;
+      });
     } catch (e) {
       setState(() => _fetchingBrokers = false);
       debugPrint("❌ Error fetching brokers: $e");
@@ -688,7 +1628,7 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
                   value: _selectedBrokerId,
                   items: _brokers.map<DropdownMenuItem<String>>((b) {
                     final name = b["displayName"] ?? "Unnamed Broker";
-                    final company = b["user"]?["companyName"];
+                    final company = b["companyName"];
                     final formattedCompany =
                     (company != null && company.toString().trim().isNotEmpty)
                         ? company
@@ -732,6 +1672,8 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
                     Expanded(
                       flex: 2,
                       child: _buildTextField(
+
+
                         "Transaction Value *",
                         controller: _valueC,
                         inputType: TextInputType.number,
@@ -848,8 +1790,8 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
 
     try {
       setState(() => _loading = true);
+      // final token = await AuthService.getToken();
       final token = await AuthService.getToken();
-
       print('token -> $token');
       // Step 1: Create Transaction
       final transactionBody = {

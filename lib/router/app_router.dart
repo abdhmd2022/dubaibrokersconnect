@@ -1,3 +1,4 @@
+import 'package:a2abrokerapp/pages/transactions/transactions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -126,6 +127,11 @@ GoRouter createRouter() {
                 A2AFormsScreen(userData: SessionService.cachedUser!),
           ),
           GoRoute(
+            path: '/admin/mytransactions',
+            builder: (_, __) =>
+                MyTransactionsScreen(userData: SessionService.cachedUser!),
+          ),
+          GoRoute(
             path: '/admin/import/bayut',
             builder: (_, __) =>
                 ImportFromBayutScreen(userData: SessionService.cachedUser!),
@@ -241,7 +247,13 @@ GoRouter createRouter() {
             builder: (_, __) =>
                 A2AFormsScreen(userData: SessionService.cachedUser!),
           ),
+          GoRoute(
+            path: '/broker/mytransactions',
+            builder: (_, __) =>
+                MyTransactionsScreen(userData: SessionService.cachedUser!),
+          ),
         ],
+
       ),
     ],
   );

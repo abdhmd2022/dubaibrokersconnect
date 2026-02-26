@@ -434,52 +434,52 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     );
   }
 
-  /// 🔹 Helper to get correct social icon
-  Map<String, dynamic> _getSocialIcon(String key) {
-    switch (key.toLowerCase()) {
-      case 'facebook':
-        return {
-          'icon': FontAwesomeIcons.facebookF,
-          'color': const Color(0xFF1877F2),
-        };
-      case 'instagram':
-        return {
-          'icon': FontAwesomeIcons.instagram,
-          'color': const Color(0xFFE1306C),
-        };
-      case 'linkedin':
-        return {
-          'icon': FontAwesomeIcons.linkedinIn,
-          'color': const Color(0xFF0A66C2),
-        };
-      case 'twitter':
-      case 'x':
-        return {
-          'icon': FontAwesomeIcons.xTwitter,
-          'color': Colors.black,
-        };
-      case 'youtube':
-        return {
-          'icon': FontAwesomeIcons.youtube,
-          'color': const Color(0xFFFF0000),
-        };
-      case 'tiktok':
-        return {
-          'icon': FontAwesomeIcons.tiktok,
-          'color': const Color(0xFF010101),
-        };
-      case 'whatsapp':
-        return {
-          'icon': FontAwesomeIcons.whatsapp,
-          'color': const Color(0xFF25D366),
-        };
-      default:
-        return {
-          'icon': FontAwesomeIcons.globe,
-          'color': Colors.grey.shade600,
-        };
+    /// 🔹 Helper to get correct social icon
+    Map<String, dynamic> _getSocialIcon(String key) {
+      switch (key.toLowerCase()) {
+        case 'facebook':
+          return {
+            'icon': FontAwesomeIcons.facebookF,
+            'color': const Color(0xFF1877F2),
+          };
+        case 'instagram':
+          return {
+            'icon': FontAwesomeIcons.instagram,
+            'color': const Color(0xFFE1306C),
+          };
+        case 'linkedin':
+          return {
+            'icon': FontAwesomeIcons.linkedinIn,
+            'color': const Color(0xFF0A66C2),
+          };
+        case 'twitter':
+        case 'x':
+          return {
+            'icon': FontAwesomeIcons.xTwitter,
+            'color': Colors.black,
+          };
+        case 'youtube':
+          return {
+            'icon': FontAwesomeIcons.youtube,
+            'color': const Color(0xFFFF0000),
+          };
+        case 'tiktok':
+          return {
+            'icon': FontAwesomeIcons.tiktok,
+            'color': const Color(0xFF010101),
+          };
+        case 'whatsapp':
+          return {
+            'icon': FontAwesomeIcons.whatsapp,
+            'color': const Color(0xFF25D366),
+          };
+        default:
+          return {
+            'icon': FontAwesomeIcons.globe,
+            'color': Colors.grey.shade600,
+          };
+      }
     }
-  }
 
 
 

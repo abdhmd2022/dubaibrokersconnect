@@ -60,15 +60,43 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
 
         // 🔹 Extract and filter only verified brokers
         final allBrokers = List<Map<String, dynamic>>.from(data['data'] ?? []);
+
+
+
         final verifiedBrokers =
         allBrokers.where((b) => b['approvalStatus'] == "APPROVED").toList();
 
         setState(() {
 
           brokers = verifiedBrokers;
+
+          final  totalbroker  =
+          allBrokers.where((b) {
+            final matchSearch = searchQuery.isEmpty ||
+                b['displayName']
+                    .toString()
+                    .toLowerCase()
+                    .contains(searchQuery.toLowerCase()) ||
+                b['companyName']
+                    .toString()
+                    .toLowerCase()
+                    .contains(searchQuery.toLowerCase());
+
+            final matchApproved = !verifiedOnly || (b['approvalStatus']?.toString() == 'APPROVED');
+
+            // 🏢 Category filter
+            final categories = List<String>.from(b['categories'] ?? []);
+            final matchCategory = selectedCategory == "All" ||
+                categories.any((cat) =>
+                cat.toString().toLowerCase() == selectedCategory.toLowerCase());
+            final isNotSelf = b['id'] != widget.userData['broker']['id'];
+
+            return matchSearch && matchApproved && matchCategory && isNotSelf;
+          }).toList();
+
           totalPages = data['pagination']['totalPages'] ?? 1;
           currentPage = data['pagination']['page'] ?? 1;
-          totalBrokers = verifiedBrokers.length; // show only verified count
+          totalBrokers = totalbroker.length; // show only verified count
           loading = false;
         });
       } else {
@@ -100,10 +128,13 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
       final matchCategory = selectedCategory == "All" ||
           categories.any((cat) =>
           cat.toString().toLowerCase() == selectedCategory.toLowerCase());
+      final isNotSelf = b['id'] != widget.userData['broker']['id'];
 
-      return matchSearch && matchApproved && matchCategory;
+      return matchSearch && matchApproved && matchCategory && isNotSelf;
     }).toList();
   }
+
+
 
   Widget _buildBrokerCard(Map<String, dynamic> b) {
     final avatar = b['avatar'];
@@ -219,7 +250,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
 
-                        SizedBox(width: 8),
+                        /*SizedBox(width: 8),
 
                         if (approved)
                           Container(
@@ -248,7 +279,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
                                 ),
                               ],
                             ),
-                          ),
+                          ),*/
                         SizedBox(width: 8),
 
                         if (verified)
