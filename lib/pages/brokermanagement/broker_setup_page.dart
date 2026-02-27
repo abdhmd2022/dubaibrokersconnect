@@ -80,7 +80,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
 
   /// State toggles
   bool isFreelancer = false;
-  bool hasBRN = false;
+
   bool isPrivileged = false;
   bool isLoading = false;
 
@@ -221,10 +221,7 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
       "display_name": displayNameC.text.trim(),
       "broker_title": profileTitleC.text.trim(),
       "userId": userId,
-      "company_name": isFreelancer ? null : companyC.text.trim(),
       "bio": bioC.text.trim(),
-      "license_number": isFreelancer ? null : licenseC.text.trim(),
-      "rera_number": isFreelancer ? null : reraC.text.trim(),
       "address": addressC.text.trim(),
       "city": cityC.text.trim(),
       "state": stateC.text.trim(),
@@ -241,16 +238,25 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
         "twitter": twitterC.text.trim(),
         "facebook": facebookC.text.trim(),
       },
-      "brn_number": brnNumberC.text.trim().isNotEmpty ? brnNumberC.text.trim() : null,
-      "brn_issues_date": brnIssueDate != null
-          ? DateFormat('yyyy-MM-dd').format(brnIssueDate!)
-          : null,
-      "brn_expiry_date": brnExpiryDate != null
-          ? DateFormat('yyyy-MM-dd').format(brnExpiryDate!)
-          : null,
       "specializations": selectedSpecs,
       "languages": selectedLangs,
+
+
+      "company_name": isFreelancer ? null : companyC.text.trim(),
+      "license_number": isFreelancer ? null : licenseC.text.trim(),
+      "rera_number": isFreelancer ? null : reraC.text.trim(),
+      "brn_number": isFreelancer || brnNumberC.text.trim().isEmpty
+          ? null
+          : brnNumberC.text.trim(),
+      "brn_issues_date": isFreelancer || brnIssueDate == null
+          ? null
+          : DateFormat('yyyy-MM-dd').format(brnIssueDate!),
+      "brn_expiry_date": isFreelancer || brnExpiryDate == null
+          ? null
+          : DateFormat('yyyy-MM-dd').format(brnExpiryDate!),
     };
+
+    print('create body -> $body');
 
     final url = Uri.parse('$baseURL/api/brokers');
 
@@ -349,12 +355,12 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
           setState(() {
             _brnAttachmentUrl = response['url'] ?? '';
           });
-          ScaffoldMessenger.of(context).showSnackBar(
+          /*ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text("BRN attachment uploaded successfully"),
               backgroundColor: Colors.green.shade600,
             ),
-          );
+          );*/
         } else {
           throw Exception(response['message'] ?? 'Upload failed');
         }
@@ -669,101 +675,84 @@ class _BrokerSetupPageState extends State<BrokerSetupPage> {
 
                         const SizedBox(height: 26),
 
-                        /// ---------- COMPANY INFO ----------
+                        /// ---------- COMPANY & BRN INFO ----------
                         _buildCard([
-                          _buildSectionHeader(Icons.business_center_outlined, "Company Information"),
+                          _buildSectionHeader(
+                              Icons.business_center_outlined, "Company & BRN Information"),
+
                           const SizedBox(height: 14),
 
                           _buildSwitch("I am a Freelancer", isFreelancer, (v) {
-                            setState(() => isFreelancer = v);
+                            setState(() {
+                              isFreelancer = v;
+
+                              if (isFreelancer) {
+                                // ✅ Clear all company & BRN fields when freelancer selected
+                                companyC.clear();
+                                licenseC.clear();
+                                reraC.clear();
+                                brnNumberC.clear();
+                                brnIssueDate = null;
+                                brnExpiryDate = null;
+                                _brnAttachmentFile = null;
+                              }
+                            });
                           }),
 
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 300),
                             child: !isFreelancer
                                 ? Column(
-                              key: const ValueKey("companySection"),
+                              key: const ValueKey("companyBrnSection"),
                               children: [
-                                const SizedBox(height: 10),
-                                _buildCard([
-                                  _buildTextField(
-                                    companyC,
-                                    "Company Name",
-                                    icon: Icons.business_outlined,
-                                  ),
-                                  const SizedBox(height: 14),
-                                  _buildTextField(
-                                    licenseC,
-                                    "License Number",
-                                    keyboardType: TextInputType.text,
-                                    icon: Icons.badge_outlined,
-                                  ),
-                                  const SizedBox(height: 14),
-                                  _buildTextField(
-                                    reraC,
-                                    "RERA Number (ORN)",
-                                    keyboardType: TextInputType.text,
-                                    icon: Icons.confirmation_number_outlined,
-                                  ),
-                                  /*const SizedBox(height: 14),
-                                  _buildTextField(
-                                    establishC,
-                                    "Establishment License",
-                                    keyboardType: TextInputType.text,
-                                    icon: Icons.apartment_outlined,
-                                  ),*/
-                                ]),
+                                const SizedBox(height: 14),
 
+                                /// Company Fields
+                                _buildTextField(
+                                  companyC,
+                                  "Company Name",
+                                  icon: Icons.business_outlined,
+                                ),
+                                const SizedBox(height: 14),
+
+                                _buildTextField(
+                                  licenseC,
+                                  "License Number",
+                                  icon: Icons.badge_outlined,
+                                ),
+                                const SizedBox(height: 14),
+
+                                _buildTextField(
+                                  reraC,
+                                  "RERA Number (ORN)",
+                                  icon: Icons.confirmation_number_outlined,
+                                ),
+
+                                const SizedBox(height: 20),
+                                Divider(color: Colors.grey.shade300),
+                                const SizedBox(height: 14),
+
+                                /// BRN Fields
+                                _buildTextField(
+                                  brnNumberC,
+                                  "BRN Number",
+                                  icon: Icons.receipt_long_outlined,
+                                ),
+                                const SizedBox(height: 14),
+
+                                _buildDateField("Issue Date", brnIssueDate, true),
+                                const SizedBox(height: 14),
+
+                                _buildDateField("Expiry Date", brnExpiryDate, false),
+                                const SizedBox(height: 14),
+
+                                _buildBrnAttachmentUploader(),
                               ],
                             )
                                 : const SizedBox.shrink(),
                           ),
                         ]),
 
-                        const SizedBox(height: 26),
-
-                        /// ---------- BRN INFO ----------
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          child: !isFreelancer
-                              ? Column(
-                            key: const ValueKey("brnSection"),
-                            children: [
-                              _buildCard([
-                                _buildSectionHeader(Icons.receipt_long_outlined, "BRN Information"),
-                                const SizedBox(height: 14),
-
-                                _buildSwitch("I have a BRN", hasBRN, (v) {
-                                  setState(() => hasBRN = v);
-                                }),
-                                AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 300),
-                                  child: hasBRN
-                                      ? Column(
-                                    key: const ValueKey("brnDetails"),
-                                    children: [
-                                      const SizedBox(height: 10),
-                                      _buildTextField(
-                                        brnNumberC,
-                                        "BRN Number",
-                                        icon: Icons.confirmation_number_outlined,
-                                      ),
-                                      const SizedBox(height: 14),
-                                      _buildDateField("Issue Date", brnIssueDate, true),
-                                      const SizedBox(height: 14),
-                                      _buildDateField("Expiry Date", brnExpiryDate, false),
-                                      const SizedBox(height: 14),
-                                      _buildBrnAttachmentUploader(),
-
-                                    ],
-                                  )
-                                      : const SizedBox.shrink(),
-                                ),
-                              ]),
-                            ],
-                          )
-                              : const SizedBox.shrink(),
-                        ),
 
                         /// ---------- SOCIAL LINKS ----------
                         _buildCard([

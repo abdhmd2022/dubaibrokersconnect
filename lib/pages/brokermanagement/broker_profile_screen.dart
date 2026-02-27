@@ -675,7 +675,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
         ),
       ),
 
-
         const SizedBox(height: 30),
 
             // Stats Row
@@ -690,7 +689,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
             ),
 
             const SizedBox(height: 20),
-
 
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -736,12 +734,9 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                     ],
                   ),
                 ),
-
-
               ],
             ),
             const SizedBox(height: 20),
-
 
             // --- ABOUT + SEGMENTED SECTION SIDE BY SIDE ---
             LayoutBuilder(
