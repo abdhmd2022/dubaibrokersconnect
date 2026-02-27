@@ -38,6 +38,19 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     _tooltipVisible = false;
   }
 
+
+  String formatDate(dynamic rawDate) {
+    if (rawDate == null) return '';
+    try {
+      return DateFormat('dd MMM yyyy')
+          .format(DateTime.parse(rawDate.toString()));
+    } catch (e) {
+      return '';
+    }
+  }
+
+
+
   @override
   void dispose() {
     _hideTooltip();
@@ -253,6 +266,112 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   }
 
 
+  Widget _compactBrnItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 11.5,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 14.5,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+
+
+  Widget _sectionCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: kPrimaryColor),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 5,
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12.5,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: GoogleFonts.poppins(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -273,10 +392,21 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       );
     }
 
+    print('broker -> $broker');
     final name = broker!['displayName'] ?? '';
-    final company = broker!['companyName'] ?? '';
-    final verified = broker!['isVerified'] == true;
+    final companyName = broker!['companyName'] ?? '';
+    final brnNumber = broker!['brnNumber'] ?? '';
+    final brnIssueDateRaw = broker!['brnIssuesDate'];
+    final brnExpiryDateRaw = broker!['brnExpiryDate'];
     final approved = broker!['approvalStatus'] == "APPROVED";
+    final verified = broker!['isVerified'] == true;
+
+    final reraNumber = broker!['reraNumber'] ?? '';
+    final licenseNumber = broker!['licenseNumber'] ?? '';
+
+    final brnIssueDate = formatDate(brnIssueDateRaw);
+    final brnExpiryDate = formatDate(brnExpiryDateRaw);
+
 
     final avatar = broker!['avatar'];
     final email = broker!['email'];
@@ -388,7 +518,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                               color: Colors.black87,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          /*const SizedBox(width: 8),
                           if (approved)
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -416,7 +546,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                                   ),
                                 ],
                               ),
-                            ),
+                            ),*/
                           const SizedBox(width: 8),
                           if (verified)
                             Container(
@@ -450,8 +580,9 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                         ],
                       ),
 
-                      // 🏢 Company
-                      if (company.isNotEmpty) ...[
+// 🏢 Company
+
+                      if (companyName.isEmpty) ...[
                         const SizedBox(height: 6),
                         Row(
                           children: [
@@ -460,7 +591,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                             const SizedBox(width: 6),
                             Flexible(
                               child: Text(
-                                company,
+                                'Freelancer',
                                 style: GoogleFonts.poppins(
                                   fontSize: 15,
                                   color: Colors.black54,
@@ -472,8 +603,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                         ),
                       ],
 
-
-    // 🏷️ Categories
+                      // 🏷️ Categories
                       if (categories.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         Wrap(
@@ -559,7 +689,59 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
               ],
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
+
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                // ================= COMPANY DETAILS =================
+                if (companyName.isNotEmpty ||
+                    licenseNumber.isNotEmpty ||
+                    reraNumber.isNotEmpty)
+                  Expanded(
+                    child: _sectionCard(
+                      title: "Company Details",
+                      icon: Icons.business_outlined,
+                      children: [
+                        if (companyName.isNotEmpty)
+                          _infoRow("Company Name", companyName),
+                        if (licenseNumber.isNotEmpty)
+                          _infoRow("License Number", licenseNumber),
+                        if (reraNumber.isNotEmpty)
+                          _infoRow("RERA Number (ORN)", reraNumber),
+                      ],
+                    ),
+                  ),
+
+                if ((companyName.isNotEmpty ||
+                    licenseNumber.isNotEmpty ||
+                    reraNumber.isNotEmpty) &&
+                    brnNumber.isNotEmpty)
+                  const SizedBox(width: 20), // 🔥 space between cards
+
+                // ================= BROKER REGISTRATION =================
+                if (brnNumber.isNotEmpty)
+                  Expanded(
+                  child: _sectionCard(
+                    title: "Broker Registration",
+                    icon: Icons.badge_outlined,
+                    children: [
+                      _infoRow("BRN Number", brnNumber),
+                      if (brnIssueDate.isNotEmpty)
+                        _infoRow("Issue Date", brnIssueDate),
+                      if (brnExpiryDate.isNotEmpty)
+                        _infoRow("Expiry Date", brnExpiryDate),
+                    ],
+                  ),
+                ),
+
+
+              ],
+            ),
+            const SizedBox(height: 20),
+
 
             // --- ABOUT + SEGMENTED SECTION SIDE BY SIDE ---
             LayoutBuilder(
