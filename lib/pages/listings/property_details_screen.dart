@@ -553,20 +553,20 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
 
         // 🔹 Build message
         final message = """
-Hello $name,
-
-I'm interested in the following property:
-
-Property: $title
-Price: $price
-Location: $location
-Bedrooms: $rooms
-Bathrooms: $baths
-Size: $size sqft
-Reference: $ref
-
-Please share more details.
-""";
+      Hello $name,
+      
+      I'm interested in the following property:
+      
+      Property: $title
+      Price: $price
+      Location: $location
+      Bedrooms: $rooms
+      Bathrooms: $baths
+      Size: $size sqft
+      Reference: $ref
+      
+      Please share more details.
+      """;
 
         final encodedMessage = Uri.encodeComponent(message);
 
