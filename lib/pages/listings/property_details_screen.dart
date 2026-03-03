@@ -681,10 +681,21 @@ Please share more details.
                     return _errorDialog("Failed to load profile");
                   }
 
+
                   final data = snapshot.data ?? {};
                   final user = data['user'] ?? {};
+
+                  print('data response -> $data');
                   final properties = data['properties'] ?? [];
                   final reviews = data['reviews'] ?? [];
+                  final avatar = data['avatar'];
+
+// Determine the full image URL - handle both absolute and relative paths
+                  final String? imageUrl = (avatar != null && avatar.toString().isNotEmpty)
+                      ? (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
+                      ? avatar.toString()
+                      : '$baseURL/$avatar'
+                      : null;
 
                   return Container(
                     clipBehavior: Clip.antiAlias,
@@ -725,10 +736,10 @@ Please share more details.
                                 CircleAvatar(
                                   radius: 40,
                                   backgroundColor: Colors.white.withOpacity(0.2),
-                                  child: user['avatar'] != null && user['avatar'].toString().isNotEmpty
+                                  child: imageUrl != null && imageUrl.toString().isNotEmpty
                                       ? ClipOval(
                                     child: WebCompatibleImage(
-                                      imageUrl: user['avatar'],
+                                      imageUrl: imageUrl!,
                                       width: 80,
                                       height: 80,
                                       fallback: Text(
@@ -765,10 +776,18 @@ Please share more details.
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    _badge("Verified", Colors.greenAccent, Icons.verified),
+                                    if (data['isVerified'] == true)
+                                      _badge("Verified", Colors.greenAccent, Icons.verified)
+                                    else
+                                      _badge("Not Verified", Colors.red, Icons.error_outline),
+
                                     const SizedBox(width: 6),
-                                    _badge("${data['rating'] ?? '4.8'} ★",
-                                        Colors.amberAccent, Icons.star_rounded),
+
+                                    _badge(
+                                      "${data['rating'] ?? 0} ★",
+                                      Colors.amber,
+                                      Icons.star_rounded,
+                                    ),
                                   ],
                                 ),
                               ],
