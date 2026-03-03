@@ -664,7 +664,10 @@ class BrokerDashboardContent extends StatelessWidget {
 
                         ),
                         TextButton(
-                          onPressed: onNavigateToListings,
+                          onPressed: ()
+                          {
+                            context.go('/broker/listings');
+                          },
                           child: const Text("View All →"),
                         ),
                       ],
@@ -902,7 +905,10 @@ class BrokerDashboardContent extends StatelessWidget {
                           ),
                         ),
                         TextButton(
-                          onPressed: onNavigateToRequirements,
+                          onPressed: ()
+                          {
+                            context.go('/broker/requirements  ');
+                          },
                           child: const Text("View All →"),
                         ),
                       ],
