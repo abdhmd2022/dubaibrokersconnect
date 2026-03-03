@@ -1487,6 +1487,9 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
         createdbyId: tx["created_by"] is Map
             ? (tx["created_by"]["id"] ?? "-")
             : (tx["created_by"]?.toString() ?? "-"),
+        createdbyName: tx["created_by"] is Map
+            ? (tx["created_by"]["display_name"] ?? "-")
+            : (tx["created_by"]?.toString() ?? "-"),
         brokerName: tx["broker"] is Map
             ? (tx["broker"]["displayName"] ?? "-")
             : (tx["broker"]?.toString() ?? "-"),
@@ -1934,6 +1937,7 @@ class ConfirmTransactionDialog extends StatefulWidget {
   final Map<String, dynamic> userData;
 
   final String createdbyId;
+  final String createdbyName;
 
   final String brokerName;
   final String transactionId;
@@ -1942,6 +1946,7 @@ class ConfirmTransactionDialog extends StatefulWidget {
     Key? key,
     required this.brokerName,
     required this.userData,
+    required this.createdbyName,
 
     required this.createdbyId,
     required this.transactionId,
@@ -1962,8 +1967,6 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
       setState(() => _loading = true);
       final token = await AuthService.getToken();
       final bool isAdmin = widget.userData['role'] == 'ADMIN';
-
-
 
       // 🔹 1. Complete the transaction
       final res = await http.post(
@@ -1990,7 +1993,7 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
             reviewBody["reviewer_id"] = widget.userData['broker']['id'];
           }
 
-          print('review body -> $reviewBody');
+          // print('review body -> $reviewBody');
           final response = await http.post(
             Uri.parse("$baseURL/api/reviews"),
             headers: {
@@ -2072,7 +2075,7 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
 
               const SizedBox(height: 10),
               Text(
-                "Please confirm the details of this transaction and provide your review for ${widget.brokerName}.",
+                "Please confirm the details of this transaction and provide your review for ${widget.createdbyName}.",
                 style: GoogleFonts.poppins(fontSize: 13.5),
               ),
               const SizedBox(height: 16),
