@@ -685,12 +685,11 @@ Please share more details.
                   final data = snapshot.data ?? {};
                   final user = data['user'] ?? {};
 
-                  print('data response -> $data');
+                  // print('data response -> $data');
                   final properties = data['properties'] ?? [];
                   final reviews = data['reviews'] ?? [];
                   final avatar = data['avatar'];
 
-// Determine the full image URL - handle both absolute and relative paths
                   final String? imageUrl = (avatar != null && avatar.toString().isNotEmpty)
                       ? (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
                       ? avatar.toString()
