@@ -1483,6 +1483,10 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => ConfirmTransactionDialog(
+        userData: widget.userData,
+        createdbyId: tx["created_by"] is Map
+            ? (tx["created_by"]["id"] ?? "-")
+            : (tx["created_by"]?.toString() ?? "-"),
         brokerName: tx["broker"] is Map
             ? (tx["broker"]["displayName"] ?? "-")
             : (tx["broker"]?.toString() ?? "-"),
@@ -1647,8 +1651,6 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
                 ),
                 const SizedBox(height: 12),
 
-
-
                 // Type dropdown (sale / rent)
                 Row(
                   children: [
@@ -1806,6 +1808,7 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
             DateTime.now().toUtc().toIso8601String(),
       };
 
+
       print('submit body -> $transactionBody');
 
       final transactionRes = await http.post(
@@ -1820,7 +1823,9 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
       if (transactionRes.statusCode == 201 || transactionRes.statusCode == 200) {
         final data = jsonDecode(transactionRes.body);
         final transactionId = data["data"]?["id"] ?? data["id"];
+        final bool isAdmin = widget.userData['role'] == 'ADMIN';
 
+        print('widget.userData = ${widget.userData}');
         // Step 2: Submit Review (if rating given)
         if (_rating > 0) {
           final reviewBody = {
@@ -1832,7 +1837,14 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
             //"reviewerId": reviewerId,
           };
 
-          await http.post(
+          // ✅ Only add reviewerId if admin
+          if (isAdmin) {
+            reviewBody["reviewer_id"] = widget.userData['broker']['id'];
+          }
+
+          print('rating body -> $reviewBody');
+
+          final response = await http.post(
             Uri.parse("$baseURL/api/reviews"),
             headers: {
               "Authorization": "Bearer $token",
@@ -1840,6 +1852,12 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
             },
             body: jsonEncode(reviewBody),
           );
+
+          final statusCode = response.statusCode;
+          final responseBody = response.body;
+
+          debugPrint("Review API Status Code: $statusCode");
+          debugPrint("Review API Response: $responseBody");
         }
 
         Navigator.of(context).pop(true);
@@ -1913,12 +1931,19 @@ class _RecordTransactionDialogState extends State<RecordTransactionDialog> {
 }
 
 class ConfirmTransactionDialog extends StatefulWidget {
+  final Map<String, dynamic> userData;
+
+  final String createdbyId;
+
   final String brokerName;
   final String transactionId;
 
   const ConfirmTransactionDialog({
     Key? key,
     required this.brokerName,
+    required this.userData,
+
+    required this.createdbyId,
     required this.transactionId,
   }) : super(key: key);
 
@@ -1936,6 +1961,9 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
     try {
       setState(() => _loading = true);
       final token = await AuthService.getToken();
+      final bool isAdmin = widget.userData['role'] == 'ADMIN';
+
+
 
       // 🔹 1. Complete the transaction
       final res = await http.post(
@@ -1950,13 +1978,20 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
         // 🔹 2. Optionally submit review if rating given
         if (_rating > 0) {
           final reviewBody = {
+            "broker_id": widget.createdbyId,
             "transaction_id": widget.transactionId,
             "rating": _rating.toInt(),
             "comment": _reviewC.text.trim(),
             "status": "APPROVED",
           };
 
-          await http.post(
+          // ✅ Only add reviewerId if admin
+          if (isAdmin) {
+            reviewBody["reviewer_id"] = widget.userData['broker']['id'];
+          }
+
+          print('review body -> $reviewBody');
+          final response = await http.post(
             Uri.parse("$baseURL/api/reviews"),
             headers: {
               "Authorization": "Bearer $token",
@@ -1964,6 +1999,12 @@ class _ConfirmTransactionDialogState extends State<ConfirmTransactionDialog> {
             },
             body: jsonEncode(reviewBody),
           );
+
+          final statusCode = response.statusCode;
+          final responseBody = response.body;
+
+          debugPrint("Review API Status Code: $statusCode");
+          debugPrint("Review API Response: $responseBody");
         }
 
         // ✅ Close dialog and refresh parent
