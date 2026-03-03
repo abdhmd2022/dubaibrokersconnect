@@ -41,6 +41,15 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
   List<Map<String, dynamic>> completedTransactions = [
   ];
 
+  String formatDate(String? isoDate) {
+    if (isoDate == null || isoDate.isEmpty) return '-';
+
+    final date = DateTime.tryParse(isoDate);
+    if (date == null) return '-';
+
+    return DateFormat('dd-MMM-yyyy').format(date.toLocal());
+  }
+
   @override
   void initState() {
     super.initState();
@@ -95,6 +104,15 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
         final List<Map<String, dynamic>> txList =
         data.map((e) => Map<String, dynamic>.from(e)).toList();
 
+        void sortByLatest(List<Map<String, dynamic>> list) {
+          list.sort((a, b) {
+            final dateA = DateTime.tryParse(a["updatedAt"] ?? "") ?? DateTime(2000);
+            final dateB = DateTime.tryParse(b["updatedAt"] ?? "") ?? DateTime(2000);
+
+            return dateB.compareTo(dateA); // 🔥 Latest first
+          });
+        }
+
         // 🟢 Pending My Confirmation → transactions created by OTHER broker, but assigned to ME
         final myPending = txList.where((tx) {
           final status = (tx["status"] ?? "").toString().toUpperCase();
@@ -105,6 +123,9 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
               brokerId == currentBrokerId &&
               createdBy != currentBrokerId;
         }).toList();
+
+        sortByLatest(myPending);
+
 
         // 🟣 Pending Others Confirmation → created by ME, waiting for OTHER broker
         final othersPending = txList.where((tx) {
@@ -118,6 +139,9 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
               brokerId != currentBrokerId;
         }).toList();
 
+        sortByLatest(othersPending);
+
+
         // 🟢 Completed Transactions — mine or assigned to me
         final completed = txList.where((tx) {
           final status = tx["status"]?.toString().toUpperCase();
@@ -130,6 +154,8 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
 
           return isCompleted && (isMine || isAssignedToMe);
         }).toList();
+
+        sortByLatest(completed);
 
 
 
@@ -1438,6 +1464,7 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
                 ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0),
               );
             }),
+
 
           ],
         ),
