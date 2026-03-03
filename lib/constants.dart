@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 // Base / Primary Colors
 const Color kPrimaryColor =  Color(0xFF0D2851); // Dark Blue
@@ -38,4 +39,19 @@ class Responsive {
     if (width >= 600) return 600;
     return width * 0.95;
   }
+}
+
+String formatSafeDate(String? apiDate) {
+  if (apiDate == null || apiDate.isEmpty) return '';
+
+  final parsed = DateTime.parse(apiDate);
+
+  // Ignore timezone shift completely
+  final localDateOnly = DateTime(
+    parsed.year,
+    parsed.month,
+    parsed.day,
+  );
+
+  return DateFormat('dd-MMM-yyyy').format(localDateOnly);
 }

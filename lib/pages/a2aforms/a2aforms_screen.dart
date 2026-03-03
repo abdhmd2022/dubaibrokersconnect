@@ -151,12 +151,22 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 
     String formattedDateIssued = '';
 
+
     if (dateIssued != null && dateIssued.toString().isNotEmpty) {
       try {
-        final parsedDate = DateTime.parse(dateIssued.toString());
-        formattedDateIssued = DateFormat('dd-MMM-yyyy').format(parsedDate);
+        final parsed = DateTime.parse(dateIssued.toString());
+
+        // 🔥 Ignore timezone shift completely
+        final safeDate = DateTime(
+          parsed.year,
+          parsed.month,
+          parsed.day,
+        );
+
+        formattedDateIssued =
+            DateFormat('dd-MMM-yyyy').format(safeDate);
       } catch (e) {
-        formattedDateIssued = dateIssued.toString(); // fallback if already formatted
+        formattedDateIssued = dateIssued.toString();
       }
     }
     return pw.Expanded(
@@ -458,9 +468,13 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 
     final seller = data;
     final broker = data['broker'] ?? {};
-    final date = data['agreementDate'] != null
-        ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(data['agreementDate']))
-        : '';
+    String date = '';
+
+    if (data['agreementDate'] != null) {
+      final parsed = DateTime.parse(data['agreementDate']);
+      final safeDate = DateTime(parsed.year, parsed.month, parsed.day);
+      date = DateFormat('dd-MMM-yyyy').format(safeDate);
+    }
 
     String _yesNo(v) => (v == true) ? 'Yes' : 'No';
     String _safe(v) => v?.toString() ?? '';
@@ -1208,8 +1222,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
 
           _forms = data.map((f) {
             final date = f["agreementDate"] != null
-                ? DateFormat('dd-MMM-yyyy')
-                .format(DateTime.parse(f["agreementDate"]))
+                ? formatSafeDate(f["agreementDate"])
                 : "-";
             final price = f["listedPrice"] != null
                 ? "AED ${NumberFormat('#,##0').format(double.tryParse(f["listedPrice"]) ?? 0)}"
@@ -1818,6 +1831,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
     });
   }
 
+
   void _prefillForm(Map<String, dynamic> data) {
 
     print('data -> $data');
@@ -1879,9 +1893,8 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
     sellerMobileC.text = data['sellerAgentMobile'] ?? '';
     sellerOfficeAddressC.text = data['sellerAgentAddress'] ?? '';
     sellerBrnC.text = data['sellerAgentBrn'] ?? '';
-    sellerBrnIssueDateC.text = data['sellerAgentBrnDate'] != null
-        ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(data['sellerAgentBrnDate']))
-        : '';
+    sellerBrnIssueDateC.text =
+        formatSafeDate(data['sellerAgentBrnDate']);
     sellerOrnC.text = data['sellerAgentOrn'] ?? '';
     sellerDedLicenseC.text = data['sellerAgentDedLicense'] ?? '';
     sellerPoBoxC.text = data['sellerAgentPoBox'] ?? '';
@@ -1901,9 +1914,8 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
     buyerPoBoxC.text = data['buyerAgentPoBox'] ?? '';
     buyerOrnC.text = data['buyerAgentOrn'] ?? '';
     buyerBrnC.text = data['buyerAgentBrn'] ?? '';
-    buyerBrnIssueDateC.text = data['buyerAgentBrnDate'] != null
-        ? DateFormat('dd-MMM-yyyy').format(DateTime.parse(data['buyerAgentBrnDate']))
-        : '';
+    buyerBrnIssueDateC.text =
+        formatSafeDate(data['buyerAgentBrnDate']);
     buyerMobileC.text = data['buyerAgentMobile'] ?? '';
     buyerFormBStrC.text = data['buyerFormBStr'] ?? '';
 
@@ -1959,6 +1971,14 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
       setState(() => _loadingBrokers = true);
       final token = await AuthService.getToken();
       final id = widget.existingForm?['id'];
+      DateTime localDate =
+      DateFormat('dd-MMM-yyyy').parse(sellerBrnIssueDateC.text);
+
+      String isoDate = DateTime.utc(
+        localDate.year,
+        localDate.month,
+        localDate.day,
+      ).toIso8601String();
 
       final body = {
         // 🧾 Meta
@@ -1975,10 +1995,20 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
         "seller_agent_ded_license": sellerDedLicenseC.text.trim(),
         "seller_agent_po_box": sellerPoBoxC.text.trim(),
         "seller_agent_brn": sellerBrnC.text.trim(),
+
+
         "seller_agent_brn_date": sellerBrnIssueDateC.text.isNotEmpty
-            ? DateFormat('dd-MMM-yyyy')
-            .parse(sellerBrnIssueDateC.text)
-            .toIso8601String()
+            ? DateTime.utc(
+          DateFormat('dd-MMM-yyyy')
+              .parse(sellerBrnIssueDateC.text)
+              .year,
+          DateFormat('dd-MMM-yyyy')
+              .parse(sellerBrnIssueDateC.text)
+              .month,
+          DateFormat('dd-MMM-yyyy')
+              .parse(sellerBrnIssueDateC.text)
+              .day,
+        ).toIso8601String()
             : null,
         "seller_agent_mobile": sellerMobileC.text.trim(),
         "seller_form_a_str": sellerFormAStrC.text.trim(),
@@ -3751,7 +3781,8 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
             children: [
               Expanded(
                 child: _buildDatePickerField(
-                  "BRN Date Issued",
+                  "BRN Issue Date ",
+
                   controller: buyerBrnIssueDateC,
                   enabled: !_buyerFieldsReadOnly ? true : false,
                 ),

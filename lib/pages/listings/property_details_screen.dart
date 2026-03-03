@@ -519,24 +519,62 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     final email = brokerData['email'] ?? '';
     final name = brokerData['displayName'] ?? 'Broker';
 
+    print ('broker details -> $brokerData');
     try {
       if (label.contains("Call")) {
         final Uri callUri = Uri(scheme: 'tel', path: phone);
         await launchUrl(callUri, mode: LaunchMode.externalApplication);
-      }  else if (label.contains("WhatsApp")) {
-    final whatsapp = brokerData['user']?['whatsappno'] ?? '';
+      }
+      else if (label.contains("WhatsApp")) {
+        final whatsapp = brokerData['whatsappno'] ?? '';
 
-    if (whatsapp.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("WhatsApp number not available")),
-    );
-    return;
-    }
+        if (whatsapp.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("WhatsApp number not available")),
+          );
+          return;
+        }
 
-    final Uri whatsappUri = Uri.parse("https://wa.me/$whatsapp?text=Hello%20$name!");
+        // 🔹 Get property details
+        final property = widget.propertyData;
 
-    await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
-    }
+        final title = property['title'] ?? '';
+        final price =
+            "${property['currency'] ?? 'AED'} ${((property['price'] ?? '0').toString().replaceAll(",", "")).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ',')}";
+
+        final location = (property['location'] is Map && property['location'] != null)
+            ? property['location']['completeAddress']
+            : (property['location']?['name']?.toString() ?? '');
+
+        final rooms = property['rooms'] ?? '0';
+        final baths = property['bathrooms'] ?? '0';
+        final size = property['sizeSqft'] ?? '0';
+        final ref = property['referenceNumber'] ?? '';
+
+        // 🔹 Build message
+        final message = """
+Hello $name,
+
+I'm interested in the following property:
+
+Property: $title
+Price: $price
+Location: $location
+Bedrooms: $rooms
+Bathrooms: $baths
+Size: $size sqft
+Reference: $ref
+
+Please share more details.
+""";
+
+        final encodedMessage = Uri.encodeComponent(message);
+
+        final Uri whatsappUri =
+        Uri.parse("https://wa.me/$whatsapp?text=$encodedMessage");
+
+        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+      }
     else if (label.contains("Email")) {
         final Uri emailUri = Uri(
           scheme: 'mailto',

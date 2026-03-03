@@ -725,7 +725,7 @@
 
                           // 🧠 If Admin → get avatar from broker
                           // Otherwise → from user directly
-                          dynamic avatarUrl = user['avatar'];
+                          dynamic avatarUrl = b['avatar'];
 
                           final displayName = user['displayName'] ??
                               user['broker']?['displayName'] ??
@@ -738,6 +738,8 @@
                               : '$baseURL/$avatarUrl'
                               : null;
 
+                          print('image url -> $imageUrl');
+
                           return CircleAvatar(
                             radius: 45,
                             backgroundColor: kPrimaryColor.withOpacity(0.08),
@@ -745,8 +747,8 @@
                                 ? ClipOval(
                               child: WebCompatibleImage(
                                 imageUrl: imageUrl,
-                                width: 64,
-                                height: 64,
+                                width: 89,
+                                height: 89,
                                 fallback: Text(
                                   displayName[0].toUpperCase(),
                                   style: GoogleFonts.poppins(
@@ -1210,7 +1212,7 @@
                                   _buildEditableField("🪪 License Number", licenseController),
                                   const SizedBox(height: 12),
 
-                                  _buildEditableField("🏛 RERA (ORN)", reraController),
+                                  _buildEditableField("🏛 RERA Number (ORN)", reraController),
                                   const SizedBox(height: 12),
 
                                   _buildEditableField("🆔 BRN Number", brnController),
