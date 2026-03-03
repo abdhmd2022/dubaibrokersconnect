@@ -3033,13 +3033,39 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                             backgroundColor: Colors.grey.shade200,
                             child: () {
                               final avatar = broker['avatar'];
-                              final hasAvatar = avatar != null && avatar.toString().isNotEmpty;
-                               // debugPrint("broker value: $broker");
-                               // debugPrint("Has avatar: $hasAvatar");
+
+
+                              print('avatar -> $avatar');
+                                final hasAvatar = avatar != null && avatar.toString().isNotEmpty;
+                               debugPrint("broker value: $broker");
+                               debugPrint("Has avatar: $hasAvatar");
                               return hasAvatar
                                   ? ClipOval(
                                 child: WebCompatibleImage(
-                                  imageUrl: avatar.toString(),
+                                  imageUrl: () {
+                                    if (avatar == null || avatar.toString().isEmpty) return '';
+
+                                    final avatarStr = avatar.toString();
+
+                                    // 🔹 Remove domain if present
+                                    final uri = Uri.tryParse(avatarStr);
+
+                                    String cleanPath;
+
+                                    if (uri != null && uri.hasScheme) {
+                                      // If full URL → take only path
+                                      cleanPath = uri.path; // removes https://old-domain.com
+                                    } else {
+                                      cleanPath = avatarStr;
+                                    }
+
+                                    // Remove leading slash to avoid double //
+                                    if (cleanPath.startsWith('/')) {
+                                      cleanPath = cleanPath.substring(1);
+                                    }
+
+                                    return '$baseURL/$cleanPath';
+                                  }(),
                                   width: 56,
                                   height: 56,
                                   fallback: Icon(Icons.person, size: 28, color: Colors.grey),
