@@ -907,13 +907,14 @@ class BrokerDashboardContent extends StatelessWidget {
                         TextButton(
                           onPressed: ()
                           {
-                            context.go('/broker/requirements  ');
+                            context.go('/broker/requirements');
                           },
                           child: const Text("View All →"),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
+
 
                     FutureBuilder(
                       future: () async {
