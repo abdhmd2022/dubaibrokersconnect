@@ -915,7 +915,6 @@ class BrokerDashboardContent extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-
                     FutureBuilder(
                       future: () async {
                         final token = await AuthService.getToken();
