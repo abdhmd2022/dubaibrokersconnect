@@ -5,13 +5,16 @@ Widget buildWebImage({
   required double width,
   required double height,
   required Widget fallback,
+  BoxFit fit = BoxFit.contain,
+
 }) {
   // Stub for non-web platforms
   return Image.network(
     imageUrl,
     width: width,
     height: height,
-    fit: BoxFit.cover,
+    fit: fit,
+
     errorBuilder: (context, error, stackTrace) => fallback,
   );
 }

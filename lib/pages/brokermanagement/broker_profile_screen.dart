@@ -28,7 +28,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
   bool error = false;
   String activeSection = "Listings";
   String hoveredSocial = '';
-
+  bool _showBrnImage = false;
   OverlayEntry? _activeTooltip;
   bool _tooltipVisible = false;
 
@@ -406,7 +406,12 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
 
     final brnIssueDate = formatDate(brnIssueDateRaw);
     final brnExpiryDate = formatDate(brnExpiryDateRaw);
-
+    final rawAttachment = broker!['brnAttachment'] ?? broker!['brn_attachment'];
+    final brnAttachment = (rawAttachment != null && rawAttachment.toString().isNotEmpty)
+        ? (rawAttachment.toString().startsWith('http')
+        ? rawAttachment
+        : '$baseURL/$rawAttachment')
+        : null;
 
     final avatar = broker!['avatar'];
     final email = broker!['email'];
@@ -693,165 +698,259 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // ================= COMPANY DETAILS =================
-                if (companyName.isNotEmpty ||
-                    licenseNumber.isNotEmpty ||
-                    reraNumber.isNotEmpty)
-                  Expanded(
-                    child: _sectionCard(
-                      title: "Company Details",
-                      icon: Icons.business_outlined,
-                      children: [
-                        if (companyName.isNotEmpty)
-                          _infoRow("Company Name", companyName),
-                        if (licenseNumber.isNotEmpty)
-                          _infoRow("License Number", licenseNumber),
-                        if (reraNumber.isNotEmpty)
-                          _infoRow("RERA Number (ORN)", reraNumber),
-                      ],
-                    ),
-                  ),
-
-                if ((companyName.isNotEmpty ||
-                    licenseNumber.isNotEmpty ||
-                    reraNumber.isNotEmpty) &&
-                    brnNumber.isNotEmpty)
-                  const SizedBox(width: 20), // 🔥 space between cards
-
-                // ================= BROKER REGISTRATION =================
-                if (brnNumber.isNotEmpty)
-                  Expanded(
-                  child: _sectionCard(
-                    title: "Broker Registration",
-                    icon: Icons.badge_outlined,
+                // ================= LEFT COLUMN =================
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _infoRow("BRN Number", brnNumber),
-                      if (brnIssueDate.isNotEmpty)
-                        _infoRow("Issue Date", brnIssueDate),
-                      if (brnExpiryDate.isNotEmpty)
-                        _infoRow("Expiry Date", brnExpiryDate),
+                      if (companyName.isNotEmpty ||
+                          licenseNumber.isNotEmpty ||
+                          reraNumber.isNotEmpty)
+                        _sectionCard(
+                          title: "Company Details",
+                          icon: Icons.business_outlined,
+                          children: [
+                            if (companyName.isNotEmpty)
+                              _infoRow("Company Name", companyName),
+                            if (licenseNumber.isNotEmpty)
+                              _infoRow("License Number", licenseNumber),
+                            if (reraNumber.isNotEmpty)
+                              _infoRow("RERA Number (ORN)", reraNumber),
+                          ],
+                        ),
+
+                      const SizedBox(height: 20),
+
+                      // LEFT: About Section
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12.withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "About ${name.split(" ").first}",
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              bio.isNotEmpty ? bio : "No description available.",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14.5,
+                                color: Colors.black87,
+                              ),
+                            ),
+
+                            if ((languages.isNotEmpty) ||
+                                (broker!['socialLinks'] != null &&
+                                    broker!['socialLinks'].isNotEmpty))
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (languages.isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    Text(
+                                      "Languages",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Wrap(
+                                      spacing: 10,
+                                      runSpacing: 8,
+                                      children: languages.map((lang) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 14, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.teal.shade50,
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: Colors.teal.shade200,
+                                              width: 0.6,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            lang,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.teal.shade800,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+
+                                  if (broker!['socialLinks'] != null &&
+                                      broker!['socialLinks'].isNotEmpty) ...[
+                                    const SizedBox(height: 28),
+                                    Text(
+                                      "Social Links",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    buildSocialLinksBody(),
+                                  ],
+                                ],
+                              )
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
 
-            // --- ABOUT + SEGMENTED SECTION SIDE BY SIDE ---
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final double halfWidth = (constraints.maxWidth - 40) / 2;
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // LEFT: About Section
-                    Container(
-                      width: halfWidth,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "About ${name.split(" ").first}",
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            bio.isNotEmpty ? bio : "No description available.",
-                            style: GoogleFonts.poppins(
-                              fontSize: 14.5,
-                              color: Colors.black87,
-                            ),
-                          ),
+                const SizedBox(width: 40),
 
-                          // 🌐 Languages & Social Links Section (auto-hide if empty)
-                          if ((languages.isNotEmpty) ||
-                              (broker!['socialLinks'] != null && broker!['socialLinks'].isNotEmpty))
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // 🗣️ Languages
-                                if (languages.isNotEmpty) ...[
-                                  const SizedBox(height: 24),
-                                  Text(
-                                    "Languages",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
+                // ================= RIGHT COLUMN =================
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (brnNumber.isNotEmpty)
+                        _sectionCard(
+                          title: "Broker Registration",
+                          icon: Icons.badge_outlined,
+                          children: [
+                            _infoRow("BRN Number", brnNumber),
+
+                            if (brnIssueDate.isNotEmpty)
+                              _infoRow("Issue Date", brnIssueDate),
+
+                            if (brnExpiryDate.isNotEmpty)
+                              _infoRow("Expiry Date", brnExpiryDate),
+
+                            if (brnAttachment != null &&
+                                brnAttachment.toString().isNotEmpty) ...[
+                              const SizedBox(height: 6),
+
+                              Text(
+                                "BRN Copy",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              GestureDetector(
+                                onTap: () async {
+                                  final attachmentUrl = brnAttachment.toString();
+
+                                  if (attachmentUrl.toLowerCase().endsWith(".pdf")) {
+                                    if (await canLaunchUrl(Uri.parse(attachmentUrl))) {
+                                      await launchUrl(
+                                        Uri.parse(attachmentUrl),
+                                        mode: LaunchMode.externalApplication,
+                                      );
+                                    }
+                                    return;
+                                  }
+
+                                  setState(() {
+                                    _showBrnImage = !_showBrnImage;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.blue.withOpacity(0.25),
                                     ),
                                   ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 10,
-                                    runSpacing: 8,
-                                    children: languages.map((lang) {
-                                      return Container(
-                                        padding:
-                                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.teal.shade50,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.teal.shade200, width: 0.6),
-                                        ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        brnAttachment.toString().toLowerCase().endsWith(".pdf")
+                                            ? Icons.picture_as_pdf
+                                            : Icons.image_outlined,
+                                        color: Colors.blueAccent,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
                                         child: Text(
-                                          lang,
+                                          _showBrnImage
+                                              ? "Hide BRN"
+                                              : "View BRN",
                                           style: GoogleFonts.poppins(
-                                            fontSize: 13.5,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.teal.shade800,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
-                                      );
-                                    }).toList(),
+                                      ),
+                                      Icon(
+                                        _showBrnImage
+                                            ? Icons.expand_less
+                                            : Icons.expand_more,
+                                        color: Colors.blueAccent,
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
+                              ),
 
-                                // 🔗 Social Links
-                                if (broker!['socialLinks'] != null &&
-                                    broker!['socialLinks'].isNotEmpty) ...[
-                                  const SizedBox(height: 28),
-                                  Text(
-                                    "Social Links",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
+                              if (_showBrnImage &&
+                                  !brnAttachment.toString().toLowerCase().endsWith(".pdf")) ...[
+                                const SizedBox(height: 10),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: WebCompatibleImage(
+                                    imageUrl: brnAttachment,
+                                    width: double.infinity,
+                                    height: 220,
+                                    fit: BoxFit.contain,
+                                    fallback: Container(
+                                      height: 220,
+                                      width: double.infinity,
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                        child: Text(
+                                          "Failed to load image",
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
-
-
-                                  buildSocialLinksBody()
-
-                                ],
+                                ),
                               ],
-                            )
-                        ],
-                      ),
-                    ),
+                            ],
+                          ],
+                        ),
 
-                    const SizedBox(width: 40),
+                      const SizedBox(height: 20),
 
-                    // RIGHT: Segmented Bar + Dynamic Content
-                    Expanded(
-                      child: Container(
+                      // RIGHT: Segmented Bar + Dynamic Content
+                      Container(
+                        width: double.infinity,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
@@ -866,41 +965,40 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Segmented Bar with full width
                             Container(
                               width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(14.0),
-                                topRight: Radius.circular(14.0),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(14.0),
+                                  topRight: Radius.circular(14.0),
                                 ),
-
-
-                                border: Border.all(color: Colors.grey.shade200, width: 1.2),
+                                border: Border.all(
+                                  color: Colors.grey.shade200,
+                                  width: 1.2,
+                                ),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
-
-                                  if(widget.userData['broker']['approvalStatus'] == "APPROVED")...[
+                                  if (widget.userData['broker']['approvalStatus'] ==
+                                      "APPROVED") ...[
                                     _buildSegmentButton("Listings", count: properties.length),
-                                    _buildSegmentButton("Requirements", count: requirements.length),
+                                    _buildSegmentButton("Requirements",
+                                        count: requirements.length),
                                   ],
-
-
                                   _buildSegmentButton(
                                     "Reviews",
-                                    count: reviews.where((r) => r['status'] == "APPROVED").length,
+                                    count: reviews
+                                        .where((r) => r['status'] == "APPROVED")
+                                        .length,
                                   ),
                                 ],
                               ),
                             ),
 
-                            const SizedBox(height: 0),
-
-                            // Dynamic content area
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 400),
                               child: activeSection == "Listings"
@@ -912,14 +1010,11 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                           ],
                         ),
                       ),
-                    ),
-
-                  ],
-                );
-              },
+                    ],
+                  ),
+                ),
+              ],
             ),
-
-
 
 
 

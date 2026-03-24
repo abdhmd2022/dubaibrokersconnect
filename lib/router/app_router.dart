@@ -68,7 +68,13 @@ GoRouter createRouter() {
                   (broker is Map && broker.isEmpty) ||
                   broker?['id'] == null;
 
-          if (isBrokerMissing) {
+          final isEmailVerified = user['isEmailVerified'] ?? false;
+
+          if (!isEmailVerified) {
+            print("Redirect → Email Verification");
+            return '/login'; // or handle inline mode
+          }
+          else if (isBrokerMissing) {
             print("Redirect → Broker Setup");
             return '/broker/setup';
           } else {

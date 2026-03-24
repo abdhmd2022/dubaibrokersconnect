@@ -7,28 +7,28 @@ Widget buildWebImage({
   required double width,
   required double height,
   required Widget fallback,
+  BoxFit fit = BoxFit.contain,
 }) {
-  // Use HTML img element for web to bypass CORS
-  final String viewId = 'img_${imageUrl.hashCode}_${DateTime.now().millisecondsSinceEpoch}';
-  
-  // Create and configure the image element
-  html.ImageElement imgElement = html.ImageElement()
+  final String viewId =
+      'img_${imageUrl.hashCode}_${DateTime.now().millisecondsSinceEpoch}';
+
+  final imgElement = html.ImageElement()
     ..src = imageUrl
     ..style.width = '${width}px'
     ..style.height = '${height}px'
-    ..style.objectFit = 'cover'
-    ..style.borderRadius = '50%';
-  
-  // Register the platform view
+    ..style.objectFit = fit == BoxFit.cover ? 'cover' : 'contain'
+    ..style.borderRadius = '0'
+    ..style.display = 'block'
+    ..style.backgroundColor = 'transparent';
+
   ui_web.platformViewRegistry.registerViewFactory(
     viewId,
-    (int viewId) => imgElement,
+        (int viewId) => imgElement,
   );
-  
+
   return SizedBox(
     width: width,
     height: height,
     child: HtmlElementView(viewType: viewId),
   );
 }
-

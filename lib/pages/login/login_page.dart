@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +20,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-enum AuthMode { login, signup, forgot }
+enum AuthMode { login, signup, forgot, emailVerify }
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
@@ -29,6 +30,14 @@ class _LoginPageState extends State<LoginPage> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final List<TextEditingController> _otpControllers =
+  List.generate(4, (_) => TextEditingController());
+
+  final List<FocusNode> _focusNodes =
+  List.generate(4, (_) => FocusNode());
+
+  int _resendSeconds = 60;
+  Timer? _timer;
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -43,6 +52,19 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
   AuthMode _mode = AuthMode.login;
+
+  void _startTimer() {
+    _resendSeconds = 60;
+    _timer?.cancel();
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendSeconds == 0) {
+        timer.cancel();
+      } else {
+        setState(() => _resendSeconds--);
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -158,15 +180,29 @@ class _LoginPageState extends State<LoginPage> {
         print('token ->>>> $accessToken');
 
 
-        await prefs.setString(
-          'user_data',
-          jsonEncode(userData),
-        );
+
 
 
         if (_rememberMe) {
           await prefs.setString('email', _emailController.text.trim());
           await prefs.setString('password', _passwordController.text.trim());
+        }
+
+        final isEmailVerified = userData['isEmailVerified'] ?? false;
+
+        await prefs.setString(
+          'user_data',
+          jsonEncode(userData),
+        );
+
+        if (!isEmailVerified) {
+          setState(() {
+            _mode = AuthMode.emailVerify;
+            _resetEmail = userData['email'];
+          });
+          _startTimer(); // 🔥 start countdown immediately
+
+          return; // 🚨 stop here (no navigation)
         }
 
         // ✅ Role-based Navigation
@@ -267,6 +303,77 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Future<void> _verifyEmailOtp() async {
+    final otp = getOtp();
+
+    if (otp.isEmpty) {
+      _showError("Please enter OTP");
+      return;
+    }
+
+
+    // ✅ STEP 6: Validation (this was missing)
+    if (otp.isEmpty || otp.length < 4) {
+      _showError("Please enter complete 4-digit OTP");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final url = Uri.parse('$baseURL/api/auth/verify-email');
+
+    try {
+      final res = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "email": _resetEmail,
+          "otp": otp,
+        }),
+      );
+
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 200 && data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Email verified successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        _goToDashboard(); // 🚀 continue normal flow
+      } else {
+        _showError(data['message'] ?? "Invalid OTP");
+      }
+    } catch (e) {
+      _showError("Verification failed");
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  void _goToDashboard() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userData = jsonDecode(prefs.getString('user_data')!);
+
+    if (userData['role'] == 'ADMIN') {
+      context.go('/admin/dashboard');
+    } else if (userData['role'] == 'BROKER') {
+      final broker = userData['broker'];
+
+      final bool isBrokerMissing =
+          broker == null ||
+              (broker is Map && broker.isEmpty) ||
+              broker?['id'] == null;
+
+      if (isBrokerMissing) {
+        context.go('/broker/setup', extra: userData);
+      } else {
+        context.go('/broker/dashboard', extra: userData);
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -312,6 +419,8 @@ class _LoginPageState extends State<LoginPage> {
                         if (_mode == AuthMode.login) _buildLoginFields(),
                         if (_mode == AuthMode.signup) _buildSignupFields(),
                         if (_mode == AuthMode.forgot) _buildForgotPassword(),
+                        if (_mode == AuthMode.emailVerify) _buildEmailVerification(),
+
                         const SizedBox(height: 20),
 
                         // ✅ Remember Me (Login Only)
@@ -463,11 +572,16 @@ class _LoginPageState extends State<LoginPage> {
               ? 'Sign in to continue'
               : _mode == AuthMode.signup
               ? 'Create your account'
-              : 'Recover your password',
+              : _mode == AuthMode.forgot
+              ? 'Recover your password'
+              : '',
           style: const TextStyle(fontSize: 15, color: Colors.black54),
         ),
       ],
     );
+
+
+
   }
 
   Widget _buildLoginFields() {
@@ -612,17 +726,23 @@ class _LoginPageState extends State<LoginPage> {
     return Container();
   }
 
+  String maskEmail(String email) {
+    final parts = email.split('@');
+    return parts[0].substring(0, 2) + "***@" + parts[1];
+  }
+
   Widget _buildActionButton() {
     final btnText = _mode == AuthMode.login
         ? 'Sign In'
         : _mode == AuthMode.signup
         ? 'Sign Up'
-        : (forgotStep == 1
+        : _mode == AuthMode.forgot
+        ? (forgotStep == 1
         ? 'Send OTP'
         : forgotStep == 2
         ? 'Verify OTP'
-        : 'Reset Password');
-
+        : 'Reset Password')
+        : 'Verify Email';
 
 
     return SizedBox(
@@ -635,11 +755,13 @@ class _LoginPageState extends State<LoginPage> {
             ? _login
             : _mode == AuthMode.signup
             ? _register
-            : (forgotStep == 1
+            : _mode == AuthMode.forgot
+            ? (forgotStep == 1
             ? _sendResetOtp
             : forgotStep == 2
             ? _verifyOtp
-            : _resetPassword),
+            : _resetPassword)
+            : _verifyEmailOtp,
 
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.zero,
@@ -776,5 +898,174 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Widget _buildEmailVerification() {
+    return Column(
+      children: [
+        const Text(
+          "Verify Your Email",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
 
+        Text(
+          "Enter the 4-digit code sent to\n${maskEmail(_resetEmail!)}",
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.black54),
+        ),
+
+        const SizedBox(height: 30),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(4, (index) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: _buildOtpBox(index),
+            );
+          }),
+        ),
+
+        const SizedBox(height: 20),
+
+        GestureDetector(
+          onTap: (_resendSeconds == 0 && !_isLoading)
+              ? _resendVerificationOtp
+              : null,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            opacity: _resendSeconds == 0 ? 1 : 0.5,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_isLoading)
+                  const SizedBox(
+                    height: 14,
+                    width: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                if (_isLoading) const SizedBox(width: 8),
+
+                Text(
+                  _resendSeconds == 0
+                      ? "Resend OTP"
+                      : "Resend in $_resendSeconds s",
+                  style: TextStyle(
+                    color: kPrimaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget _buildOtpBox(int index) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: 58,
+      height: 64,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+
+
+
+      ),
+      child: TextField(
+        controller: _otpControllers[index],
+        focusNode: _focusNodes[index],
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        textAlignVertical: TextAlignVertical.center,
+        maxLength: 1,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          height: 1.0,
+        ),
+        decoration: const InputDecoration(
+          counterText: "",
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+        ),
+        onChanged: (value) {
+          if (value.isNotEmpty) {
+            if (index < 3) {
+              _focusNodes[index + 1].requestFocus();
+            } else {
+              _focusNodes[index].unfocus();
+              _autoSubmitOtp();
+            }
+          } else {
+            if (index > 0) {
+              _focusNodes[index - 1].requestFocus();
+            }
+          }
+          setState(() {});
+        },
+      ),
+    );
+  }
+
+
+  String getOtp() {
+    return _otpControllers.map((c) => c.text).join();
+  }
+
+  void _autoSubmitOtp() {
+    final otp = getOtp();
+
+    if (otp.length == 4) {
+      _verifyEmailOtp(); // your API call
+    }
+  }
+
+  Future<void> _resendVerificationOtp() async {
+    if (_resetEmail == null) return;
+
+    setState(() => _isLoading = true);
+
+    final url = Uri.parse('$baseURL/api/auth/resend-verification');
+
+    try {
+      final res = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "email": _resetEmail,
+        }),
+      );
+
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 200 && data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("OTP resent successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        _clearOtpFields();   // 🧹 clear old input
+        _startTimer();       // 🔁 restart countdown
+      } else {
+        _showError(data['message'] ?? "Failed to resend OTP");
+      }
+    } catch (e) {
+      _showError("Error resending OTP");
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  void _clearOtpFields() {
+    for (var c in _otpControllers) {
+      c.clear();
+    }
+    _focusNodes[0].requestFocus(); // back to first box
+  }
 }
