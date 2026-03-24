@@ -921,24 +921,114 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                               if (_showBrnImage &&
                                   !brnAttachment.toString().toLowerCase().endsWith(".pdf")) ...[
                                 const SizedBox(height: 10),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: WebCompatibleImage(
-                                    imageUrl: brnAttachment,
-                                    width: double.infinity,
-                                    height: 220,
-                                    fit: BoxFit.contain,
-                                    fallback: Container(
-                                      height: 220,
-                                      width: double.infinity,
-                                      color: Colors.grey.shade200,
-                                      child: const Center(
-                                        child: Text(
-                                          "Failed to load image",
-                                          style: TextStyle(color: Colors.red),
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context, rootNavigator: true).push(
+                                      PageRouteBuilder(
+                                        opaque: false,
+                                        barrierColor: Colors.black.withOpacity(0.95),
+                                        pageBuilder: (_, __, ___) => Scaffold(
+                                          backgroundColor: Colors.black.withOpacity(0.95),
+                                          body: Stack(
+                                            children: [
+                                              Center(
+                                                child: InteractiveViewer(
+                                                  minScale: 0.8,
+                                                  maxScale: 5,
+                                                  child: WebCompatibleImage(
+                                                    imageUrl: brnAttachment,
+                                                    width: MediaQuery.of(context).size.width * 0.92,
+                                                    height: MediaQuery.of(context).size.height * 0.82,
+                                                    fallback: Container(
+                                                      width: 300,
+                                                      height: 300,
+                                                      color: Colors.black,
+                                                      child: const Center(
+                                                        child: Text(
+                                                          "Failed to load image",
+                                                          style: TextStyle(color: Colors.red),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              Positioned(
+                                                top: 40,
+                                                right: 20,
+                                                child: InkWell(
+                                                  onTap: () => Navigator.of(context, rootNavigator: true).pop(),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.all(10),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white.withOpacity(0.12),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: const Icon(Icons.close, color: Colors.white),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        transitionsBuilder: (_, animation, __, child) {
+                                          return FadeTransition(
+                                            opacity: animation,
+                                            child: child,
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: WebCompatibleImage(
+                                          imageUrl: brnAttachment,
+                                          width: double.infinity,
+                                          height: 220,
+                                          fallback: Container(
+                                            height: 220,
+                                            width: double.infinity,
+                                            color: Colors.grey.shade200,
+                                            child: const Center(
+                                              child: Text(
+                                                "Failed to load image",
+                                                style: TextStyle(color: Colors.red),
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                      Positioned(
+                                        right: 10,
+                                        bottom: 10,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.55),
+                                            borderRadius: BorderRadius.circular(30),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.zoom_in, color: Colors.white, size: 16),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                "Tap to enlarge",
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

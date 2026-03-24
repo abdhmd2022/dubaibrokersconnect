@@ -56,7 +56,14 @@ GoRouter createRouter() {
       if (location == '/login') {
 
         if (user['role'] == 'ADMIN') {
-          return '/admin/dashboard';
+          final isEmailVerified = user['isEmailVerified'] ?? false;
+
+          if (!isEmailVerified) {
+            print("Redirect → Email Verification");
+            return '/login'; // or handle inline mode
+          }
+          else
+            return '/admin/dashboard';
         }
 
         if (user['role'] == 'BROKER') {
