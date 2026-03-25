@@ -1855,7 +1855,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PropertyDetailsScreen(propertyData: e),
+        builder: (_) => PropertyDetailsScreen(propertyData: e,userData: widget.userData,),
       ),
     );
   }

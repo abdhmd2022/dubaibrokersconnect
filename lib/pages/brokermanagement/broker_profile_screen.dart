@@ -458,7 +458,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                       size: 13, color: kPrimaryColor),
                   const SizedBox(width: 4),
                   Text(
-                    "Back to Broker Directory",
+                    "Back",
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w600,
                       color: kPrimaryColor,

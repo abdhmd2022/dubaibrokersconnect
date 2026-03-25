@@ -40,7 +40,7 @@ class BrokerDashboardContent extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PropertyDetailsScreen(propertyData: property),
+        builder: (_) => PropertyDetailsScreen(propertyData: property,userData: userData,),
       ),
     );
   }

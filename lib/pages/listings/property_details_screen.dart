@@ -13,8 +13,15 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 class PropertyDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> propertyData;
+  final Map<String, dynamic> userData;
 
-  const PropertyDetailsScreen({Key? key, required this.propertyData})
+  const PropertyDetailsScreen({Key? key,
+
+    required this.propertyData,
+    required this.userData,
+
+
+  })
       : super(key: key);
 
   @override
@@ -49,7 +56,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       const Icon(Icons.arrow_back_ios_new_rounded,
                           size: 16, color: kPrimaryColor),
                       const SizedBox(width: 6),
-                      Text("Back to Listings",
+                      Text("Back",
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.w500,
                             color: kPrimaryColor,
@@ -583,7 +590,11 @@ Please share more details.
         );
         await launchUrl(emailUri);
       } else if (label.contains("Profile")) {
-        _showBrokerProfilePopup(context, brokerData['id']);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => BrokerProfileScreen(brokerId: brokerData['id'],userData: widget.userData,)),
+        );
+        // _showBrokerProfilePopup(context, brokerData['id']);
       }
 
     } catch (e) {
