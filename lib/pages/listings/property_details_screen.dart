@@ -399,7 +399,6 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
             ),
           ],
 
-
           const SizedBox(height: 20),
 
           _contactButton(Icons.call, "Call ${brokerData['phone'] ?? ''}",
