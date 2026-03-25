@@ -995,7 +995,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                                             color: Colors.grey.shade200,
                                             child: const Center(
                                               child: Text(
-
                                                 "Failed to load image",
                                                 style: TextStyle(color: Colors.red),
                                               ),
