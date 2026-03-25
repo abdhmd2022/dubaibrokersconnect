@@ -537,7 +537,6 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1085,6 +1084,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
       },
     );
   }
+
   Widget _buildHeaderRow() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1244,11 +1244,11 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                 ),
               ],
             ),
-
         ],
       ),
     );
   }
+
   Future<void> _bulkToggleStatus() async {
     if (_selectedTagIds.isEmpty) return;
 
