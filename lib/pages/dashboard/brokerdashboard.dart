@@ -364,6 +364,124 @@ class BrokerDashboardContent extends StatelessWidget {
     );
   }
 
+  DateTime? _parseBrnExpiryDate(dynamic rawDate) {
+    if (rawDate == null || rawDate.toString().trim().isEmpty) return null;
+
+    final value = rawDate.toString().trim();
+
+    // Try ISO / backend date first
+    final parsed = DateTime.tryParse(value);
+    if (parsed != null) return parsed;
+
+    // Try common UI format if needed
+    try {
+      return DateFormat('dd-MMM-yyyy').parse(value);
+    } catch (_) {}
+
+    try {
+      return DateFormat('yyyy-MM-dd').parse(value);
+    } catch (_) {}
+
+    return null;
+  }
+
+  bool _isBrnExpiringWithinOneMonth(DateTime? expiryDate) {
+    if (expiryDate == null) return false;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiry = DateTime(expiryDate.year, expiryDate.month, expiryDate.day);
+
+    if (expiry.isBefore(today)) return false; // already expired, separate case if needed
+
+    final warningDate = today.add(const Duration(days: 30));
+    return !expiry.isAfter(warningDate);
+  }
+
+  bool _isBrnExpired(DateTime? expiryDate) {
+    if (expiryDate == null) return false;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiry = DateTime(expiryDate.year, expiryDate.month, expiryDate.day);
+
+    return expiry.isBefore(today);
+  }
+
+  Widget _buildBrnWarningBanner(DateTime expiryDate, {required bool isExpired}) {
+    final formattedDate = DateFormat('dd-MMM-yyyy').format(expiryDate);
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isExpired
+              ? [Colors.red.shade400, Colors.red.shade600]
+              : [Colors.orange.shade400, Colors.orange.shade600],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: (isExpired ? Colors.red : Colors.orange)
+                .withOpacity(0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          )
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isExpired ? "BRN EXPIRED" : "BRN EXPIRING SOON",
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isExpired
+                      ? "Your BRN expired on $formattedDate. Please renew immediately to enable functionalities."
+                      : "Your BRN will expire on $formattedDate. Please renew it before expiry.",
+                  style: GoogleFonts.poppins(
+                    fontSize: 13.5,
+                    color: Colors.white.withOpacity(0.95),
+                    height: 1.5,
+                  ),
+                ),
+
+
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -371,6 +489,13 @@ class BrokerDashboardContent extends StatelessWidget {
     '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
     final bool isVerified = userData['broker']['isVerified'] == true;
     final bool isApproved = userData['broker']['approvalStatus'] == "APPROVED";
+    final broker = userData['broker'] ?? {};
+    final DateTime? brnExpiryDate =
+    _parseBrnExpiryDate(broker['brnExpiryDate']);
+    final bool isBrnExpiringSoon =
+    _isBrnExpiringWithinOneMonth(brnExpiryDate);
+    final bool isBrnExpired = _isBrnExpired(brnExpiryDate);
+
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -426,6 +551,17 @@ class BrokerDashboardContent extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+
+              if (isBrnExpired && brnExpiryDate != null)
+                _buildBrnWarningBanner(
+                  brnExpiryDate,
+                  isExpired: true,
+                )
+              else if (isBrnExpiringSoon && brnExpiryDate != null)
+                _buildBrnWarningBanner(
+                  brnExpiryDate,
+                  isExpired: false,
                 ),
 
               const SizedBox(height: 40),

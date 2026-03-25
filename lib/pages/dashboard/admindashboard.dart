@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
@@ -70,12 +71,134 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
     }
   }
 
+  DateTime? _parseBrnExpiryDate(dynamic rawDate) {
+    if (rawDate == null || rawDate.toString().trim().isEmpty) return null;
+
+    final value = rawDate.toString().trim();
+
+    final parsed = DateTime.tryParse(value);
+    if (parsed != null) return parsed;
+
+    try {
+      return DateFormat('dd-MMM-yyyy').parse(value);
+    } catch (_) {}
+
+    try {
+      return DateFormat('yyyy-MM-dd').parse(value);
+    } catch (_) {}
+
+    return null;
+  }
+
+  bool _isBrnExpiringWithinOneMonth(DateTime? expiryDate) {
+    if (expiryDate == null) return false;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiry = DateTime(expiryDate.year, expiryDate.month, expiryDate.day);
+
+    if (expiry.isBefore(today)) return false;
+
+    final warningDate = today.add(const Duration(days: 30));
+    return !expiry.isAfter(warningDate);
+  }
+
+  bool _isBrnExpired(DateTime? expiryDate) {
+    if (expiryDate == null) return false;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiry = DateTime(expiryDate.year, expiryDate.month, expiryDate.day);
+
+    return expiry.isBefore(today);
+  }
+
+  Widget _buildBrnWarningBanner(DateTime expiryDate, {required bool isExpired}) {
+    final formattedDate = DateFormat('dd-MMM-yyyy').format(expiryDate);
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 18),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isExpired
+              ? [Colors.red.shade400, Colors.red.shade700]
+              : [Colors.orange.shade400, Colors.deepOrange.shade500],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: (isExpired ? Colors.red : Colors.orange).withOpacity(0.28),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.18),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isExpired ? "BRN EXPIRED" : "BRN EXPIRING SOON",
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isExpired
+                      ? "Your BRN expired on $formattedDate. Please renew immediately to enable functionalities."
+                      : "Your BRN will expire on $formattedDate. Please renew it before expiry.",
+                  style: GoogleFonts.poppins(
+                    fontSize: 13.5,
+                    height: 1.55,
+                    color: Colors.white.withOpacity(0.96),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+
   @override
   Widget build(BuildContext context) {
     final userData = widget.userData;
     final String fullName =
     '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'.trim();
     final String email = userData['email'] ?? '';
+    final broker = userData['broker'] ?? {};
+    final DateTime? brnExpiryDate = _parseBrnExpiryDate(broker['brnExpiryDate']);
+    final bool isBrnExpiringSoon = _isBrnExpiringWithinOneMonth(brnExpiryDate);
+    final bool isBrnExpired = _isBrnExpired(brnExpiryDate);
+
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -115,6 +238,18 @@ class _AdminDashboardContentState extends State<AdminDashboardContent> {
                   _roleChip("Broker", Colors.blue, Icons.badge_outlined),
                 ],
               ),
+
+              if (isBrnExpired && brnExpiryDate != null)
+                _buildBrnWarningBanner(
+                  brnExpiryDate,
+                  isExpired: true,
+                )
+
+              else if (isBrnExpiringSoon && brnExpiryDate != null)
+                _buildBrnWarningBanner(
+                  brnExpiryDate,
+                  isExpired: false,
+                ),
 
               const SizedBox(height: 40),
 
