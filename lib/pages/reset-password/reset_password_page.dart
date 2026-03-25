@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../../../constants.dart';
 
@@ -82,7 +83,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text("Reset Password",
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: kPrimaryColor)),
@@ -123,7 +124,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   child: _loading
                       ? CircularProgressIndicator(color: Colors.white)
                       : Text("Update Password",
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                           color: Colors.white,
                           fontWeight: FontWeight.bold)),
                 ),

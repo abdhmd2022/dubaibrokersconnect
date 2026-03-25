@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:a2abrokerapp/constants.dart';
@@ -560,7 +561,7 @@ class _LoginPageState extends State<LoginPage> {
         Text(
           'Welcome to Dubai Realtors Collaboration Hub',
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: width > 600 ? 22 : 18,
             fontWeight: FontWeight.bold,
             color: kPrimaryColor,
@@ -575,7 +576,7 @@ class _LoginPageState extends State<LoginPage> {
               : _mode == AuthMode.forgot
               ? 'Recover your password'
               : '',
-          style: const TextStyle(fontSize: 15, color: Colors.black54),
+          style:  GoogleFonts.poppins(fontSize: 15, color: Colors.black54),
         ),
       ],
     );
@@ -604,7 +605,7 @@ class _LoginPageState extends State<LoginPage> {
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () => setState(() => _mode = AuthMode.forgot),
-            child: Text('Forgot Password?', style: TextStyle(color: kPrimaryColor)),
+            child: Text('Forgot Password?', style: GoogleFonts.poppins(color: kPrimaryColor)),
           ),
         ),
       ],
@@ -676,10 +677,10 @@ class _LoginPageState extends State<LoginPage> {
             inputType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 12),
-          const Text(
+           Text(
             "We will send an OTP to your email.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black54),
+            style: GoogleFonts.poppins(color: Colors.black54),
           ),
         ],
       );
@@ -784,7 +785,7 @@ class _LoginPageState extends State<LoginPage> {
                 ? const CircularProgressIndicator()
                 : Text(
               btnText,
-              style: const TextStyle(
+              style:  GoogleFonts.poppins(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 18),
@@ -805,7 +806,7 @@ class _LoginPageState extends State<LoginPage> {
               : _mode == AuthMode.signup
               ? "Already have an account? "
               : "Remembered your password? ",
-          style: const TextStyle(color: Colors.black54),
+          style:  GoogleFonts.poppins(color: Colors.black54),
         ),
         GestureDetector(
           onTap: () {
@@ -819,7 +820,7 @@ class _LoginPageState extends State<LoginPage> {
           },
           child: Text(
             _mode == AuthMode.login ? 'Sign Up' : 'Sign In',
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               color: kPrimaryColor,
               fontWeight: FontWeight.bold,
             ),
@@ -854,7 +855,7 @@ class _LoginPageState extends State<LoginPage> {
       },
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.black87),
+        labelStyle:  GoogleFonts.poppins(color: Colors.black87),
         prefixIcon: Icon(icon, color: kPrimaryColor),
         filled: true,
         fillColor: kFieldBackgroundColor,
@@ -901,16 +902,16 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildEmailVerification() {
     return Column(
       children: [
-        const Text(
+         Text(
           "Verify Your Email",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
 
         Text(
           "Enter the 4-digit code sent to\n${maskEmail(_resetEmail!)}",
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.black54),
+          style:  GoogleFonts.poppins(color: Colors.black54),
         ),
 
         const SizedBox(height: 30),
@@ -949,7 +950,7 @@ class _LoginPageState extends State<LoginPage> {
                   _resendSeconds == 0
                       ? "Resend OTP"
                       : "Resend in $_resendSeconds s",
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     color: kPrimaryColor,
                     fontWeight: FontWeight.w600,
                   ),
@@ -982,7 +983,7 @@ class _LoginPageState extends State<LoginPage> {
         textAlign: TextAlign.center,
         textAlignVertical: TextAlignVertical.center,
         maxLength: 1,
-        style: const TextStyle(
+        style:  GoogleFonts.poppins(
           fontSize: 24,
           fontWeight: FontWeight.w700,
           height: 1.0,

@@ -1131,7 +1131,7 @@ class _PropertyTypesScreenState extends State<PropertyTypesScreen>
               color: Colors.black87,
               borderRadius: BorderRadius.circular(6),
             ),
-            textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+            textStyle:  GoogleFonts.poppins(color: Colors.white, fontSize: 12),
             waitDuration: const Duration(milliseconds: 300),
             child: GestureDetector(
               onTap: () => toggleActive(item),

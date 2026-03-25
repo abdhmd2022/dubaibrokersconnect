@@ -826,10 +826,10 @@ class _ImportFromPropertyFinderScreenState extends State<ImportFromPropertyFinde
             },
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children:  [
                 Text(
                   "Next: Import Data",
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w500,
                     fontSize: 14.5,
                   ),
@@ -916,7 +916,7 @@ class _ImportFromPropertyFinderScreenState extends State<ImportFromPropertyFinde
                   : const Icon(Icons.download_rounded, size: 18),
               label: Text(
                 _isImporting ? "Importing..." : "Import Data", // 👈 dynamic label
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style:  GoogleFonts.poppins(fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _isImporting

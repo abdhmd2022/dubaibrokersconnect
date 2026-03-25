@@ -846,9 +846,9 @@ class BrokerDashboardContent extends StatelessWidget {
                                     onPressed: () => _viewPropertyDetails(context, item),
                                     icon: const Icon(Icons.arrow_forward_ios_rounded,
                                         size: 13, color: kPrimaryColor),
-                                    label: const Text(
+                                    label:  Text(
                                       "View",
-                                      style: TextStyle(
+                                      style: GoogleFonts.poppins(
                                         color: kPrimaryColor,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -1112,9 +1112,9 @@ class BrokerDashboardContent extends StatelessWidget {
                                     onPressed: () => _openRequirementDrawer(context, r),
                                     icon: const Icon(Icons.arrow_forward_ios_rounded,
                                         size: 13, color: kPrimaryColor),
-                                    label: const Text(
+                                    label:  Text(
                                       "View",
-                                      style: TextStyle(
+                                      style: GoogleFonts.poppins(
                                         color: kPrimaryColor,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -1366,12 +1366,12 @@ class BrokerDashboardContent extends StatelessWidget {
                 children: [
                   TextSpan(
                       text: "$label: ",
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                      style:  GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                   TextSpan(
                       text: value != null && value.toString().isNotEmpty
                           ? value.toString()
                           : "N/A",
-                      style: const TextStyle(fontWeight: FontWeight.w400)),
+                      style:  GoogleFonts.poppins(fontWeight: FontWeight.w400)),
                 ],
               ),
             ),

@@ -488,9 +488,9 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                            : const Text(
+                            :  Text(
                           "Create Tag",
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w600,
                               color: Colors.white),
                         ),
@@ -605,9 +605,9 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                         // Right side: Create Button
                         ElevatedButton.icon(
                           icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                          label: const Text(
+                          label:  Text(
                             "Create Tag",
-                            style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: kPrimaryColor,
@@ -970,7 +970,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
               color: Colors.black87,
               borderRadius: BorderRadius.circular(6),
             ),
-            textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+            textStyle:  GoogleFonts.poppins(color: Colors.white, fontSize: 12),
             waitDuration: const Duration(milliseconds: 300),
             child: GestureDetector(
               onTap: () => _updateTagStatus(tag, !isActive),
@@ -1206,7 +1206,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                   onPressed: _bulkUpdating ? null : _bulkToggleStatus,
                   label: Text(
                     _bulkUpdating ? "Updating..." : "Update Status",
-                    style: const TextStyle(
+                    style:  GoogleFonts.poppins(
                         fontWeight: FontWeight.w600, letterSpacing: 0.2),
                   ),
                 ),
@@ -1238,7 +1238,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
                   onPressed: _bulkDeleting ? null : _bulkDelete,
                   label: Text(
                     _bulkDeleting ? "Deleting..." : "Delete",
-                    style: const TextStyle(
+                    style:  GoogleFonts.poppins(
                         fontWeight: FontWeight.w600, letterSpacing: 0.2),
                   ),
                 ),

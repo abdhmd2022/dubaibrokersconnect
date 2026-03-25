@@ -1195,11 +1195,11 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                       child: TextField(
                                         controller: controller,
                                         focusNode: focusNode,
-                                        decoration: const InputDecoration(
+                                        decoration:  InputDecoration(
                                           isDense: true,
                                           border: InputBorder.none,
                                           hintText: "Search & select locations...",
-                                          hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                                          hintStyle: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
                                         ),
                                         style: GoogleFonts.poppins(
                                           fontSize: 13.5,
@@ -3281,12 +3281,12 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                 children: [
                   TextSpan(
                       text: "$label: ",
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                      style:  GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                   TextSpan(
                       text: value != null && value.toString().isNotEmpty
                           ? value.toString()
                           : "N/A",
-                      style: const TextStyle(fontWeight: FontWeight.w400)),
+                      style:  GoogleFonts.poppins(fontWeight: FontWeight.w400)),
                 ],
               ),
             ),
