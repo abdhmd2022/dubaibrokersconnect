@@ -20,7 +20,7 @@ class PropertyDetailsScreen extends StatefulWidget {
     required this.propertyData,
     required this.userData,
 
-
+w
   })
       : super(key: key);
 
@@ -361,7 +361,6 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
           const SizedBox(height: 14),
           _verifiedBadge(brokerData['isVerified'] == true),
 
-          /// 🔹 Social Links
           /// 🔹 Social Links
           if (brokerData['socialLinks'] != null &&
               (brokerData['socialLinks'] as Map).isNotEmpty) ...[

@@ -1953,7 +1953,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
         ? null
         : widget.userData['broker']?['id'];
 
-
     return Scaffold(
       backgroundColor: backgroundColor,
       floatingActionButton: FloatingActionButton(
