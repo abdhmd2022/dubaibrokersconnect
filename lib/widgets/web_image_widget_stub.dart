@@ -8,7 +8,7 @@ Widget buildWebImage({
   BoxFit fit = BoxFit.contain,
 
 }) {
-  // Stub for non-web platforms
+
   return Image.network(
     imageUrl,
     width: width,
