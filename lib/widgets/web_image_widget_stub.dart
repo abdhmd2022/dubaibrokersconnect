@@ -18,4 +18,3 @@ Widget buildWebImage({
     errorBuilder: (context, error, stackTrace) => fallback,
   );
 }
-
