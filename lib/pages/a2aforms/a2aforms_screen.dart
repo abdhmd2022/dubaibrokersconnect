@@ -12,10 +12,8 @@ import 'package:shimmer/shimmer.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/animated_logo_loader.dart';
-// import 'dart:io';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
-// import 'package:printing/printing.dart';
 import 'dart:html' as html; // for web
 import 'dart:typed_data';
 
@@ -709,15 +707,11 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                               ],
                             ),
                           ),
-
-
                         ],
                       ),
                     ),
-
                   ],
                 ),
-
 
                 // ===== PART 2 & PART 3 IN A ROW =====
                 pw.Table(
@@ -809,8 +803,6 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                     ),
                   ],
                 ),
-
-
 
                 // ===== PART 4 – SIGNATURES =====
                 pw.Container(
