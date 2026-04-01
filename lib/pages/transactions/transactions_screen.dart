@@ -126,7 +126,6 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
 
         sortByLatest(myPending);
 
-
         // 🟣 Pending Others Confirmation → created by ME, waiting for OTHER broker
         final othersPending = txList.where((tx) {
           final status = (tx["status"] ?? "").toString().toUpperCase();
@@ -140,7 +139,6 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
         }).toList();
 
         sortByLatest(othersPending);
-
 
         // 🟢 Completed Transactions — mine or assigned to me
         final completed = txList.where((tx) {
@@ -156,8 +154,6 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
         }).toList();
 
         sortByLatest(completed);
-
-
 
         setState(() {
           if (page == 1) {
