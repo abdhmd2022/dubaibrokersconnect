@@ -82,7 +82,7 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
 
       final token = await AuthService.getToken();
       final currentBrokerId = widget.userData["broker"]["id"];
-      final currentUserId = widget.userData["id"];
+      // final currentUserId = widget.userData["id"];
 
       final response = await http.get(
         Uri.parse("$baseURL/api/transactions?page=$page&limit=$_limit"),
@@ -593,9 +593,9 @@ class _MyTransactionsScreenState extends State<MyTransactionsScreen>
                   }
 
                   final data = snapshot.data ?? {};
-                  final user = data['user'] ?? {};
-                  final properties = data['properties'] ?? [];
-                  final reviews = data['reviews'] ?? [];
+                  // final user = data['user'] ?? {};
+                  // final properties = data['properties'] ?? [];
+                  // final reviews = data['reviews'] ?? [];
                   dynamic avatarUrl = data['avatar'];
 
                   // Determine the full image URL - handle both absolute and relative paths

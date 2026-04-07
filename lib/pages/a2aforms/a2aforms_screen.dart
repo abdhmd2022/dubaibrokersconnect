@@ -84,7 +84,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body)['data'];
 
-        print('data -> $data');
+        // print('data -> $data');
 
         await generateA2APdf(data);
 
@@ -150,7 +150,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
     String formattedDateIssued = '';
 
 
-    if (dateIssued != null && dateIssued.toString().isNotEmpty) {
+    if (dateIssued.toString().isNotEmpty) {
       try {
         final parsed = DateTime.parse(dateIssued.toString());
 
@@ -464,8 +464,8 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
   Future<void> generateA2APdf(Map<String, dynamic> data) async {
     final pdf = pw.Document();
 
-    final seller = data;
-    final broker = data['broker'] ?? {};
+    // final seller = data;
+    // final broker = data['broker'] ?? {};
     String date = '';
 
     if (data['agreementDate'] != null) {
@@ -1469,7 +1469,7 @@ class _A2AFormsScreenState extends State<A2AFormsScreen> {
                                 ),
                               ],
                               rows: _forms.map((f) {
-                                final role = widget.userData["role"];
+                                // final role = widget.userData["role"];
                                 final currentBrokerId  = widget.userData['broker']["id"];
 
 
@@ -1917,7 +1917,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
     buyerNameC.text = data['buyerName'] ?? '';
     buyerBudgetC.text = data['budget']?.toString() ?? '';
 
-    listedPriceC.text = data['listedPrice'].toString()?? '';
+    listedPriceC.text = data['listedPrice'].toString();
 
     // 🟨 Dropdown + Checkboxes
     final fee = data['transferFeePaidBy']?.toString();
@@ -1963,14 +1963,13 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
       setState(() => _loadingBrokers = true);
       final token = await AuthService.getToken();
       final id = widget.existingForm?['id'];
-      DateTime localDate =
-      DateFormat('dd-MMM-yyyy').parse(sellerBrnIssueDateC.text);
+      // DateTime localDate = DateFormat('dd-MMM-yyyy').parse(sellerBrnIssueDateC.text);
 
-      String isoDate = DateTime.utc(
+      /*String isoDate = DateTime.utc(
         localDate.year,
         localDate.month,
         localDate.day,
-      ).toIso8601String();
+      ).toIso8601String();*/
 
       final body = {
         // 🧾 Meta
@@ -2081,9 +2080,8 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
 
   void _prefillBuyerAgentDetails() {
     final user = widget.userData;
-    if (user == null) return;
 
-    final role = user['role']?.toString().toUpperCase();
+    // final role = user['role']?.toString().toUpperCase();
     final broker = user['broker']?? {};
 
     print('broker -> $broker');
@@ -2480,11 +2478,11 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
       final user = widget.userData;
 
       // 🔹 Determine broker and company IDs
-      final role = user["role"];
+      // final role = user["role"];
       final brokerId = user["broker"]?["id"];
 
       // For now, we’ll reuse broker ID as company until your API gives a2a_company_id explicitly
-      final companyId = "550e8400-e29b-41d4-a716-446655440012";
+      // final companyId = "550e8400-e29b-41d4-a716-446655440012";
 
       // 🧾 Prepare body
       final body = {
@@ -2754,7 +2752,7 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                                     DropdownMenuItem<String>(
                                       value: widget.userData["broker"]?["companyName"]?? 'Freelancer',
                                       child: Text(
-                                          '${widget.userData["broker"]?["companyName"]?? 'Freelancer'} (ORN: ${widget.userData['broker']["reraNumber"]})' ?? "No Company Found",
+                                          '${widget.userData["broker"]?["companyName"]?? 'Freelancer'} (ORN: ${widget.userData['broker']["reraNumber"]})',
                                         style: GoogleFonts.poppins(fontSize: 13),
                                       ),
                                     ),
