@@ -499,7 +499,7 @@ class _LoginPageState extends State<LoginPage> {
                                 height: 20,
                               ),
                               label: Text(
-                                "Continue with Google",
+                                "Sign in with Google",
                                 style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
