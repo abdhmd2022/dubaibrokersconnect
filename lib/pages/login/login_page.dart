@@ -102,6 +102,13 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('refresh_token', data['data']['refreshToken']);
         await prefs.setString('user_data', jsonEncode(data['data']['user']));
 
+        final userData = data['data']['user'];
+
+        final isVerified = userData['broker']?['isVerified'] ?? false;
+        await prefs.setString('user_id', userData['id'].toString());
+        await prefs.setBool('isVerified',isVerified );
+
+
         SessionService.cachedUser = data['data']['user'];
 
 
@@ -479,35 +486,37 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 24),
                         _buildTitle(width),
                         const SizedBox(height: 30),
-                        if (_mode == AuthMode.login) _buildLoginFields(),
-                        SizedBox(height: 12),
+                        if (_mode == AuthMode.login)...[
+                          _buildLoginFields(),
+                          SizedBox(height: 12),
 
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: OutlinedButton.icon(
-                            onPressed: _googleLogin,
-                            icon: Image.asset(
-                              "assets/google.png",
-                              height: 20,
-                            ),
-                            label: Text(
-                              "Continue with Google",
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: OutlinedButton.icon(
+                              onPressed: _googleLogin,
+                              icon: Image.asset(
+                                "assets/google.png",
+                                height: 20,
                               ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black87,
-                              side: BorderSide(color: Colors.grey.shade300),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                              label: Text(
+                                "Continue with Google",
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black87,
+                                side: BorderSide(color: Colors.grey.shade300),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
 
                         if (_mode == AuthMode.signup) _buildSignupFields(),
                         if (_mode == AuthMode.forgot) _buildForgotPassword(),
