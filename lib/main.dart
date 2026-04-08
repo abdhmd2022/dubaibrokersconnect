@@ -8,7 +8,6 @@ final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔥 VERY IMPORTANT
   await SessionService.loadUser();
   runApp(const MyApp());
 }

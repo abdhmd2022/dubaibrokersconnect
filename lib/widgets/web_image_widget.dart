@@ -11,7 +11,7 @@ class WebCompatibleImage extends StatelessWidget {
   final double width;
   final double height;
   final Widget fallback;
-  final BoxFit fit; // ⭐ ADD THIS
+  final BoxFit fit;
 
   const WebCompatibleImage({
     super.key,
@@ -19,7 +19,7 @@ class WebCompatibleImage extends StatelessWidget {
     required this.width,
     required this.height,
     required this.fallback,
-    this.fit = BoxFit.contain, // ⭐ CHANGE DEFAULT
+    this.fit = BoxFit.contain,
   });
 
   @override
@@ -30,8 +30,7 @@ class WebCompatibleImage extends StatelessWidget {
         width: width,
         height: height,
         fallback: fallback,
-        fit: fit, // ✅ add this
-
+        fit: fit,
       );
     } else {
       return Image.network(
@@ -39,7 +38,6 @@ class WebCompatibleImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit, // ⭐ IMPORTANT
-
         errorBuilder: (context, error, stackTrace) => fallback,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;

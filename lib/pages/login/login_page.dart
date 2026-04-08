@@ -111,8 +111,6 @@ class _LoginPageState extends State<LoginPage> {
 
         SessionService.cachedUser = data['data']['user'];
 
-
-
         _goToDashboard();
       } else {
         _showError(data['message'] ?? "Google login failed");
