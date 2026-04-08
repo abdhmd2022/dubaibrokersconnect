@@ -13,7 +13,6 @@ class WebCompatibleImage extends StatelessWidget {
   final Widget fallback;
   final BoxFit fit; // ⭐ ADD THIS
 
-
   const WebCompatibleImage({
     super.key,
     required this.imageUrl,
@@ -21,8 +20,6 @@ class WebCompatibleImage extends StatelessWidget {
     required this.height,
     required this.fallback,
     this.fit = BoxFit.contain, // ⭐ CHANGE DEFAULT
-
-
   });
 
   @override
