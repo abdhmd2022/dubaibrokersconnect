@@ -72,7 +72,6 @@ class _LoginPageState extends State<LoginPage> {
       final auth = await user.authentication;
 
       print("ID TOKEN: ${auth.idToken}");
-      print("ACCESS TOKEN: ${auth.accessToken}");
 
       final accessToken = auth.accessToken;
 
@@ -96,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (res.statusCode == 200 && data['success'] == true) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('email', user.email); // ✅ NEW LINE
+        await prefs.setString('email', user.email);
 
         await prefs.setString('access_token', data['data']['accessToken']);
         await prefs.setString('refresh_token', data['data']['refreshToken']);
@@ -121,7 +120,6 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _isLoading = false);
     }
   }
-
 
   void _startTimer() {
     _resendSeconds = 60;
@@ -193,7 +191,6 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = false);
   }
-
 
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
@@ -443,6 +440,7 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;

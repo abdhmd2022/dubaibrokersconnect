@@ -394,6 +394,8 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
 
     print('broker -> $broker');
     final name = broker!['displayName'] ?? '';
+    final role = broker!['brokerTitle'] ?? 'Broker';
+
     final companyName = broker!['companyName'] ?? '';
     final brnNumber = broker!['brnNumber'] ?? '';
     final brnIssueDateRaw = broker!['brnIssuesDate'];
@@ -585,6 +587,18 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
                         ],
                       ),
 
+                      const SizedBox(height: 6),
+
+                      // Role and Category Badges
+                      Row(
+                        children: [
+                          Text(role,
+                              style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey.shade600)),
+                        ],
+                      ),
 // 🏢 Company
 
                       if (companyName.isEmpty) ...[
