@@ -300,6 +300,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   // ------------------------------------------------------------
   Widget _contactAgentCard(BuildContext context,
       Map<String, dynamic> brokerData, Map<String, dynamic> propertyData) {
+    final avatar = brokerData['avatar'];
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -331,15 +332,49 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
           /// Broker Info
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.blue.shade100,
-                child: Text(
-                  (brokerData['displayName'] ?? 'A')[0].toUpperCase(),
-                  style: GoogleFonts.poppins(
-                      color: Colors.blue.shade700,
-                      fontWeight: FontWeight.w600),
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      kPrimaryColor.withOpacity(0.8),
+                      kPrimaryColor.withOpacity(0.4),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
+                padding: const EdgeInsets.all(0),
+                child: CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.white,
+                  child: ClipOval(
+                    child: avatar != null && avatar.isNotEmpty
+                        ? WebCompatibleImage(
+                      imageUrl: (avatar.toString().startsWith('http://') || avatar.toString().startsWith('https://'))
+                          ? avatar.toString()
+                          : '$baseURL/$avatar',
+                      width: 60,
+                      height: 60,
+
+                      fallback: Image.asset(
+                        'assets/collabrix_logo.png',
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.contain,
+                      ),
+                    )
+                        : Image.asset(
+                      'assets/collabrix_logo.png', // fallback if avatar null or empty
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+
               ),
               const SizedBox(width: 10),
               Expanded(
