@@ -2752,7 +2752,10 @@ class _CreateA2AFormDialogState extends State<CreateA2AFormDialog> {
                                     DropdownMenuItem<String>(
                                       value: widget.userData["broker"]?["companyName"]?? 'Freelancer',
                                       child: Text(
-                                          '${widget.userData["broker"]?["companyName"]?? 'Freelancer'} (ORN: ${widget.userData['broker']["reraNumber"]})',
+                                        widget.userData["broker"]?["companyName"] == null ||
+                                            widget.userData["broker"]?["companyName"] == 'Freelancer'
+                                            ? 'Freelancer'
+                                            : '${widget.userData["broker"]["companyName"]} (ORN: ${widget.userData["broker"]["reraNumber"]})',
                                         style: GoogleFonts.poppins(fontSize: 13),
                                       ),
                                     ),

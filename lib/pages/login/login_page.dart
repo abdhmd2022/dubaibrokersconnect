@@ -96,10 +96,14 @@ class _LoginPageState extends State<LoginPage> {
 
       if (res.statusCode == 200 && data['success'] == true) {
         final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('email', user.email); // ✅ NEW LINE
 
         await prefs.setString('access_token', data['data']['accessToken']);
         await prefs.setString('refresh_token', data['data']['refreshToken']);
         await prefs.setString('user_data', jsonEncode(data['data']['user']));
+
+        SessionService.cachedUser = data['data']['user'];
+
 
         _goToDashboard();
       } else {
@@ -239,10 +243,6 @@ class _LoginPageState extends State<LoginPage> {
 
         print('token ->>>> $accessToken');
 
-
-
-
-
         if (_rememberMe) {
           await prefs.setString('email', _emailController.text.trim());
           await prefs.setString('password', _passwordController.text.trim());
@@ -254,6 +254,9 @@ class _LoginPageState extends State<LoginPage> {
           'user_data',
           jsonEncode(userData),
         );
+
+        SessionService.cachedUser = userData;
+
 
         if (!isEmailVerified) {
           setState(() {

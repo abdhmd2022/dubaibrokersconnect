@@ -8,7 +8,7 @@ import '../constants.dart';
 class SessionService {
   static Map<String, dynamic>? cachedUser;
 
-  static Future<Map<String, dynamic>?> loadUser({bool forceRefresh = true}) async {
+  static Future<Map<String, dynamic>?> loadUser({bool forceRefresh = false}) async {
     if (!forceRefresh && cachedUser != null) {
       return cachedUser;
     }

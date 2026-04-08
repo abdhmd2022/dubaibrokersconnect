@@ -482,7 +482,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
 
           _activeTooltip = OverlayEntry(
             builder: (context) => Positioned(
-              left: position.dx - 70,
+              left: position.dx - 300,
               top: showAbove
                   ? position.dy - 85
                   : position.dy + size.height + 10,

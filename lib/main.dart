@@ -1,10 +1,15 @@
+import 'package:a2abrokerapp/services/session_service.dart';
 import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'router/app_router.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 🔥 VERY IMPORTANT
+  await SessionService.loadUser();
   runApp(const MyApp());
 }
 

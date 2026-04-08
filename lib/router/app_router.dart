@@ -43,31 +43,23 @@ GoRouter createRouter() {
       ),
     ),
     // 🔐 GLOBAL REDIRECT (FIXES REFRESH)
-    redirect: (context, state) async {
-      final user = await SessionService.loadUser();
+    redirect: (context, state) {
+      final user = SessionService.cachedUser;
       final location = state.uri.path;
 
-      // 1️⃣ Not logged in → only allow /login
+      // ⛔ If user not loaded yet → do nothing
       if (user == null) {
         return location == '/login' ? null : '/login';
       }
 
-      // 2️⃣ Logged in → block going back to login ONLY
+      // 🚫 Prevent going back to login
       if (location == '/login') {
 
         if (user['role'] == 'ADMIN') {
-          final isEmailVerified = user['isEmailVerified'] ?? false;
-
-          if (!isEmailVerified) {
-            print("Redirect → Email Verification");
-            return '/login'; // or handle inline mode
-          }
-          else
-            return '/admin/dashboard';
+          return '/admin/dashboard';
         }
 
         if (user['role'] == 'BROKER') {
-
           final broker = user['broker'];
 
           final bool isBrokerMissing =
@@ -75,23 +67,12 @@ GoRouter createRouter() {
                   (broker is Map && broker.isEmpty) ||
                   broker?['id'] == null;
 
-          final isEmailVerified = user['isEmailVerified'] ?? false;
-
-          if (!isEmailVerified) {
-            print("Redirect → Email Verification");
-            return '/login'; // or handle inline mode
-          }
-          else if (isBrokerMissing) {
-            print("Redirect → Broker Setup");
-            return '/broker/setup';
-          } else {
-            print("Redirect → Broker Dashboard");
-            return '/broker/dashboard';
-          }
+          return isBrokerMissing
+              ? '/broker/setup'
+              : '/broker/dashboard';
         }
       }
 
-      // 3️⃣ 🔑 CRITICAL: allow refresh on current route
       return null;
     },
 
