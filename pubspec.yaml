@@ -39,6 +39,7 @@ dependencies:
   url_launcher_web:
   data_table_2:
   dropdown_button2: ^2.3.9
+  google_sign_in: ^6.2.1
   intl:
   go_router:
   cached_network_image:
@@ -74,6 +75,7 @@ dev_dependencies:
 flutter:
   assets:
     - assets/collabrix_logo.png
+    - assets/google.png
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

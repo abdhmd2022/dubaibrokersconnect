@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:a2abrokerapp/constants.dart';
@@ -53,6 +54,64 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
   AuthMode _mode = AuthMode.login;
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: "830995643107-uvtkuc1ps8p576ungikcm18io54enh6n.apps.googleusercontent.com",
+  );
+
+  Future<void> _googleLogin() async {
+    try {
+      setState(() => _isLoading = true);
+
+      await _googleSignIn.signOut(); // 🔥 important
+
+      final user = await _googleSignIn.signIn();
+
+      if (user == null) return;
+
+      final auth = await user.authentication;
+
+      print("ID TOKEN: ${auth.idToken}");
+      print("ACCESS TOKEN: ${auth.accessToken}");
+
+      final accessToken = auth.accessToken;
+
+      print("ACCESS TOKEN: $accessToken");
+
+      if (accessToken == null) {
+        _showError("Google access token not found");
+        return;
+      }
+
+      final res = await http.post(
+        Uri.parse('$baseURL/api/auth/oauth/google'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "accessToken": accessToken, // ✅ correct
+
+        }),
+      );
+
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 200 && data['success'] == true) {
+        final prefs = await SharedPreferences.getInstance();
+
+        await prefs.setString('access_token', data['data']['accessToken']);
+        await prefs.setString('refresh_token', data['data']['refreshToken']);
+        await prefs.setString('user_data', jsonEncode(data['data']['user']));
+
+        _goToDashboard();
+      } else {
+        _showError(data['message'] ?? "Google login failed");
+      }
+    } catch (e) {
+      _showError("Error: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
 
   void _startTimer() {
     _resendSeconds = 60;
@@ -418,6 +477,35 @@ class _LoginPageState extends State<LoginPage> {
                         _buildTitle(width),
                         const SizedBox(height: 30),
                         if (_mode == AuthMode.login) _buildLoginFields(),
+                        SizedBox(height: 12),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: OutlinedButton.icon(
+                            onPressed: _googleLogin,
+                            icon: Image.asset(
+                              "assets/google.png",
+                              height: 20,
+                            ),
+                            label: Text(
+                              "Continue with Google",
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.black87,
+                              side: BorderSide(color: Colors.grey.shade300),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+
                         if (_mode == AuthMode.signup) _buildSignupFields(),
                         if (_mode == AuthMode.forgot) _buildForgotPassword(),
                         if (_mode == AuthMode.emailVerify) _buildEmailVerification(),
