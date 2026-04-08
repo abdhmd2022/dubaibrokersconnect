@@ -105,6 +105,7 @@ class _LoginPageState extends State<LoginPage> {
         final userData = data['data']['user'];
 
 
+
         final isVerified = userData['broker']?['isVerified'] ?? false;
         await prefs.setString('user_id', userData['id'].toString());
         await prefs.setBool('isVerified',isVerified );
