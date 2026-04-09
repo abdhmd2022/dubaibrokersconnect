@@ -134,8 +134,6 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
     }).toList();
   }
 
-
-
   Widget _buildBrokerCard(Map<String, dynamic> b) {
     final avatar = b['avatar'];
     print('avatar -> $baseURL/$avatar');
@@ -145,7 +143,7 @@ class _BrokerDirectoryScreenState extends State<BrokerDirectoryScreen> {
 
     final company = b['user']['companyName'] ?? '';
     final verified = b['isVerified'] == true;
-    final approved = b['approvalStatus'] == "APPROVED";
+    // final approved = b['approvalStatus'] == "APPROVED";
 
     // print('broker ->? $b');
     final rating = b['rating']?.toString() ?? 'N/A';
