@@ -38,7 +38,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
     _tooltipVisible = false;
   }
 
-
   String formatDate(dynamic rawDate) {
     if (rawDate == null) return '';
     try {
@@ -48,8 +47,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       return '';
     }
   }
-
-
 
   @override
   void dispose() {
@@ -99,6 +96,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       });
     }
   }
+
   Widget buildSocialLinksBody() {
     if (broker!['socialLinks'].entries
         .where((entry) =>
@@ -261,10 +259,7 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
           ),
         );
       }
-
-
   }
-
 
   Widget _compactBrnItem(String label, String value) {
     return Column(
@@ -291,8 +286,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       ],
     );
   }
-
-
 
   Widget _sectionCard({
     required String title,
@@ -370,7 +363,6 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
