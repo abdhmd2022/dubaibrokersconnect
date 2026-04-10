@@ -8,7 +8,7 @@ import '../constants.dart';
 class SessionService {
   static Map<String, dynamic>? cachedUser;
 
-  static Future<Map<String, dynamic>?> loadUser({bool forceRefresh = false}) async {
+  static Future<Map<String, dynamic>?> loadUser({bool forceRefresh = true}) async {
     if (!forceRefresh && cachedUser != null) {
       return cachedUser;
     }
@@ -46,6 +46,7 @@ class SessionService {
         final data = jsonDecode(res.body);
         final user = data['data']['user'];
 
+        print('user data user from api ${user}');
         // 🔥 update both cache & local storage
         cachedUser = user;
         await prefs.setString('user_data', jsonEncode(user));
