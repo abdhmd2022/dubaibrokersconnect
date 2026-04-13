@@ -1,8 +1,6 @@
 import 'dart:async';
-
 import 'package:a2abrokerapp/pages/recent_activities/recent_activities_controller.dart';
 import 'package:a2abrokerapp/pages/recent_activities/recent_activities_model.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -248,7 +246,6 @@ class _RecentActivitiesPageState extends State<RecentActivitiesPage> {
                               endDate = null;
                             }
                           });
-
                           _applySearch(searchQuery);
                         }
                       }
@@ -438,11 +435,6 @@ class _RecentActivitiesPageState extends State<RecentActivitiesPage> {
         style: GoogleFonts.poppins(color: Colors.grey),
       ),
     );
-  }
-
-  String _formatTime(String date) {
-    final dt = DateTime.parse(date);
-    return "${dt.hour}:${dt.minute.toString().padLeft(2, '0')}";
   }
 }
 Widget _dateFilterCard({
