@@ -109,13 +109,7 @@ GoRouter createRouter() {
             },
           ),
 
-          GoRoute(
-            path: '/admin/recent-activities',
-            builder: (context, state) {
-              final userData = state.extra as Map<String, dynamic>;
-              return RecentActivitiesPage(); // or pass userData if needed
-            },
-          ),
+
 
           GoRoute(
             path: '/admin/listings',
@@ -178,6 +172,13 @@ GoRouter createRouter() {
           GoRoute(
             path: '/admin/locations',
             builder: (_, __) => LocationManagementScreen(),
+
+          ),
+          GoRoute(
+            path: '/admin/recent-activities',
+            builder: (context, state) {
+              return RecentActivitiesPage();
+            },
           ),
         ],
       ),
@@ -280,154 +281,3 @@ GoRouter createRouter() {
   );
 }
 
-/*GoRouter createRouter(Map<String, dynamic>? userData) {
-  return GoRouter(
-    initialLocation: '/login',
-    debugLogDiagnostics: true,
-
-    routes: [
-
-      /// ---------------- LOGIN ----------------
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginPage(),
-      ),
-
-      /// ================= ADMIN SHELL =================
-      ShellRoute(
-        builder: (context, state, child) {
-          return AdminShell(
-            userData: state.extra as Map<String, dynamic>,
-            child: child,
-          );
-        },
-        routes: [
-          GoRoute(
-            path: '/admin/dashboard',
-            builder: (context, state) =>
-                AdminDashboardContent(userData: state.extra as Map<String, dynamic>),
-          ),
-          GoRoute(
-            path: '/admin/listings',
-            builder: (context, state) =>
-                ListingsScreen(userData: state.extra as Map<String, dynamic>),
-          ),
-          GoRoute(
-            path: '/admin/requirements',
-            builder: (context, state) =>
-                RequirementsScreen(userData: state.extra as Map<String, dynamic>),
-          ),
-          GoRoute(
-            path: '/admin/brokers',
-            builder: (context, state) =>
-                BrokerDirectoryScreen(userData: state.extra as Map<String, dynamic>),
-          ),
-          GoRoute(
-            path: '/admin/profile',
-            builder: (context, state) {
-              final data = state.extra as Map<String, dynamic>;
-              return ProfileScreen(
-                brokerId: data['broker']['id'],
-                userData: data,
-              );
-            },
-          ),
-          GoRoute(
-            path: '/admin/forms',
-            builder: (context, state) =>
-                A2AFormsScreen(userData: state.extra as Map<String, dynamic>),
-          ),
-          GoRoute(
-            path: '/admin/import/bayut',
-            builder: (context, state) =>
-                ImportFromBayutScreen(userData: state.extra as Map<String, dynamic>),
-          ),
-          GoRoute(
-            path: '/admin/import/propertyfinder',
-            builder: (context, state) =>
-                ImportFromPropertyFinderScreen(userData: state.extra as Map<String, dynamic>),
-          ),
-          GoRoute(
-            path: '/admin/broker-management',
-            builder: (context, state) => BrokerManagementScreen(),
-          ),
-          GoRoute(
-            path: '/admin/tags',
-            builder: (context, state) => TagManagementScreen(),
-          ),
-          GoRoute(
-            path: '/admin/property-types',
-            builder: (context, state) => PropertyTypesScreen(),
-          ),
-          GoRoute(
-            path: '/admin/locations',
-            builder: (context, state) => LocationManagementScreen(),
-          ),
-        ],
-      ),
-
-      /// ================= BROKER SHELL =================
-      ShellRoute(
-        builder: (context, state, child) {
-          return BrokerShell(
-            userData: state.extra as Map<String, dynamic>,
-            child: child,
-          );
-        },
-        routes: [
-          GoRoute(
-            path: '/broker/dashboard',
-            builder: (context, state) {
-              final data = state.extra as Map<String, dynamic>;
-              final approved =
-                  data['broker']['approvalStatus'] == 'APPROVED';
-
-              return approved
-                  ? BrokerDashboardContent(userData: data)
-                  : UnverifiedBrokerDashboard(
-                userData: data,
-                onNavigateToBrokers: () {
-                  context.go('/broker/brokers', extra: data);
-                },
-                onNavigateToProfile: () {
-                  context.go('/broker/profile', extra: data);
-                },
-              );
-            },
-          ),
-
-          GoRoute(
-            path: '/broker/listings',
-            builder: (context, state) =>
-                ListingsScreen(userData: state.extra as Map<String, dynamic>),
-          ),
-          GoRoute(
-            path: '/broker/requirements',
-            builder: (context, state) =>
-                RequirementsScreen(userData: state.extra as Map<String, dynamic>),
-          ),
-          GoRoute(
-            path: '/broker/brokers',
-            builder: (context, state) =>
-                BrokerDirectoryScreen(userData: state.extra as Map<String, dynamic>),
-          ),
-          GoRoute(
-            path: '/broker/profile',
-            builder: (context, state) {
-              final data = state.extra as Map<String, dynamic>;
-              return ProfileScreen(
-                brokerId: data['broker']['id'],
-                userData: data,
-              );
-            },
-          ),
-          GoRoute(
-            path: '/broker/forms',
-            builder: (context, state) =>
-                A2AFormsScreen(userData: state.extra as Map<String, dynamic>),
-          ),
-        ],
-      ),
-    ],
-  );
-}*/
