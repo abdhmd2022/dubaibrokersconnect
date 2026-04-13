@@ -56,7 +56,7 @@ class _RecentActivitiesPageState extends State<RecentActivitiesPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.only(right:20, top: 40,bottom: 20,left: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
