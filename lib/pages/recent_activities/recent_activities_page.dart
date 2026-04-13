@@ -272,6 +272,7 @@ class _RecentActivitiesPageState extends State<RecentActivitiesPage> {
                             endDate = picked;
                           });
 
+
                           _applySearch(searchQuery);
                         }
                       }
