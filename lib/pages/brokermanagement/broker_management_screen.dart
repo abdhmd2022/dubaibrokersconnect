@@ -680,15 +680,6 @@
       final bool isDisabled = !isActive;
 
       final Color baseColor = Colors.white;
-      final Color sideColor = isDisabled
-          ? Colors.grey
-          : status == 'APPROVED'
-          ? Colors.green
-          : status == 'PENDING'
-          ? Colors.amber
-          : status == 'REJECTED'
-          ? Colors.redAccent
-          : Colors.grey;
 
       return MouseRegion(
         cursor: SystemMouseCursors.click,
@@ -720,7 +711,7 @@
                     children: [
                       Builder(
                         builder: (context) {
-                          final bool isAdmin = user['role'] == 'ADMIN';
+                          // final bool isAdmin = user['role'] == 'ADMIN';
 
 
                           // 🧠 If Admin → get avatar from broker
@@ -980,7 +971,7 @@
     }
 
     void _showBrokerDetailsDialog(BuildContext context, Map<String, dynamic> broker) {
-      final user = broker['user'] ?? {};
+      // final user = broker['user'] ?? {};
       final company = broker['companyName'];
       final brnNumber = broker['brnNumber'];
       final brnIssueDate = broker['brnIssuesDate'];
@@ -993,7 +984,6 @@
           : null;
       final licenseNumber = broker['licenseNumber'] ?? broker['license_number'];
       final reraNumber = broker['reraNumber'] ?? broker['rera_number'] ?? "";
-
 
       print('✅ brnAttachment URL: $brnAttachment');
 
@@ -1464,40 +1454,6 @@
     }
 
 
-    Widget _buildDetailRow(String title, String value) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(title,
-                style: GoogleFonts.poppins(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87)),
-            Flexible(
-                child: Text(value,
-                    textAlign: TextAlign.end,
-                    style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.blueGrey.shade700,
-                        fontWeight: FontWeight.w500))),
-          ],
-        ),
-      );
-    }
 
     Widget _statusChip(String status, {bool isVerified = false, bool isActive = true}) {
       status = status.toUpperCase();
@@ -1578,13 +1534,13 @@
     Widget _buildActionButtons(Map<String, dynamic> b, String status) {
       if (status != 'PENDING') return const SizedBox.shrink();
 
-      final user = b['user'] ?? {};
-      final company = user['companyName'];
-      final brnNumber = b['brnNumber'];
+      // final user = b['user'] ?? {};
+      // final company = user['companyName'];
+      // final brnNumber = b['brnNumber'];
 
       // both required to enable approve
-      final bool hasBRN = brnNumber != null && brnNumber.toString().trim().isNotEmpty;
-      final bool canApprove = true; // always allow approval now
+      // final bool hasBRN = brnNumber != null && brnNumber.toString().trim().isNotEmpty;
+      // final bool canApprove = true; // always allow approval now
 
 
       return Align(
@@ -1898,50 +1854,8 @@
       }
     }
 
-    Future<void> _rejectBroker(Map<String, dynamic> b) async {
-      final token = await AuthService.getToken();
-      final id = b['id'].toString().trim();
-      print('broker id -> $id');
-      final res = await http.post(
-        Uri.parse('$baseURL/api/brokers/$id/reject'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        /*ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Broker rejected successfully")));*/
-        _fetchBrokers(refresh: true);
-      } else {
-
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Failed to reject broker"),
-            backgroundColor: Colors.redAccent));
-      }
-    }
   }
   // 🔸 Custom background painter for faint diagonal lines
-  class _LinePatternPainter extends CustomPainter {
-    final Color color;
-    _LinePatternPainter(this.color);
-
-    @override
-    void paint(Canvas canvas, Size size) {
-      final paint = Paint()
-        ..color = color.withOpacity(0.06)
-        ..strokeWidth = 1;
-
-      const spacing = 12;
-      for (double i = -size.height; i < size.width * 2; i += spacing) {
-        canvas.drawLine(
-          Offset(i, 0),
-          Offset(i - size.height, size.height),
-          paint,
-        );
-      }
-    }
-
-    @override
-    bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-  }
   Widget _buildEditableField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

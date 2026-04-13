@@ -1483,8 +1483,8 @@ class _BrokerProfileScreenState extends State<BrokerProfileScreen> {
           runSpacing: 8,
           children: data.map<Widget>((req) {
             final title = req['title'] ?? "Untitled Requirement";
-            final category = toSentenceCase(req['category']) ?? "N/A";
-            final transaction = toSentenceCase(req['transactionType']) ?? "N/A";
+            final category = toSentenceCase(req['category']);
+            final transaction = toSentenceCase(req['transactionType']) ;
 
             final minRaw = num.tryParse(req['minPrice'] ?? '') ?? 0;
             final maxRaw = num.tryParse(req['maxPrice'] ?? '') ?? 0;
