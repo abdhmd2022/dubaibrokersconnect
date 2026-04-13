@@ -31,6 +31,8 @@ class AdminSidebar extends StatelessWidget {
       {'icon': Icons.loyalty_outlined, 'label': 'Tag Management', 'badge': true},
       {'icon': Icons.apartment_outlined, 'label': 'Property Types', 'badge': true},
       {'icon': Icons.pin_drop_outlined, 'label': 'Locations', 'badge': true},
+      {'icon': Icons.history, 'label': 'Recent Activities', 'badge' : true},
+
     ];
 
     final routes = [
@@ -47,6 +49,8 @@ class AdminSidebar extends StatelessWidget {
       '/admin/tags',
       '/admin/property-types',
       '/admin/locations',
+      '/admin/recent-activities', // 👈 ADD THIS (same index as item)
+
     ];
 
     final location = GoRouterState.of(context).uri.toString();

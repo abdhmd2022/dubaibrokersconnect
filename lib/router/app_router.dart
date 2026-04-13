@@ -9,6 +9,7 @@ import '../pages/login/login_page.dart';
 import '../pages/dashboard/admin_shell.dart';
 import '../pages/dashboard/admindashboard.dart';
 import '../pages/listings/listings_screen.dart';
+import '../pages/recent_activities/recent_activities_page.dart';
 import '../pages/requirements/requirements_screen.dart';
 import '../pages/directory/broker_directory_screen.dart';
 import '../pages/profile/profile_screen.dart';
@@ -108,6 +109,13 @@ GoRouter createRouter() {
             },
           ),
 
+          GoRoute(
+            path: '/admin/recent-activities',
+            builder: (context, state) {
+              final userData = state.extra as Map<String, dynamic>;
+              return RecentActivitiesPage(); // or pass userData if needed
+            },
+          ),
 
           GoRoute(
             path: '/admin/listings',
