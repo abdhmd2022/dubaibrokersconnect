@@ -116,8 +116,6 @@ class _RecentActivitiesPageState extends State<RecentActivitiesPage> {
     });
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
