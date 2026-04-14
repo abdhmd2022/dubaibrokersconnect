@@ -3340,9 +3340,9 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     );
   }
 
-
   List<Map<String, dynamic>> formattedLocations = [];
 
+/*
   void _prepareLocations(List<dynamic> allLocations) {
     formattedLocations = allLocations.map<Map<String, dynamic>>((loc) {
       final parent = loc['parent'] != null ? loc['parent']['name'] : '';
@@ -3350,9 +3350,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       return {'id': loc['id'], 'label': label};
     }).toList();
   }
-
-
-// ============ CREATE & EDIT REQUIREMENT DIALOGS ============
+*/
 
 
 // ---------------- CREATE DIALOG ----------------
